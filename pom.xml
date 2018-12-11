@@ -8,9 +8,9 @@
     </parent>
     <groupId>org.igniterealtime.openfire.plugins</groupId>
     <artifactId>inverse</artifactId>
-    <name>Inverse Webchat Plugin</name>
-    <version>4.0.4-release-1-SNAPSHOT</version>
-
+    <version>4.0.6-release-1-SNAPSHOT</version>
+    <name>inVerse</name>
+    <description>Adds the (third-party, Converse-based) inVerse web client to Openfire.</description>
     <build>
         <sourceDirectory>src/java</sourceDirectory>
         <plugins>
