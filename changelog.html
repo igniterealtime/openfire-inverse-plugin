@@ -43,7 +43,7 @@
     inVerse Plugin Changelog
 </h1>
 
-<p><b>4.0.6 Release 1</b> -- (tbd)</p>
+<p><b>4.1.0 Release 1</b> -- (tbd)</p>
 <ul>
     <li>[<a href='https://issues.igniterealtime.org/browse/OF-1517'>OF-1517</a>] - Don't require i18n source files for all plugins to be encoded.</li>
     <li>[<a href='https://issues.igniterealtime.org/browse/OF-1641'>OF-1641</a>] - Ensure all JSP pages have the correct contentType.</li>
@@ -51,8 +51,29 @@
     <li><a href="https://issues.igniterealtime.org/browse/OF-1517">OF-1517: Don't require i18n source files for all plugins to be encoded.</a></li>
     <li><a href="https://issues.igniterealtime.org/browse/OF-1629">OF-1636: Add 'fullpage' style sheet.</a>
     <li><a href="https://issues.igniterealtime.org/browse/OF-1629">OF-1629: include missing resources (logos, sounds).</a>
-    <li><a href="https://issues.igniterealtime.org/browse/OF-1653">OF-1653: upgrade to converse.js 4.0.6</a>, which includes these changes:
-      <h4>For Converse 4.0.6 (<a href="https://issues.igniterealtime.org/browse/OF-1653">OF-1653</a>):</h4>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/6">#6: upgrade to converse.js 4.1.0</a>, which includes these changes:
+        <h4>For Converse 4.1.0)</h4>
+        <ul>
+            <li>Bugfix: MUC commands were being ignored</li>
+            <li>Bugfix: Multiple rooms shown active in the rooms list</li>
+            <li>Bugfix: Don't open chats when receiving messages without a body</li>
+            <li>Bugfix: Typing in the textarea can become very slow in large MUCs</li>
+            <li>UI: Always show the OMEMO lock icon (grayed out if not available).</li>
+            <li>Use publish-options with pubsub#access_model set to open when publishing OMEMO public keys and devices</li>
+            <li>Add a new converse-pubsub plugin, for generic PubSub operations</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1180">#1180</a> It's now possible to use OMEMO in a MUC (if it's members-only and non-anonymous)</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1334">#1334</a> Force avatar refetch when receiving vcard-temp:x:update</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1337">#1337</a> send_chat_state_notifications doesn't work in MUCs</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1353">#1353</a> Message Delivery Receipts not working because of the message "type" attribute</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1356">#1356</a> Make triangle icon usable</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1374">#1374</a> Can't load embedded chat when changing view_mode between page reloads</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1376">#1376</a> Fixed some alignment issues in the sidebar</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1378">#1378</a> Message Delivery Receipts were being sent for carbons and own messages</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1379">#1379</a> MUC unread messages indicator is failing</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1382">#1382</a> Message Delivery Receipts: Set store hint and type='chat'</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1388">#1388</a> implement muc-owner command /destroy</li>
+        </ul>
+        <h4>For Converse 4.0.6 (<a href="https://issues.igniterealtime.org/browse/OF-1653">OF-1653</a>):</h4>
         <ul>
             <li>Updated translations: ar, cs, de, es, eu, fr, gl, hu, id, it, ja, nb, pt_BR</li>
             <li>Don't render http (i.e. non-TLS) resources</li>
