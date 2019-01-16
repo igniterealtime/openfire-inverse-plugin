@@ -4,7 +4,7 @@
     <name>${project.name}</name>
     <description>${project.description}</description>
     <author>Guus der Kinderen</author>
-    <version>4.0.6 Release 1</version>
+    <version>${project.version}</version>
     <date>(TBD)</date>
     <minServerVersion>4.1.5</minServerVersion>
     <minJavaVersion>1.8</minJavaVersion>
