@@ -36,6 +36,7 @@ public enum Language
     SimplifiedChinese ("zh_CN"),
     Dutch ("nl"),
     English ("en"),
+    Esperanto ("eo"),
     Flemish ("nl_BE"),
     French ("fr"),
     Galician ("gl"),
