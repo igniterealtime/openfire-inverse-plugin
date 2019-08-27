@@ -43,6 +43,82 @@
     inVerse Plugin Changelog
 </h1>
 
+<p><b>5.0.1 Release 1</b> -- (tbd)</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/17">#17: upgrade to converse.js 5.0.1</a>, which includes these changes:
+        <h4>For Converse 5.0.1:</h4>
+        <ul>
+            <li>Add a new GUI for moderator actions. You can trigger it by entering /modtools in a MUC.</li>
+            <li>Reconnect if the server doesn't respond to a ping within 10 seconds.</li>
+            <li>Don't query for MAM MUC messages before the cached messages have been restored (another cause of duplicate messages).</li>
+            <li>Show an error message and option to retry when fetching of the MAM archive times out</li>
+            <li>Bugfix: TypeError: o.getAttribute is not a function converse-chatview.js (can cause messages to not appear).</li>
+        </ul>
+        <h4>For Converse 5.0.0:</h4>
+        <ul>
+            <li>BOSH support has been moved to a plugin.</li>
+            <li>Support for XEP-0410 to check whether we're still present in a room</li>
+            <li>Initial support for the <a href="https://developer.mozilla.org/en-US/docs/Web/API/CredentialsContainer">CredentialsContainer</a> web API</li>
+            <li>Allow for synchronous events. When a synchronous event is fired, Converse will</li>
+            <li>wait for all promises returned by the event's handlers to finish before continuing.</li>
+            <li>Properly handle message correction being received before the corrected message</li>
+            <li>Groupchat default configuration now supports list-multi fields</li>
+            <li>Bugfix: Don't set muc_domain for roomspanel if locked_muc_domain is true.</li>
+            <li>Bugfix: Modal auto-closes when you open it for a second time.</li>
+            <li>Bugfix: Cannot read property 'parentElement' of null in shadow DOM</li>
+            <li>Take roster nickname into consideration when rendering messages and chat headings.</li>
+            <li>Hide the textarea when a user is muted in a groupchat.</li>
+            <li>Don't restore a BOSH session without knowing the JID</li>
+            <li>In the /help menu, only show allowed commands</li>
+            <li>Message deduplication bugfixes and improvements</li>
+            <li>Continuously retry (in 2s intervals) to fetch login credentials (via <a href="https://conversejs.org/docs/html/configuration.html#credentials-url">credentials_url</a>) in case of failure</li>
+            <li>Replace moment with DayJS.</li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#auto-focus">auto_focus</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#clear-messages-on-reconnection">clear_messages_on_reconnection</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#enable-smacks">enable_smacks</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#message-limit">message_limit</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-fetch-members">muc_fetch_members</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-mention-autocomplete-min-chars">muc_mention_autocomplete_min_chars</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-show-join-leave-status">muc_show_join_leave_status</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#singleton">singleton</a></li>
+            <li>By setting this option to false and view_mode to 'embedded', it's now possible to</li>
+            <li>"embed" the full app and not just a single chat. To embed just a single chat, it's now</li>
+            <li>necessary to explicitly set singleton to true.</li>
+            <li>Re-add the previously removed config option <a href="https://conversejs.org/docs/html/configuration.html#keepalive">keepalive</a></li>
+            <li>New event: <a href="https://conversejs.org/docs/html/api/-_converse.html#event:chatBoxBlurred">chatBoxBlurred</a></li>
+            <li>New event: <a href="https://conversejs.org/docs/html/api/-_converse.html#event:chatReconnected">chatReconnected</a></li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/316">#316</a> Add support for XEP-0198 Stream Management</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1071">#1071</a> x clear cross of same size as text</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1142">#1142</a> Up/down arrow shouldn't erase current message</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1196">#1196</a> Use alternative connection method upon connfail</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1296">#1296</a> embedded view mode shows chatbox-navback arrow in header</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1330">#1330</a> Missing room name in MUC invitation popup</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1445">#1445</a> Participants list uses big font in embedded mode</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1455">#1455</a> Avatar in controlbox status-view not updated</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1465">#1465</a> When highlighting a roster contact, they're incorrectly shown as online</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1476">#1476</a> Support OMEMO on by default for chats via a config variable</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1494">#1494</a> Trim whitespace around messages</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1495">#1495</a> Mentions should always include a URI attribute</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1502">#1502</a> Fatal error when using prebind</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1524">#1524</a> OMEMO libsignal-protocol.js Invalid signature</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1532">#1532</a> Converse reloads on enter pressed in the filter box</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1538">#1538</a> Allow adding self as contact</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1548">#1548</a> Add support for paging through the MAM results when filling in the blanks</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1550">#1550</a> Legitimate carbons being blocked due to erroneous forgery check</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1554">#1554</a> Room auto-configuration broke if the config form contained fields with type fixed</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1558">#1558</a> this.get is not a function error when forward_messages is set to true.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1561">#1561</a> Don't call clear on local or session storage</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1572">#1572</a> In fullscreen view mode the top is cut off on iOS</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1575">#1575</a> MUC invitation autocomplete list doesn't appear</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1576">#1576</a> Converse gets stuck with spinner when logging out with auto_login set to true</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1579">#1579</a> Trim spaces at the beginning and end of a JID (when adding contact)</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1585">#1585</a> Upload files by pasting from clipboard</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1586">#1586</a> Not possible to kick someone with a space in their nickname</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1664">#1664</a> Blacklisting converse-profile makes the control box totally blank</li>
+        </ul>
+    </li>
+</ul>
+
 <p><b>4.2.0 Release 1</b> -- June 25, 2019</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/15">#15: upgrade to converse.js 4.2.0</a>, which includes these changes:

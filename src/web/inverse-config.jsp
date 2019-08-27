@@ -15,20 +15,15 @@
 -->
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ page errorPage="error.jsp" %>
+<%@ page import="org.igniterealtime.openfire.plugin.inverse.InversePlugin" %>
+<%@ page import="org.igniterealtime.openfire.plugin.inverse.Language" %>
 <%@ page import="org.jivesoftware.openfire.XMPPServer" %>
+<%@ page import="org.jivesoftware.openfire.http.HttpBindManager" %>
 <%@ page import="org.jivesoftware.util.CookieUtils" %>
+<%@ page import="org.jivesoftware.util.JiveGlobals" %>
 <%@ page import="org.jivesoftware.util.ParamUtils" %>
 <%@ page import="org.jivesoftware.util.StringUtils" %>
-<%@ page import="org.jivesoftware.util.JiveGlobals" %>
-<%@ page import="java.util.List" %>
-<%@ page import="org.xmpp.packet.JID" %>
-<%@ page import="org.jivesoftware.openfire.muc.MultiUserChatService" %>
-<%@ page import="org.jivesoftware.openfire.muc.MUCRoom" %>
 <%@ page import="java.net.URLEncoder" %>
-<%@ page import="java.net.URLDecoder" %>
-<%@ page import="org.jivesoftware.openfire.http.HttpBindManager" %>
-<%@ page import="org.igniterealtime.openfire.plugin.inverse.Language" %>
-<%@ page import="org.igniterealtime.openfire.plugin.inverse.InversePlugin" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <jsp:useBean id="webManager" class="org.jivesoftware.util.WebManager"  />
