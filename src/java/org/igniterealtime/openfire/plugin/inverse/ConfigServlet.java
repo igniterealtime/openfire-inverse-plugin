@@ -17,12 +17,10 @@ package org.igniterealtime.openfire.plugin.inverse;
 
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.util.JiveGlobals;
-import org.jivesoftware.util.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xmpp.packet.JID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -30,8 +28,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Generates a JSON object that contains configuration for the inVerse web application.
@@ -53,6 +49,15 @@ public class ConfigServlet extends HttpServlet
         final boolean debug = JiveGlobals.getBooleanProperty( "inverse.config.debug", false );
         final boolean playSounds = JiveGlobals.getBooleanProperty( "inverse.config.play_sounds", false );
         //final String viewMode = JiveGlobals.getProperty( "inverse.config.view_mode" );
+
+        final boolean auto_focus = JiveGlobals.getBooleanProperty( "inverse.config.auto_config", true );
+        final boolean clear_messages_on_reconnection = JiveGlobals.getBooleanProperty( "inverse.config.clear_messages_on_reconnection", false );
+        final boolean enable_smacks = JiveGlobals.getBooleanProperty( "inverse.config.enable_smacks", false );
+        final int message_limit = JiveGlobals.getIntProperty( "inverse.config.message_limit", 0 );
+        final boolean muc_fetch_members = JiveGlobals.getBooleanProperty( "inverse.config.muc_fetch_members", true );
+        final int muc_mention_autocomplete_min_chars = JiveGlobals.getIntProperty( "inverse.config.muc_mention_autocomplete_min_chars", 0 );
+        final boolean muc_show_join_leave_status = JiveGlobals.getBooleanProperty( "inverse.config.muc_show_join_leave_status", true );
+        final boolean singleton = JiveGlobals.getBooleanProperty( "inverse.config.singleton", false );
 
         // The language of the inVerse UI.
         final Language language = InversePlugin.getLanguage();
@@ -103,6 +108,15 @@ public class ConfigServlet extends HttpServlet
         config.put( "message_archiving", "always" ); // TODO make configurable.
         config.put( "roster_groups", true ); // TODO make configurable.
         config.put( "show_message_load_animation", false ); // TODO make configurable
+
+        config.put( "auto_focus", auto_focus );
+        config.put( "clear_messages_on_reconnection", clear_messages_on_reconnection );
+        config.put( "enable_smacks", enable_smacks );
+        config.put( "message_limit", message_limit );
+        config.put( "muc_fetch_members", muc_fetch_members );
+        config.put( "muc_mention_autocomplete_min_chars", muc_mention_autocomplete_min_chars );
+        config.put( "muc_show_join_leave_status", muc_show_join_leave_status );
+        config.put( "singleton", singleton );
 
         // inVerse.js requires some hard-coded converse.js configuration options (look in the upstream source of
         // src/converse-inverse.js at the settings in passed into `updateSettings`). We should not allow overrides of
