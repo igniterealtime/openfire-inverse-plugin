@@ -46,9 +46,7 @@ public class InversePlugin implements Plugin
     private static final Logger Log = LoggerFactory.getLogger( InversePlugin.class );
     private final String[] publicResources = new String[]
     {
-        CONTEXT_ROOT + "/inverse",
-        CONTEXT_ROOT + "/index.html",
-        CONTEXT_ROOT + "/config.json"
+        CONTEXT_ROOT
     };
 
     private WebAppContext context = null;
