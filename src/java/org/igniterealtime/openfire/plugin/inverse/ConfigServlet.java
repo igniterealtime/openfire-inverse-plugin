@@ -58,15 +58,16 @@ public class ConfigServlet extends HttpServlet
         final int muc_mention_autocomplete_min_chars = JiveGlobals.getIntProperty( "inverse.config.muc_mention_autocomplete_min_chars", 0 );
         final boolean muc_show_join_leave_status = JiveGlobals.getBooleanProperty( "inverse.config.muc_show_join_leave_status", true );
         final boolean singleton = JiveGlobals.getBooleanProperty( "inverse.config.singleton", false );
+        final String allow_message_corrections = JiveGlobals.getProperty( "inverse.config.allow_message_corrections", "all" );
+        final String assets_path = JiveGlobals.getProperty( "inverse.config.assets_path", "/"+InversePlugin.CONTEXT_ROOT+"/dist/" );
 
         // The language of the inVerse UI.
         final Language language = InversePlugin.getLanguage();
 
         final JSONObject config = new JSONObject();
-        config.put( "locales_url", "/" + InversePlugin.CONTEXT_ROOT + "/inverse/locale/{{{locale}}}/LC_MESSAGES/converse.json" );
-        config.put( "sounds_path", "/" + InversePlugin.CONTEXT_ROOT + "/inverse/sounds/" );
+        config.put( "sounds_path", "/" + InversePlugin.CONTEXT_ROOT + "/dist/sounds/" );
         config.put( "play_sounds", playSounds );
-        config.put( "notification_icon", "/" + InversePlugin.CONTEXT_ROOT + "/inverse/logo/conversejs-filled.svg" );
+        config.put( "notification_icon", "/" + InversePlugin.CONTEXT_ROOT + "/css/images/logo/conversejs-filled.svg" );
         config.put( "auto_away", 300); // TODO make configurable.
         config.put( "notify_all_room_messages", new JSONArray() ); // TODO make configurable.
         config.put( "i18n", language.getCode() );
@@ -117,6 +118,8 @@ public class ConfigServlet extends HttpServlet
         config.put( "muc_mention_autocomplete_min_chars", muc_mention_autocomplete_min_chars );
         config.put( "muc_show_join_leave_status", muc_show_join_leave_status );
         config.put( "singleton", singleton );
+        config.put( "allow_message_corrections", allow_message_corrections );
+        config.put( "assets_path", assets_path );
 
         // inVerse.js requires some hard-coded converse.js configuration options (look in the upstream source of
         // src/converse-inverse.js at the settings in passed into `updateSettings`). We should not allow overrides of

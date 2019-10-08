@@ -43,6 +43,37 @@
     inVerse Plugin Changelog
 </h1>
 
+<p><b>5.0.4 Release 1</b> -- (tbd))</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/19">#19: upgrade to converse.js 5.0.4</a>, which includes these changes:
+        <h4>For Converse 5.0.4:</h4>
+        <ul>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#allow_message_corrections">allow_message_corrections</a> which, if set to last, limits editing of sent messages to the last message sent.</li>
+            <li>Bugfix: Don't treat every duplicate message ID as a message correction; since some clients don't use globally unique ID's this causes false positives.</li>
+            <li>Bugfix: process stanzas from mam one-by-one in order to correctly process message receipts</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1712">#1712</a> TypeError: plugin._features is not a function</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1714">#1714</a> Don't notify the user in case we're receiving a message delivery receipt only</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1739">#1739</a> New config option <a href="https://conversejs.org/docs/html/configuration.html#assets_path">assets_path</a> which lets you set the path from which "chunks" are loaded.</li>
+        </ul>
+        <h4>For Converse 5.0.3:</h4>
+        <ul>
+            <li>Emit chatBoxFocused and chatBoxBlurred events for emoji picker input</li>
+            <li>SECURITY FIX: Reject unencapsulated forwarded messages, since we don't support XEP-0297 on its own</li>
+        </ul>
+        <h4>For Converse 5.0.2:</h4>
+        <ul>
+            <li>po translations files are now loaded via Webpack. As a result the locales_url config option is now removed given that the path to the locale JSON files is now determined by the webpack config and can't be changed at runtime.</li>
+            <li>The JSON representing emojis is now fetched asynchronously as a separate file converse.emojis.js.</li>
+            <li>Webpack is now configured with a publicPath set to /dist/. This is necessary so that chunks (such as the emojis and locales JSON files) can be fetched asynchronously. This means that all your assets need to be served at /dist. If you need to set a different path, you'll need to set publicPath in webpack.config.js to your preferred path and then rebuild all assets (e.g. make dist).</li>
+            <li>Use listenTo to avoid memory leaks when views get removed.</li>
+            <li>SECURITY FIX: Ignore MAM chat messages not sent from yourself</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1692">#1692</a> Bugfix: TypeError: oldest_message is undefined</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1704">#1704</a> SECURITY FIX: Impersonation by misusage of groupchat carbons</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1705">#1705</a> Bugfix: this.roomspanel is undefined after hibernating</li>
+        </ul>
+    </li>
+</ul>
+
 <p><b>5.0.1 Release 1</b> -- August 27, 2019</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/17">#17: upgrade to converse.js 5.0.1</a>, which includes these changes:
