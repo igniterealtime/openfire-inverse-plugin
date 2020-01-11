@@ -43,7 +43,73 @@
     inVerse Plugin Changelog
 </h1>
 
+<<<<<<< HEAD
 <p><b>5.0.5 Release 1</b> -- November 27, 2019</p>
+=======
+<p><b>6.0.0 Release 1</b> -- January 11, 2020</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/24">#24: upgrade to converse.js 6.0.0</a>, which includes these changes:
+        <ul>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#enable-smacks">enable-smacks</a> is not set to true by default.</li>
+            <li>Refactor some presence and status handling code from converse-core into @converse/headless/converse-status.</li>
+            <li>It's now possible to navigate the emoji-picker via the keyboard arrow keys.</li>
+            <li>Add support for <a href="https://xmpp.org/extensions/xep-0045.html#example-196">notifications about affiliation change for users not in a room</a></li>
+            <li>Add support for <a href="https://xmpp.org/extensions/xep-0424.html">XEP-0424 Message Retraction</a></li>
+            <li>Add support for <a href="https://xmpp.org/extensions/xep-0425.html">XEP-0425 Message Moderation</a></li>
+            <li>New API <a href="https://conversejs.org/docs/html/api/-_converse.api.headlines.html#.get">_converse.api.headlines</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#allow-message-retraction">allow_message_retraction</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-show-logs-before-join">muc-show-logs-before-join</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-mention-autocomplete-filter">muc_mention_autocomplete_filter</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-mention-autocomplete-show-avatar">muc_mention_autocomplete_show_avatar</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#persistent-store">persistent_store</a></li>
+            <li>Initial support for sending custom emojis. Currently only between Converse instances. Still working out a wire protocol for compatibility with other clients. To add custom emojis, edit the emojis.json file.</li>
+            <li><a href="https://xmpp.org/extensions/xep-0156.html">#129</a> Add support for <a href="">XEP-0156: Disovering Alternative XMPP Connection Methods</a> Only XML is supported for now.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1105">#1105</a> Support for storing persistent data in IndexedDB</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1253">#1253</a> Show contacts with unread messages at the top of the roster</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1322">#1322</a> Display occupants’ avatars in the occupants list</li>
+            <li><a href="https://github.com/conversejs/converse.js/pull/1640">#1640</a> Add the ability to resize the occupants sidebar in MUCs</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1666">#1666</a> Allow scrolling of the OMEMO fingerprints list</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1691">#1691</a> Fix collection.chatbox is undefined errors</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1767">#1767</a> credentials_url is not called when logging out and then in again</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1764">#1764</a> Incorrect URI encoding in "mention" references</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1772">#1772</a> _converse.api.contact.add(jid, nick) fails, says not a function</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1791">#1791</a> auto_focus set to false is ignored when switching back to a MUC</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1792">#1792</a> Fix: modals don't have scrollbars</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1796">#1796</a> Don't show "back" arrow navigation (on mobile) in the chat header when in singleton mode</li>
+            <li><a href="https://github.com/conversejs/converse.js/pull/1821">#1821</a> Errors caused by malformed URLs are now handled</li>
+        </ul>
+        <h4>Breaking changes</h4>
+        <ul>
+            <li>The debug configuration option has been replaced with loglevel. <a href="https://conversejs.org/docs/html/configuration.html#loglevel">loglevel.</a></li>
+            <li>In contrast to sessionStorage and localStorage, IndexedDB is an asynchronous database. A lot of code that relied on database access to be synchronous had to be updated to work with asynchronous access via promises.</li>
+            <li>In order to add support for XEP-0156, the XMPP connection needs to be created only once we know the JID of the user that's logging in. This means that the connectionInitialized event now fires much later than before. Plugins that rely on connectionInitializedbeing triggered before the user's JID has been provided will need to be updated.</li>
+            <li>The following API methods now return promises:
+                <ul>
+                    <li>_converse.api.chats.get</li>
+                    <li>_converse.api.chats.create</li>
+                    <li>_converse.api.rooms.get</li>
+                    <li>_converse.api.rooms.create</li>
+                    <li>_converse.api.roomviews.close</li>
+                </ul>
+            </li>
+            <li>Changes the events:
+                <ul>
+                    <li>The chatBoxInitialized event now triggers when a _converse.ChatBox (not the view) is opened.</li>
+                    <li>Renamed the old chatBoxInitialized to chatBoxViewInitialized and trigger only for ChatBoxView instances.</li>
+                    <li>Renamed chatRoomOpened event to chatRoomViewInitialized</li>
+                    <li>The order of certain events have now changed: statusInitialized is now triggered after initialized and connected and reconnected.</li>
+                </ul>
+            </li>
+            <li>_converse.api.chats.get() now only returns one-on-one chats, not the control box or headline notifications.</li>
+            <li>The show_only_online_users setting has been removed.</li>
+            <li>_converse.api.alert.show is now _converse.api.show and instead of taking an integer for the type, "info", "warn" or "error" should be passed in.</li>
+            <li>The converse-headline plugin has been split up into converse-headlines and converse-headlines-view.</li>
+        </ul>
+    </li>
+</ul>
+
+<p><b>5.0.5 Release 1</b> -- November 20, 2019</p>
+>>>>>>> #24 update version and changelog
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/21">#21: upgrade to converse.js 5.0.5</a>, which includes these changes:
         <ul>
