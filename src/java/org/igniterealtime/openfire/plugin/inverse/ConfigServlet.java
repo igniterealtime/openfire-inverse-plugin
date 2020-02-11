@@ -46,7 +46,7 @@ public class ConfigServlet extends HttpServlet
         final String defaultDomain = JiveGlobals.getProperty( "inverse.config.default_domain", XMPPServer.getInstance().getServerInfo().getXMPPDomain() );
         final boolean lockedDomain = JiveGlobals.getBooleanProperty( "inverse.config.locked_domain", false );
         final String endpoint = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + "/http-bind/";
-        final boolean debug = JiveGlobals.getBooleanProperty( "inverse.config.debug", false );
+        final String loglevel = JiveGlobals.getProperty( "inverse.config.loglevel", "info" );
         final boolean playSounds = JiveGlobals.getBooleanProperty( "inverse.config.play_sounds", false );
         //final String viewMode = JiveGlobals.getProperty( "inverse.config.view_mode" );
 
@@ -87,7 +87,7 @@ public class ConfigServlet extends HttpServlet
 
         config.put( "domain_placeholder", defaultDomain );
         config.put( "bosh_service_url", endpoint );
-        config.put( "debug", debug );
+        config.put( "loglevel", loglevel );
         config.put( "view_mode", "fullscreen" );
 //        if ( viewMode != null && !viewMode.isEmpty() )
 //        {
