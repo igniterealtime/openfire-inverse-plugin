@@ -86,11 +86,11 @@
             return;
         }
 
-        if ( "debug".equals( update ) )
+        if ( "loglevel".equals( update ) )
         {
-            if ( ParamUtils.getParameter( request, "debugEnabled" ) != null )
+            if ( ParamUtils.getParameter( request, "currentLoglevel" ) != null )
             {
-                JiveGlobals.setProperty( "inverse.config.debug", Boolean.toString( ParamUtils.getBooleanParameter( request, "debugEnabled" ) ) );
+                JiveGlobals.setProperty( "inverse.config.loglevel", URLEncoder.encode( ParamUtils.getParameter( request, "currentLoglevel" ) , "UTF-8" ) );
             }
 
             response.sendRedirect("inverse-config.jsp?success=update");
@@ -103,7 +103,7 @@
     }
 
     // Read all updated values from the properties.
-    final boolean debugEnabled = JiveGlobals.getBooleanProperty( "inverse.config.debug", false );
+    final String currentLoglevel= JiveGlobals.getProperty( "inverse.config.loglevel", "info" );
     final String defaultDomain = JiveGlobals.getProperty( "inverse.config.default_domain", XMPPServer.getInstance().getServerInfo().getXMPPDomain() );
     final boolean lockedDomain = JiveGlobals.getBooleanProperty( "inverse.config.locked_domain", false );
     final String viewMode = JiveGlobals.getProperty( "inverse.config.view_mode", "overlayed" );
@@ -301,34 +301,64 @@
 
 </div>
 
-<div class="jive-contentBoxHeader"><fmt:message key="config.page.debug.header" /></div>
+<div class="jive-contentBoxHeader"><fmt:message key="config.page.loglevel.header" /></div>
 <div class="jive-contentBox">
 
-    <p><fmt:message key="config.page.debug.description" /></p>
+    <p><fmt:message key="config.page.loglevel.description" /></p>
 
     <form action="inverse-config.jsp">
         <input type="hidden" name="csrf" value="${csrf}">
-        <input type="hidden" name="update" value="debug"/>
+        <input type="hidden" name="update" value="loglevel"/>
 
         <table cellpadding="3" cellspacing="0" border="0">
             <tbody>
             <tr valign="top">
                 <td width="1%" nowrap>
-                    <input type="radio" name="debugEnabled" value="true" id="rb01" <%= (debugEnabled ? "checked" : "") %>>
+                    <input type="radio" name="currentLoglevel" value="info" id="rb01" <%= (currentLoglevel == "info" ? "checked" : "") %>>
                 </td>
                 <td width="99%">
                     <label for="rb01">
-                        <b><fmt:message key="config.page.debug.enabled" /></b> - <fmt:message key="config.page.debug.enabled_info" />
+                        <b><fmt:message key="config.page.loglevel.info" /></b> - <fmt:message key="config.page.loglevel.info_info" />
                     </label>
                 </td>
             </tr>
             <tr valign="top">
                 <td width="1%" nowrap>
-                    <input type="radio" name="debugEnabled" value="false" id="rb02" <%= (!debugEnabled ? "checked" : "") %>>
+                    <input type="radio" name="currentLoglevel" value="debug" id="rb02" <%= (currentLoglevel == "debug" ? "checked" : "") %>>
                 </td>
                 <td width="99%">
                     <label for="rb02">
-                        <b><fmt:message key="config.page.debug.disabled" /></b> - <fmt:message key="config.page.debug.disabled_info" />
+                        <b><fmt:message key="config.page.loglevel.debug" /></b> - <fmt:message key="config.page.loglevel.debug_info" />
+                    </label>
+                </td>
+            </tr>
+            <tr valign="top">
+                <td width="1%" nowrap>
+                    <input type="radio" name="currentLoglevel" value="warn" id="rb03" <%= (currentLoglevel == "warn" ? "checked" : "") %>>
+                </td>
+                <td width="99%">
+                    <label for="rb03">
+                        <b><fmt:message key="config.page.loglevel.warn" /></b> - <fmt:message key="config.page.loglevel.warn_info" />
+                    </label>
+                </td>
+            </tr>
+            <tr valign="top">
+                <td width="1%" nowrap>
+                    <input type="radio" name="currentLoglevel" value="error" id="rb04" <%= (currentLoglevel == "error" ? "checked" : "") %>>
+                </td>
+                <td width="99%">
+                    <label for="rb04">
+                        <b><fmt:message key="config.page.loglevel.error" /></b> - <fmt:message key="config.page.loglevel.error_info" />
+                    </label>
+                </td>
+            </tr>
+            <tr valign="top">
+                <td width="1%" nowrap>
+                    <input type="radio" name="currentLoglevel" value="fatal" id="rb05" <%= (currentLoglevel == "fatal" ? "checked" : "") %>>
+                </td>
+                <td width="99%">
+                    <label for="rb05">
+                        <b><fmt:message key="config.page.loglevel.fatal" /></b> - <fmt:message key="config.page.loglevel.fatal_info" />
                     </label>
                 </td>
             </tr>
