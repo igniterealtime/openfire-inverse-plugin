@@ -42,6 +42,26 @@
 <h1>
     inVerse Plugin Changelog
 </h1>
+<p><b>6.0.1 Release 1</b> -- March 13, 2020</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/24">#24: upgrade to converse.js 6.0.1</a>, which includes these changes:
+        <ul>
+            <li>Bugfix. Handle stanza that clears the MUC subject</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1313">#1313</a>: Stylistic improvements to the send button</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1793">#1793</a>: Send button doesn't appear in Firefox in 1:1 chats</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1822">#1822</a>: Don't log error if user has no bookmarks</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1820">#1820</a>: Set focus on jid field after controlbox is loaded</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1823">#1823</a>: New config options 
+                <a href="https://conversejs.org/docs/html/configuration.html#muc-roomid-policy">muc_roomid_policy</a> and 
+                <a href="https://conversejs.org/docs/html/configuration.html#muc-roomid-policy-hint">muc_roomid_policy_hint</a>
+            </li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1826">#1826</a>: A user can now add himself as a contact</li>
+            <li>Note: due to a bug in the webpack config, the webfonts directory isn't copied over from ./sass to ./dist when you build 
+                your own distribution files. As a workaround, you can just copy it over manually.
+                </li>
+        </ul>
+    </li>
+</ul>
 
 <p><b>6.0.0 Release 1</b> -- January 11, 2020</p>
 <ul>
