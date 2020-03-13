@@ -17315,7 +17315,7 @@
 /***/ (function(module, exports, __webpack_require__) {
 
 var escapeHtmlChar = __webpack_require__(448),
-    toString = __webpack_require__(108);
+    toString = __webpack_require__(107);
 
 /** Used to match HTML entities and HTML characters. */
 var reUnescapedHtml = /[&<>"']/g,
@@ -19697,7 +19697,7 @@ return __p
 /* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var freeGlobal = __webpack_require__(67);
+var freeGlobal = __webpack_require__(66);
 
 /** Detect free variable `self`. */
 var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
@@ -21893,1608 +21893,6 @@ module.exports = isObject;
 
 /***/ }),
 /* 11 */
-/***/ (function(module, exports) {
-
-/**
- * Checks if `value` is object-like. A value is object-like if it's not `null`
- * and has a `typeof` result of "object".
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- * @example
- *
- * _.isObjectLike({});
- * // => true
- *
- * _.isObjectLike([1, 2, 3]);
- * // => true
- *
- * _.isObjectLike(_.noop);
- * // => false
- *
- * _.isObjectLike(null);
- * // => false
- */
-function isObjectLike(value) {
-  return value != null && typeof value == 'object';
-}
-
-module.exports = isObjectLike;
-
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// Native Javascript for Bootstrap 4 v2.0.26 | © dnp_theme | MIT-License
-(function (root, factory) {
-  if (true) {
-    // AMD support:
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
-				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
-				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-  } else { var bsn; }
-}(this, function () {
-  
-  /* Native Javascript for Bootstrap 4 | Internal Utility Functions
-  ----------------------------------------------------------------*/
-  "use strict";
-  
-  // globals
-  var globalObject = typeof global !== 'undefined' ? global : this||window,
-    DOC = document, HTML = DOC.documentElement, body = 'body', // allow the library to be used in <head>
-  
-    // Native Javascript for Bootstrap Global Object
-    BSN = globalObject.BSN = {},
-    supports = BSN.supports = [],
-  
-    // function toggle attributes
-    dataToggle    = 'data-toggle',
-    dataDismiss   = 'data-dismiss',
-    dataSpy       = 'data-spy',
-    dataRide      = 'data-ride',
-  
-    // components
-    stringAlert     = 'Alert',
-    stringButton    = 'Button',
-    stringCarousel  = 'Carousel',
-    stringCollapse  = 'Collapse',
-    stringDropdown  = 'Dropdown',
-    stringModal     = 'Modal',
-    stringPopover   = 'Popover',
-    stringScrollSpy = 'ScrollSpy',
-    stringTab       = 'Tab',
-    stringTooltip   = 'Tooltip',
-    stringToast     = 'Toast',
-  
-    // options DATA API
-    dataAutohide      = 'data-autohide',
-    databackdrop      = 'data-backdrop',
-    dataKeyboard      = 'data-keyboard',
-    dataTarget        = 'data-target',
-    dataInterval      = 'data-interval',
-    dataHeight        = 'data-height',
-    dataPause         = 'data-pause',
-    dataTitle         = 'data-title',
-    dataOriginalTitle = 'data-original-title',
-    dataDismissible   = 'data-dismissible',
-    dataTrigger       = 'data-trigger',
-    dataAnimation     = 'data-animation',
-    dataContainer     = 'data-container',
-    dataPlacement     = 'data-placement',
-    dataDelay         = 'data-delay',
-  
-    // option keys
-    backdrop = 'backdrop', keyboard = 'keyboard', delay = 'delay',
-    content = 'content', target = 'target', currentTarget = 'currentTarget',
-    interval = 'interval', pause = 'pause', animation = 'animation',
-    placement = 'placement', container = 'container',
-  
-    // box model
-    offsetTop    = 'offsetTop',      offsetBottom   = 'offsetBottom',
-    offsetLeft   = 'offsetLeft',
-    scrollTop    = 'scrollTop',      scrollLeft     = 'scrollLeft',
-    clientWidth  = 'clientWidth',    clientHeight   = 'clientHeight',
-    offsetWidth  = 'offsetWidth',    offsetHeight   = 'offsetHeight',
-    innerWidth   = 'innerWidth',     innerHeight    = 'innerHeight',
-    scrollHeight = 'scrollHeight',   height         = 'height',
-  
-    // aria
-    ariaExpanded = 'aria-expanded',
-    ariaHidden   = 'aria-hidden',
-    ariaSelected = 'aria-selected',
-  
-    // event names
-    clickEvent    = 'click',
-    hoverEvent    = 'hover',
-    keydownEvent  = 'keydown',
-    keyupEvent    = 'keyup',
-    resizeEvent   = 'resize',
-    scrollEvent   = 'scroll',
-    // originalEvents
-    showEvent     = 'show',
-    shownEvent    = 'shown',
-    hideEvent     = 'hide',
-    hiddenEvent   = 'hidden',
-    closeEvent    = 'close',
-    closedEvent   = 'closed',
-    slidEvent     = 'slid',
-    slideEvent    = 'slide',
-    changeEvent   = 'change',
-  
-    // other
-    getAttribute           = 'getAttribute',
-    setAttribute           = 'setAttribute',
-    hasAttribute           = 'hasAttribute',
-    createElement          = 'createElement',
-    appendChild            = 'appendChild',
-    innerHTML              = 'innerHTML',
-    getElementsByTagName   = 'getElementsByTagName',
-    preventDefault         = 'preventDefault',
-    getBoundingClientRect  = 'getBoundingClientRect',
-    querySelectorAll       = 'querySelectorAll',
-    getElementsByCLASSNAME = 'getElementsByClassName',
-    getComputedStyle       = 'getComputedStyle',  
-  
-    indexOf      = 'indexOf',
-    parentNode   = 'parentNode',
-    length       = 'length',
-    toLowerCase  = 'toLowerCase',
-    Transition   = 'Transition',
-    Duration     = 'Duration',
-    Webkit       = 'Webkit',
-    style        = 'style',
-    push         = 'push',
-    tabindex     = 'tabindex',
-    contains     = 'contains',
-  
-    active     = 'active',
-    showClass  = 'show',
-    collapsing = 'collapsing',
-    disabled   = 'disabled',
-    loading    = 'loading',
-    left       = 'left',
-    right      = 'right',
-    top        = 'top',
-    bottom     = 'bottom',
-  
-    // tooltip / popover
-    mouseHover = ('onmouseleave' in DOC) ? [ 'mouseenter', 'mouseleave'] : [ 'mouseover', 'mouseout' ],
-    tipPositions = /\b(top|bottom|left|right)+/,
-  
-    // modal
-    modalOverlay = 0,
-    fixedTop = 'fixed-top',
-    fixedBottom = 'fixed-bottom',
-  
-    // transitionEnd since 2.0.4
-    supportTransitions = Webkit+Transition in HTML[style] || Transition[toLowerCase]() in HTML[style],
-    transitionEndEvent = Webkit+Transition in HTML[style] ? Webkit[toLowerCase]()+Transition+'End' : Transition[toLowerCase]()+'end',
-    transitionDuration = Webkit+Duration in HTML[style] ? Webkit[toLowerCase]()+Transition+Duration : Transition[toLowerCase]()+Duration,
-  
-    // touch since 2.0.26
-    touchEvents = { start: 'touchstart', end: 'touchend', move:'touchmove' },
-  
-    // set new focus element since 2.0.3
-    setFocus = function(element){
-      element.focus ? element.focus() : element.setActive();
-    },
-  
-    // class manipulation, since 2.0.0 requires polyfill.js
-    addClass = function(element,classNAME) {
-      element.classList.add(classNAME);
-    },
-    removeClass = function(element,classNAME) {
-      element.classList.remove(classNAME);
-    },
-    hasClass = function(element,classNAME){ // since 2.0.0
-      return element.classList[contains](classNAME);
-    },
-  
-    // selection methods
-    getElementsByClassName = function(element,classNAME) { // returns Array
-      return [].slice.call(element[getElementsByCLASSNAME]( classNAME ));
-    },
-    queryElement = function (selector, parent) {
-      var lookUp = parent ? parent : DOC;
-      return typeof selector === 'object' ? selector : lookUp.querySelector(selector);
-    },
-    getClosest = function (element, selector) { //element is the element and selector is for the closest parent element to find
-      // source http://gomakethings.com/climbing-up-and-down-the-dom-tree-with-vanilla-javascript/
-      var firstChar = selector.charAt(0), selectorSubstring = selector.substr(1);
-      if ( firstChar === '.' ) {// If selector is a class
-        for ( ; element && element !== DOC; element = element[parentNode] ) { // Get closest match
-          if ( queryElement(selector,element[parentNode]) !== null && hasClass(element,selectorSubstring) ) { return element; }
-        }
-      } else if ( firstChar === '#' ) { // If selector is an ID
-        for ( ; element && element !== DOC; element = element[parentNode] ) { // Get closest match
-          if ( element.id === selectorSubstring ) { return element; }
-        }
-      }
-      return false;
-    },
-  
-    // event attach jQuery style / trigger  since 1.2.0
-    on = function (element, event, handler) {
-      element.addEventListener(event, handler, false);
-    },
-    off = function(element, event, handler) {
-      element.removeEventListener(event, handler, false);
-    },
-    one = function (element, event, handler) { // one since 2.0.4
-      on(element, event, function handlerWrapper(e){
-        handler(e);
-        off(element, event, handlerWrapper);
-      });
-    },
-    getTransitionDurationFromElement = function(element) {
-      var duration = supportTransitions ? globalObject[getComputedStyle](element)[transitionDuration] : 0;
-      duration = parseFloat(duration);
-      duration = typeof duration === 'number' && !isNaN(duration) ? duration * 1000 : 0;
-      return duration; // we take a short offset to make sure we fire on the next frame after animation
-    },
-    emulateTransitionEnd = function(element,handler){ // emulateTransitionEnd since 2.0.4
-      var called = 0, duration = getTransitionDurationFromElement(element);
-      duration ? one(element, transitionEndEvent, function(e){ !called && handler(e), called = 1; })
-               : setTimeout(function() { !called && handler(), called = 1; }, 17);
-    },
-    bootstrapCustomEvent = function (eventName, componentName, related) {
-      var OriginalCustomEvent = new CustomEvent( eventName + '.bs.' + componentName);
-      OriginalCustomEvent.relatedTarget = related;
-      this.dispatchEvent(OriginalCustomEvent);
-    },
-  
-    // tooltip / popover stuff
-    getScroll = function() { // also Affix and ScrollSpy uses it
-      return {
-        y : globalObject.pageYOffset || HTML[scrollTop],
-        x : globalObject.pageXOffset || HTML[scrollLeft]
-      }
-    },
-    styleTip = function(link,element,position,parent) { // both popovers and tooltips (target,tooltip,placement,elementToAppendTo)
-      var elementDimensions = { w : element[offsetWidth], h: element[offsetHeight] },
-          windowWidth = (HTML[clientWidth] || DOC[body][clientWidth]),
-          windowHeight = (HTML[clientHeight] || DOC[body][clientHeight]),
-          rect = link[getBoundingClientRect](),
-          scroll = parent === DOC[body] ? getScroll() : { x: parent[offsetLeft] + parent[scrollLeft], y: parent[offsetTop] + parent[scrollTop] },
-          linkDimensions = { w: rect[right] - rect[left], h: rect[bottom] - rect[top] },
-          isPopover = hasClass(element,'popover'),
-          topPosition, leftPosition,
-  
-          arrow = queryElement('.arrow',element),
-          arrowTop, arrowLeft, arrowWidth, arrowHeight,
-  
-          halfTopExceed = rect[top] + linkDimensions.h/2 - elementDimensions.h/2 < 0,
-          halfLeftExceed = rect[left] + linkDimensions.w/2 - elementDimensions.w/2 < 0,
-          halfRightExceed = rect[left] + elementDimensions.w/2 + linkDimensions.w/2 >= windowWidth,
-          halfBottomExceed = rect[top] + elementDimensions.h/2 + linkDimensions.h/2 >= windowHeight,
-          topExceed = rect[top] - elementDimensions.h < 0,
-          leftExceed = rect[left] - elementDimensions.w < 0,
-          bottomExceed = rect[top] + elementDimensions.h + linkDimensions.h >= windowHeight,
-          rightExceed = rect[left] + elementDimensions.w + linkDimensions.w >= windowWidth;
-  
-      // recompute position
-      position = (position === left || position === right) && leftExceed && rightExceed ? top : position; // first, when both left and right limits are exceeded, we fall back to top|bottom
-      position = position === top && topExceed ? bottom : position;
-      position = position === bottom && bottomExceed ? top : position;
-      position = position === left && leftExceed ? right : position;
-      position = position === right && rightExceed ? left : position;
-  
-      // update tooltip/popover class
-      element.className[indexOf](position) === -1 && (element.className = element.className.replace(tipPositions,position));
-  
-      // we check the computed width & height and update here
-      arrowWidth = arrow[offsetWidth]; arrowHeight = arrow[offsetHeight];
-  
-      // apply styling to tooltip or popover
-      if ( position === left || position === right ) { // secondary|side positions
-        if ( position === left ) { // LEFT
-          leftPosition = rect[left] + scroll.x - elementDimensions.w - ( isPopover ? arrowWidth : 0 );
-        } else { // RIGHT
-          leftPosition = rect[left] + scroll.x + linkDimensions.w;
-        }
-  
-        // adjust top and arrow
-        if (halfTopExceed) {
-          topPosition = rect[top] + scroll.y;
-          arrowTop = linkDimensions.h/2 - arrowWidth;
-        } else if (halfBottomExceed) {
-          topPosition = rect[top] + scroll.y - elementDimensions.h + linkDimensions.h;
-          arrowTop = elementDimensions.h - linkDimensions.h/2 - arrowWidth;
-        } else {
-          topPosition = rect[top] + scroll.y - elementDimensions.h/2 + linkDimensions.h/2;
-          arrowTop = elementDimensions.h/2 - (isPopover ? arrowHeight*0.9 : arrowHeight/2);
-        }
-      } else if ( position === top || position === bottom ) { // primary|vertical positions
-        if ( position === top) { // TOP
-          topPosition =  rect[top] + scroll.y - elementDimensions.h - ( isPopover ? arrowHeight : 0 );
-        } else { // BOTTOM
-          topPosition = rect[top] + scroll.y + linkDimensions.h;
-        }
-        // adjust left | right and also the arrow
-        if (halfLeftExceed) {
-          leftPosition = 0;
-          arrowLeft = rect[left] + linkDimensions.w/2 - arrowWidth;
-        } else if (halfRightExceed) {
-          leftPosition = windowWidth - elementDimensions.w*1.01;
-          arrowLeft = elementDimensions.w - ( windowWidth - rect[left] ) + linkDimensions.w/2 - arrowWidth/2;
-        } else {
-          leftPosition = rect[left] + scroll.x - elementDimensions.w/2 + linkDimensions.w/2;
-          arrowLeft = elementDimensions.w/2 - arrowWidth/2;
-        }
-      }
-  
-      // apply style to tooltip/popover and its arrow
-      element[style][top] = topPosition + 'px';
-      element[style][left] = leftPosition + 'px';
-  
-      arrowTop && (arrow[style][top] = arrowTop + 'px');
-      arrowLeft && (arrow[style][left] = arrowLeft + 'px');
-    };
-  
-  BSN.version = '2.0.26';
-  
-  /* Native Javascript for Bootstrap 4 | Alert
-  -------------------------------------------*/
-  
-  // ALERT DEFINITION
-  // ================
-  var Alert = function( element ) {
-    
-    // initialization element
-    element = queryElement(element);
-  
-    // bind, target alert, duration and stuff
-    var self = this, component = 'alert',
-      alert = getClosest(element,'.'+component),
-      triggerHandler = function(){ hasClass(alert,'fade') ? emulateTransitionEnd(alert,transitionEndHandler) : transitionEndHandler(); },
-      // handlers
-      clickHandler = function(e){
-        alert = getClosest(e[target],'.'+component);
-        element = queryElement('['+dataDismiss+'="'+component+'"]',alert);
-        element && alert && (element === e[target] || element[contains](e[target])) && self.close();
-      },
-      transitionEndHandler = function(){
-        bootstrapCustomEvent.call(alert, closedEvent, component);
-        off(element, clickEvent, clickHandler); // detach it's listener
-        alert[parentNode].removeChild(alert);
-      };
-    
-    // public method
-    this.close = function() {
-      if ( alert && element && hasClass(alert,showClass) ) {
-        bootstrapCustomEvent.call(alert, closeEvent, component);
-        removeClass(alert,showClass);
-        alert && triggerHandler();
-      }
-    };
-  
-    // init
-    if ( !(stringAlert in element ) ) { // prevent adding event handlers twice
-      on(element, clickEvent, clickHandler);
-    }
-    element[stringAlert] = self;
-  };
-  
-  // ALERT DATA API
-  // ==============
-  supports[push]([stringAlert, Alert, '['+dataDismiss+'="alert"]']);
-  
-  
-  /* Native Javascript for Bootstrap 4 | Button
-  ---------------------------------------------*/
-  
-  // BUTTON DEFINITION
-  // ===================
-  var Button = function( element ) {
-  
-    // initialization element
-    element = queryElement(element);
-  
-    // constant
-    var toggled = false, // toggled makes sure to prevent triggering twice the change.bs.button events
-  
-        // strings
-        component = 'button',
-        checked = 'checked',
-        reset = 'reset',
-        LABEL = 'LABEL',
-        INPUT = 'INPUT',
-  
-      // private methods
-      keyHandler = function(e){ 
-        var key = e.which || e.keyCode;
-        key === 32 && e[target] === DOC.activeElement && toggle(e);
-      },
-      preventScroll = function(e){ 
-        var key = e.which || e.keyCode;
-        key === 32 && e[preventDefault]();
-      },
-      toggle = function(e) {
-        var label = e[target].tagName === LABEL ? e[target] : e[target][parentNode].tagName === LABEL ? e[target][parentNode] : null; // the .btn label
-        
-        if ( !label ) return; //react if a label or its immediate child is clicked
-  
-        var eventTarget = e[target], // the button itself, the target of the handler function
-          labels = getElementsByClassName(eventTarget[parentNode],'btn'), // all the button group buttons
-          input = label[getElementsByTagName](INPUT)[0];
-  
-        if ( !input ) return; //return if no input found
-  
-        // manage the dom manipulation
-        if ( input.type === 'checkbox' ) { //checkboxes
-          if ( !input[checked] ) {
-            addClass(label,active);
-            input[getAttribute](checked);
-            input[setAttribute](checked,checked);
-            input[checked] = true;
-          } else {
-            removeClass(label,active);
-            input[getAttribute](checked);
-            input.removeAttribute(checked);
-            input[checked] = false;
-          }
-  
-          if (!toggled) { // prevent triggering the event twice
-            toggled = true;
-            bootstrapCustomEvent.call(input, changeEvent, component); //trigger the change for the input
-            bootstrapCustomEvent.call(element, changeEvent, component); //trigger the change for the btn-group
-          }
-        }
-  
-        if ( input.type === 'radio' && !toggled ) { // radio buttons
-          if ( !input[checked] ) { // don't trigger if already active
-            addClass(label,active);
-            input[setAttribute](checked,checked);
-            input[checked] = true;
-            bootstrapCustomEvent.call(input, changeEvent, component); //trigger the change for the input
-            bootstrapCustomEvent.call(element, changeEvent, component); //trigger the change for the btn-group
-  
-            toggled = true;
-            for (var i = 0, ll = labels[length]; i<ll; i++) {
-              var otherLabel = labels[i], otherInput = otherLabel[getElementsByTagName](INPUT)[0];
-              if ( otherLabel !== label && hasClass(otherLabel,active) )  {
-                removeClass(otherLabel,active);
-                otherInput.removeAttribute(checked);
-                otherInput[checked] = false;
-                bootstrapCustomEvent.call(otherInput, changeEvent, component); // trigger the change
-              }
-            }
-          }
-        }
-        setTimeout( function() { toggled = false; }, 50 );
-      };
-  
-    // init
-    if ( !( stringButton in element ) ) { // prevent adding event handlers twice
-      on( element, clickEvent, toggle );
-      queryElement('['+tabindex+']',element) && on( element, keyupEvent, keyHandler ), 
-                                                on( element, keydownEvent, preventScroll );    
-    }
-  
-    // activate items on load
-    var labelsToACtivate = getElementsByClassName(element, 'btn'), lbll = labelsToACtivate[length];
-    for (var i=0; i<lbll; i++) {
-      !hasClass(labelsToACtivate[i],active) && queryElement('input:checked',labelsToACtivate[i]) 
-                                            && addClass(labelsToACtivate[i],active);
-    }
-    element[stringButton] = this;
-  };
-  
-  // BUTTON DATA API
-  // =================
-  supports[push]( [ stringButton, Button, '['+dataToggle+'="buttons"]' ] );
-  
-  
-  /* Native Javascript for Bootstrap 4 | Collapse
-  -----------------------------------------------*/
-  
-  // COLLAPSE DEFINITION
-  // ===================
-  var Collapse = function( element, options ) {
-  
-    // initialization element
-    element = queryElement(element);
-  
-    // set options
-    options = options || {};
-  
-    // event targets and constants
-    var accordion = null, collapse = null, self = this, 
-      accordionData = element[getAttribute]('data-parent'),
-      activeCollapse, activeElement,
-  
-      // component strings
-      component = 'collapse',
-      collapsed = 'collapsed',
-      isAnimating = 'isAnimating',
-  
-      // private methods
-      openAction = function(collapseElement,toggle) {
-        bootstrapCustomEvent.call(collapseElement, showEvent, component);
-        collapseElement[isAnimating] = true;
-        addClass(collapseElement,collapsing);
-        removeClass(collapseElement,component);
-        collapseElement[style][height] = collapseElement[scrollHeight] + 'px';
-        
-        emulateTransitionEnd(collapseElement, function() {
-          collapseElement[isAnimating] = false;
-          collapseElement[setAttribute](ariaExpanded,'true');
-          toggle[setAttribute](ariaExpanded,'true');
-          removeClass(collapseElement,collapsing);
-          addClass(collapseElement, component);
-          addClass(collapseElement,showClass);
-          collapseElement[style][height] = '';
-          bootstrapCustomEvent.call(collapseElement, shownEvent, component);
-        });
-      },
-      closeAction = function(collapseElement,toggle) {
-        bootstrapCustomEvent.call(collapseElement, hideEvent, component);
-        collapseElement[isAnimating] = true;
-        collapseElement[style][height] = collapseElement[scrollHeight] + 'px'; // set height first
-        removeClass(collapseElement,component);
-        removeClass(collapseElement,showClass);
-        addClass(collapseElement,collapsing);
-        collapseElement[offsetWidth]; // force reflow to enable transition
-        collapseElement[style][height] = '0px';
-        
-        emulateTransitionEnd(collapseElement, function() {
-          collapseElement[isAnimating] = false;
-          collapseElement[setAttribute](ariaExpanded,'false');
-          toggle[setAttribute](ariaExpanded,'false');
-          removeClass(collapseElement,collapsing);
-          addClass(collapseElement,component);
-          collapseElement[style][height] = '';
-          bootstrapCustomEvent.call(collapseElement, hiddenEvent, component);
-        });
-      },
-      getTarget = function() {
-        var href = element.href && element[getAttribute]('href'),
-          parent = element[getAttribute](dataTarget),
-          id = href || ( parent && parent.charAt(0) === '#' ) && parent;
-        return id && queryElement(id);
-      };
-    
-    // public methods
-    this.toggle = function(e) {
-      e[preventDefault]();
-      if (!hasClass(collapse,showClass)) { self.show(); } 
-      else { self.hide(); }
-    };
-    this.hide = function() {
-      if ( collapse[isAnimating] ) return;    
-      closeAction(collapse,element);
-      addClass(element,collapsed);
-    };
-    this.show = function() {
-      if ( accordion ) {
-        activeCollapse = queryElement('.'+component+'.'+showClass,accordion);
-        activeElement = activeCollapse && (queryElement('['+dataTarget+'="#'+activeCollapse.id+'"]',accordion)
-                      || queryElement('[href="#'+activeCollapse.id+'"]',accordion) );
-      }
-  
-      if ( !collapse[isAnimating] || activeCollapse && !activeCollapse[isAnimating] ) {
-        if ( activeElement && activeCollapse !== collapse ) {
-          closeAction(activeCollapse,activeElement); 
-          addClass(activeElement,collapsed);
-        }
-        openAction(collapse,element);
-        removeClass(element,collapsed);
-      }
-    };
-  
-    // init
-    if ( !(stringCollapse in element ) ) { // prevent adding event handlers twice
-      on(element, clickEvent, self.toggle);
-    }
-    collapse = getTarget();
-    collapse[isAnimating] = false;  // when true it will prevent click handlers  
-    accordion = queryElement(options.parent) || accordionData && getClosest(element, accordionData);
-    element[stringCollapse] = self;
-  };
-  
-  // COLLAPSE DATA API
-  // =================
-  supports[push]( [ stringCollapse, Collapse, '['+dataToggle+'="collapse"]' ] );
-  
-  
-  /* Native Javascript for Bootstrap 4 | Dropdown
-  ----------------------------------------------*/
-  
-  // DROPDOWN DEFINITION
-  // ===================
-  var Dropdown = function( element, option ) {
-      
-    // initialization element
-    element = queryElement(element);
-  
-    // set option
-    this.persist = option === true || element[getAttribute]('data-persist') === 'true' || false;
-  
-    // constants, event targets, strings
-    var self = this, children = 'children',
-      parent = element[parentNode],
-      component = 'dropdown', open = 'open',
-      relatedTarget = null,
-      menu = queryElement('.dropdown-menu', parent),
-      menuItems = (function(){
-        var set = menu[children], newSet = [];
-        for ( var i=0; i<set[length]; i++ ){
-          set[i][children][length] && (set[i][children][0].tagName === 'A' && newSet[push](set[i][children][0]));
-          set[i].tagName === 'A' && newSet[push](set[i]);
-        }
-        return newSet;
-      })(),
-  
-      // preventDefault on empty anchor links
-      preventEmptyAnchor = function(anchor){
-        (anchor.href && anchor.href.slice(-1) === '#' || anchor[parentNode] && anchor[parentNode].href 
-          && anchor[parentNode].href.slice(-1) === '#') && this[preventDefault]();    
-      },
-  
-      // toggle dismissible events
-      toggleDismiss = function(){
-        var type = element[open] ? on : off;
-        type(DOC, clickEvent, dismissHandler); 
-        type(DOC, keydownEvent, preventScroll);
-        type(DOC, keyupEvent, keyHandler);
-      },
-  
-      // handlers
-      dismissHandler = function(e) {
-        var eventTarget = e[target], hasData = eventTarget && (stringDropdown in eventTarget || stringDropdown in eventTarget[parentNode]);
-        if ( (eventTarget === menu || menu[contains](eventTarget)) && (self.persist || hasData) ) { return; }
-        else {
-          relatedTarget = eventTarget === element || element[contains](eventTarget) ? element : null;
-          hide();
-        }
-        preventEmptyAnchor.call(e,eventTarget);
-      },
-      clickHandler = function(e) {
-        relatedTarget = element;
-        show();
-        preventEmptyAnchor.call(e,e[target]);
-      },
-      preventScroll = function(e){
-        var key = e.which || e.keyCode;
-        if( key === 38 || key === 40 ) { e[preventDefault](); }
-      },
-      keyHandler = function(e){
-        var key = e.which || e.keyCode,
-          activeItem = DOC.activeElement,
-          idx = menuItems[indexOf](activeItem),
-          isSameElement = activeItem === element,
-          isInsideMenu = menu[contains](activeItem),
-          isMenuItem = activeItem[parentNode] === menu || activeItem[parentNode][parentNode] === menu;          
-  
-        if ( isMenuItem || isSameElement ) { // navigate up | down
-          idx = isSameElement ? 0 
-                              : key === 38 ? (idx>1?idx-1:0)
-                              : key === 40 ? (idx<menuItems[length]-1?idx+1:idx) : idx;
-          menuItems[idx] && setFocus(menuItems[idx]);
-        }
-        if ( (menuItems[length] && isMenuItem // menu has items
-              || !menuItems[length] && (isInsideMenu || isSameElement)  // menu might be a form
-              || !isInsideMenu ) // or the focused element is not in the menu at all
-              && element[open] && key === 27  // menu must be open
-        ) {
-          self.toggle();
-          relatedTarget = null;
-        }
-      },
-  
-      // private methods
-      show = function() {
-        bootstrapCustomEvent.call(parent, showEvent, component, relatedTarget);
-        addClass(menu,showClass);
-        addClass(parent,showClass);
-        element[setAttribute](ariaExpanded,true);
-        bootstrapCustomEvent.call(parent, shownEvent, component, relatedTarget);
-        element[open] = true;
-        off(element, clickEvent, clickHandler);
-        setTimeout(function(){
-          setFocus( menu[getElementsByTagName]('INPUT')[0] || element ); // focus the first input item | element
-          toggleDismiss();
-        },1);
-      },
-      hide = function() {
-        bootstrapCustomEvent.call(parent, hideEvent, component, relatedTarget);
-        removeClass(menu,showClass);
-        removeClass(parent,showClass);
-        element[setAttribute](ariaExpanded,false);
-        bootstrapCustomEvent.call(parent, hiddenEvent, component, relatedTarget);
-        element[open] = false;
-        toggleDismiss();
-        setFocus(element);
-        setTimeout(function(){ on(element, clickEvent, clickHandler); },1);
-      };
-  
-    // set initial state to closed
-    element[open] = false;
-  
-    // public methods
-    this.toggle = function() {
-      if (hasClass(parent,showClass) && element[open]) { hide(); } 
-      else { show(); }
-    };
-  
-    // init
-    if ( !(stringDropdown in element) ) { // prevent adding event handlers twice
-      !tabindex in menu && menu[setAttribute](tabindex, '0'); // Fix onblur on Chrome | Safari
-      on(element, clickEvent, clickHandler);
-    }
-  
-    element[stringDropdown] = self;
-  };
-  
-  // DROPDOWN DATA API
-  // =================
-  supports[push]( [stringDropdown, Dropdown, '['+dataToggle+'="dropdown"]'] );
-  
-  
-  /* Native Javascript for Bootstrap 4 | Modal
-  -------------------------------------------*/
-  
-  // MODAL DEFINITION
-  // ===============
-  var Modal = function(element, options) { // element can be the modal/triggering button
-  
-    // the modal (both JavaScript / DATA API init) / triggering button element (DATA API)
-    element = queryElement(element);
-  
-      // strings
-      var component = 'modal',
-        staticString = 'static',
-        modalTrigger = 'modalTrigger',
-        paddingRight = 'paddingRight',
-        modalBackdropString = 'modal-backdrop',
-        // determine modal, triggering element
-        btnCheck = element[getAttribute](dataTarget)||element[getAttribute]('href'),
-        checkModal = queryElement( btnCheck ),
-        modal = hasClass(element,component) ? element : checkModal;  
-    
-      if ( hasClass(element, component) ) { element = null; } // modal is now independent of it's triggering element
-  
-    if ( !modal ) { return; } // invalidate
-  
-    // set options
-    options = options || {};
-  
-    this[keyboard] = options[keyboard] === false || modal[getAttribute](dataKeyboard) === 'false' ? false : true;
-    this[backdrop] = options[backdrop] === staticString || modal[getAttribute](databackdrop) === staticString ? staticString : true;
-    this[backdrop] = options[backdrop] === false || modal[getAttribute](databackdrop) === 'false' ? false : this[backdrop];
-    this[content]  = options[content]; // JavaScript only
-  
-    // bind, constants, event targets and other vars
-    var self = this, relatedTarget = null,
-      bodyIsOverflowing, scrollBarWidth, overlay, overlayDelay,
-  
-      // also find fixed-top / fixed-bottom items
-      fixedItems = getElementsByClassName(HTML,fixedTop).concat(getElementsByClassName(HTML,fixedBottom)),
-  
-      // private methods
-      getWindowWidth = function() {
-        var htmlRect = HTML[getBoundingClientRect]();
-        return globalObject[innerWidth] || (htmlRect[right] - Math.abs(htmlRect[left]));
-      },
-      setScrollbar = function () {
-        var bodyStyle = globalObject[getComputedStyle](DOC[body]),
-            bodyPad = parseInt((bodyStyle[paddingRight]), 10), itemPad;
-        if (bodyIsOverflowing) {
-          DOC[body][style][paddingRight] = (bodyPad + scrollBarWidth) + 'px';
-          modal[style][paddingRight] = scrollBarWidth+'px';
-          if (fixedItems[length]){
-            for (var i = 0; i < fixedItems[length]; i++) {
-              itemPad = globalObject[getComputedStyle](fixedItems[i])[paddingRight];
-              fixedItems[i][style][paddingRight] = ( parseInt(itemPad) + scrollBarWidth) + 'px';
-            }
-          }
-        }
-      },
-      resetScrollbar = function () {
-        DOC[body][style][paddingRight] = '';
-        modal[style][paddingRight] = '';
-        if (fixedItems[length]){
-          for (var i = 0; i < fixedItems[length]; i++) {
-            fixedItems[i][style][paddingRight] = '';
-          }
-        }
-      },
-      measureScrollbar = function () { // thx walsh
-        var scrollDiv = DOC[createElement]('div'), widthValue;
-        scrollDiv.className = component+'-scrollbar-measure'; // this is here to stay
-        DOC[body][appendChild](scrollDiv);
-        widthValue = scrollDiv[offsetWidth] - scrollDiv[clientWidth];
-        DOC[body].removeChild(scrollDiv);
-        return widthValue;
-      },
-      checkScrollbar = function () {
-        bodyIsOverflowing = DOC[body][clientWidth] < getWindowWidth();
-        scrollBarWidth = measureScrollbar();
-      },
-      createOverlay = function() {
-        modalOverlay = 1;        
-        
-        var newOverlay = DOC[createElement]('div');
-        overlay = queryElement('.'+modalBackdropString);
-  
-        if ( overlay === null ) {
-          newOverlay[setAttribute]('class',modalBackdropString+' fade');
-          overlay = newOverlay;
-          DOC[body][appendChild](overlay);
-        }
-      },
-      removeOverlay = function() {
-        overlay = queryElement('.'+modalBackdropString);
-        if ( overlay && overlay !== null && typeof overlay === 'object' ) {
-          modalOverlay = 0;        
-          DOC[body].removeChild(overlay); overlay = null;
-        }
-        bootstrapCustomEvent.call(modal, hiddenEvent, component);      
-      },
-      keydownHandlerToggle = function() {
-        if (hasClass(modal,showClass)) {
-          on(DOC, keydownEvent, keyHandler);
-        } else {
-          off(DOC, keydownEvent, keyHandler);
-        }
-      },
-      resizeHandlerToggle = function() {
-        if (hasClass(modal,showClass)) {
-          on(globalObject, resizeEvent, self.update);
-        } else {
-          off(globalObject, resizeEvent, self.update);
-        }
-      },
-      dismissHandlerToggle = function() {
-        if (hasClass(modal,showClass)) {
-          on(modal, clickEvent, dismissHandler);
-        } else {
-          off(modal, clickEvent, dismissHandler);
-        }
-      },
-      // triggers
-      triggerShow = function() {
-        resizeHandlerToggle();
-        dismissHandlerToggle();
-        keydownHandlerToggle();
-        setFocus(modal);
-        bootstrapCustomEvent.call(modal, shownEvent, component, relatedTarget);
-      },
-      triggerHide = function() {
-        modal[style].display = '';
-        element && (setFocus(element));
-        
-        (function(){
-          if (!getElementsByClassName(DOC,component+' '+showClass)[0]) {
-            resetScrollbar();
-            removeClass(DOC[body],component+'-open');
-            overlay && hasClass(overlay,'fade') ? (removeClass(overlay,showClass), emulateTransitionEnd(overlay,removeOverlay)) 
-            : removeOverlay();
-  
-            resizeHandlerToggle();
-            dismissHandlerToggle();
-            keydownHandlerToggle();
-          }
-        }());
-      },
-      // handlers
-      clickHandler = function(e) {
-        var clickTarget = e[target];
-        clickTarget = clickTarget[hasAttribute](dataTarget) || clickTarget[hasAttribute]('href') ? clickTarget : clickTarget[parentNode];
-        if ( clickTarget === element && !hasClass(modal,showClass) ) {
-          modal[modalTrigger] = element;
-          relatedTarget = element;
-          self.show();
-          e[preventDefault]();
-        }
-      },
-      keyHandler = function(e) {
-        if (self[keyboard] && e.which == 27 && hasClass(modal,showClass)) {
-          self.hide();
-        }
-      },
-      dismissHandler = function(e) {
-        var clickTarget = e[target];
-        if ( hasClass(modal,showClass) && (clickTarget[parentNode][getAttribute](dataDismiss) === component
-            || clickTarget[getAttribute](dataDismiss) === component
-            || (clickTarget === modal && self[backdrop] !== staticString) ) ) {
-          self.hide(); relatedTarget = null;
-          e[preventDefault]();
-        }
-      };
-  
-    // public methods
-    this.toggle = function() {
-      if ( hasClass(modal,showClass) ) {this.hide();} else {this.show();}
-    };
-    this.show = function() {
-      bootstrapCustomEvent.call(modal, showEvent, component, relatedTarget);
-  
-      // we elegantly hide any opened modal
-      var currentOpen = getElementsByClassName(DOC,component+' '+showClass)[0];
-      if (currentOpen && currentOpen !== modal) {
-        modalTrigger in currentOpen && currentOpen[modalTrigger][stringModal].hide();
-        stringModal in currentOpen && currentOpen[stringModal].hide();
-      }
-  
-      if ( this[backdrop] ) {
-        !modalOverlay && createOverlay();
-      }
-  
-      if ( overlay && modalOverlay && !hasClass(overlay,showClass)) {
-        overlay[offsetWidth]; // force reflow to enable trasition
-        overlayDelay = getTransitionDurationFromElement(overlay);              
-        addClass(overlay, showClass);
-      }
-  
-      setTimeout( function() {
-        modal[style].display = 'block';
-  
-        checkScrollbar();
-        setScrollbar();
-  
-        addClass(DOC[body],component+'-open');
-        addClass(modal,showClass);
-        modal[setAttribute](ariaHidden, false);
-  
-        hasClass(modal,'fade') ? emulateTransitionEnd(modal, triggerShow) : triggerShow();
-      }, supportTransitions && overlay ? overlayDelay : 0);
-    };
-    this.hide = function() {
-      bootstrapCustomEvent.call(modal, hideEvent, component);
-      overlay = queryElement('.'+modalBackdropString);
-      overlayDelay = overlay && getTransitionDurationFromElement(overlay);    
-  
-      removeClass(modal,showClass);
-      modal[setAttribute](ariaHidden, true);
-  
-      setTimeout(function(){
-        hasClass(modal,'fade') ? emulateTransitionEnd(modal, triggerHide) : triggerHide();
-      }, supportTransitions && overlay ? overlayDelay : 0);
-    };
-    this.setContent = function( content ) {
-      queryElement('.'+component+'-content',modal)[innerHTML] = content;
-    };
-    this.update = function() {
-      if (hasClass(modal,showClass)) {
-        checkScrollbar();
-        setScrollbar();
-      }
-    };
-  
-    // init
-    // prevent adding event handlers over and over
-    // modal is independent of a triggering element
-    if ( !!element && !(stringModal in element) ) {
-      on(element, clickEvent, clickHandler);
-    }
-    if ( !!self[content] ) { self.setContent( self[content] ); }
-    if (element) { element[stringModal] = self; modal[modalTrigger] = element; }
-    else { modal[stringModal] = self; }
-  };
-  
-  // DATA API
-  supports[push]( [ stringModal, Modal, '['+dataToggle+'="modal"]' ] );
-  
-  /* Native Javascript for Bootstrap 4 | Popover
-  ----------------------------------------------*/
-  
-  // POPOVER DEFINITION
-  // ==================
-  var Popover = function( element, options ) {
-  
-    // initialization element
-    element = queryElement(element);
-  
-    // set options
-    options = options || {};
-  
-    // DATA API
-    var triggerData = element[getAttribute](dataTrigger), // click / hover / focus
-        animationData = element[getAttribute](dataAnimation), // true / false
-        placementData = element[getAttribute](dataPlacement),
-        dismissibleData = element[getAttribute](dataDismissible),
-        delayData = element[getAttribute](dataDelay),
-        containerData = element[getAttribute](dataContainer),
-  
-        // internal strings
-        component = 'popover',
-        template = 'template',
-        trigger = 'trigger',
-        classString = 'class',
-        div = 'div',
-        fade = 'fade',
-        dataContent = 'data-content',
-        dismissible = 'dismissible',
-        closeBtn = '<button type="button" class="close">×</button>',
-  
-        // check container
-        containerElement = queryElement(options[container]),
-        containerDataElement = queryElement(containerData),       
-        
-        // maybe the element is inside a modal
-        modal = getClosest(element,'.modal'),
-        
-        // maybe the element is inside a fixed navbar
-        navbarFixedTop = getClosest(element,'.'+fixedTop),
-        navbarFixedBottom = getClosest(element,'.'+fixedBottom);
-  
-    // set instance options
-    this[template] = options[template] ? options[template] : null; // JavaScript only
-    this[trigger] = options[trigger] ? options[trigger] : triggerData || hoverEvent;
-    this[animation] = options[animation] && options[animation] !== fade ? options[animation] : animationData || fade;
-    this[placement] = options[placement] ? options[placement] : placementData || top;
-    this[delay] = parseInt(options[delay] || delayData) || 200;
-    this[dismissible] = options[dismissible] || dismissibleData === 'true' ? true : false;
-    this[container] = containerElement ? containerElement 
-                    : containerDataElement ? containerDataElement 
-                    : navbarFixedTop ? navbarFixedTop
-                    : navbarFixedBottom ? navbarFixedBottom
-                    : modal ? modal : DOC[body];
-    
-    // bind, content
-    var self = this, 
-      titleString = element[getAttribute](dataTitle) || null,
-      contentString = element[getAttribute](dataContent) || null;
-  
-    if ( !contentString && !this[template] ) return; // invalidate
-  
-    // constants, vars
-    var popover = null, timer = 0, placementSetting = this[placement],
-      
-      // handlers
-      dismissibleHandler = function(e) {
-        if (popover !== null && e[target] === queryElement('.close',popover)) {
-          self.hide();
-        }
-      },
-  
-      // private methods
-      removePopover = function() {
-        self[container].removeChild(popover);
-        timer = null; popover = null; 
-      },
-      createPopover = function() {
-        titleString = options.title || element[getAttribute](dataTitle) || null,
-        contentString = options.content || element[getAttribute](dataContent) || null;
-  
-        popover = DOC[createElement](div);
-  
-        // popover arrow
-        var popoverArrow = DOC[createElement](div);
-        popoverArrow[setAttribute](classString,'arrow');
-        popover[appendChild](popoverArrow);
-  
-        if ( contentString !== null && self[template] === null ) { //create the popover from data attributes
-  
-          popover[setAttribute]('role','tooltip');
-  
-          if (titleString !== null) {
-            var popoverTitle = DOC[createElement]('h3');
-            popoverTitle[setAttribute](classString,component+'-header');
-  
-            popoverTitle[innerHTML] = self[dismissible] ? titleString + closeBtn : titleString;
-            popover[appendChild](popoverTitle);
-          }
-  
-          //set popover content
-          var popoverContent = DOC[createElement](div);
-          popoverContent[setAttribute](classString,component+'-body');
-          popoverContent[innerHTML] = self[dismissible] && titleString === null ? contentString + closeBtn : contentString;
-          popover[appendChild](popoverContent);
-  
-        } else {  // or create the popover from template
-          var popoverTemplate = DOC[createElement](div);
-          popoverTemplate[innerHTML] = self[template];
-          popover[innerHTML] = popoverTemplate.firstChild[innerHTML];
-        }
-  
-        //append to the container
-        self[container][appendChild](popover);
-        popover[style].display = 'block';
-        popover[setAttribute](classString, component+ ' bs-' + component+'-'+placementSetting + ' ' + self[animation]);
-      },
-      showPopover = function () {
-        !hasClass(popover,showClass) && ( addClass(popover,showClass) );
-      },
-      updatePopover = function() {
-        styleTip(element,popover,placementSetting,self[container]);
-      },
-  
-      // event toggle
-      dismissHandlerToggle = function(type){
-        if (clickEvent == self[trigger] || 'focus' == self[trigger]) {
-          !self[dismissible] && type( element, 'blur', self.hide );
-        }
-        self[dismissible] && type( DOC, clickEvent, dismissibleHandler );     
-        type( globalObject, resizeEvent, self.hide );
-      },
-  
-      // triggers
-      showTrigger = function() {
-        dismissHandlerToggle(on);
-        bootstrapCustomEvent.call(element, shownEvent, component);
-      },
-      hideTrigger = function() {
-        dismissHandlerToggle(off);
-        removePopover();
-        bootstrapCustomEvent.call(element, hiddenEvent, component);
-      };
-  
-    // public methods / handlers
-    this.toggle = function() {
-      if (popover === null) { self.show(); } 
-      else { self.hide(); }
-    };
-    this.show = function() {
-      clearTimeout(timer);
-      timer = setTimeout( function() {
-        if (popover === null) {
-          placementSetting = self[placement]; // we reset placement in all cases
-          createPopover();
-          updatePopover();
-          showPopover();
-          bootstrapCustomEvent.call(element, showEvent, component);
-          !!self[animation] ? emulateTransitionEnd(popover, showTrigger) : showTrigger();
-        }
-      }, 20 );
-    };
-    this.hide = function() {
-      clearTimeout(timer);
-      timer = setTimeout( function() {
-        if (popover && popover !== null && hasClass(popover,showClass)) {
-          bootstrapCustomEvent.call(element, hideEvent, component);
-          removeClass(popover,showClass);
-          !!self[animation] ? emulateTransitionEnd(popover, hideTrigger) : hideTrigger();
-        }
-      }, self[delay] );
-    };
-  
-    // init
-    if ( !(stringPopover in element) ) { // prevent adding event handlers twice
-      if (self[trigger] === hoverEvent) {
-        on( element, mouseHover[0], self.show );
-        if (!self[dismissible]) { on( element, mouseHover[1], self.hide ); }
-      } else if (clickEvent == self[trigger] || 'focus' == self[trigger]) {
-        on( element, self[trigger], self.toggle );
-      }
-    }
-    element[stringPopover] = self;
-  };
-  
-  // POPOVER DATA API
-  // ================
-  supports[push]( [ stringPopover, Popover, '['+dataToggle+'="popover"]' ] );
-  
-  
-  /* Native Javascript for Bootstrap 4 | Tab
-  -----------------------------------------*/
-  
-  // TAB DEFINITION
-  // ==============
-  var Tab = function( element, options ) {
-  
-    // initialization element
-    element = queryElement(element);
-  
-    // DATA API
-    var heightData = element[getAttribute](dataHeight),
-      
-        // strings
-        component = 'tab', height = 'height', float = 'float', isAnimating = 'isAnimating';
-        
-    // set options
-    options = options || {};
-    this[height] = supportTransitions ? (options[height] || heightData === 'true') : false;
-  
-    // bind, event targets
-    var self = this, next,
-      tabs = getClosest(element,'.nav'),
-      tabsContentContainer = false,
-      dropdown = tabs && queryElement('.dropdown-toggle',tabs),
-      activeTab, activeContent, nextContent, containerHeight, equalContents, nextHeight,
-      
-      // trigger
-      triggerEnd = function(){
-        tabsContentContainer[style][height] = '';
-        removeClass(tabsContentContainer,collapsing);
-        tabs[isAnimating] = false;
-      },
-      triggerShow = function() {
-        if (tabsContentContainer) { // height animation
-          if ( equalContents ) {
-            triggerEnd();
-          } else {
-            setTimeout(function(){ // enables height animation
-              tabsContentContainer[style][height] = nextHeight + 'px'; // height animation
-              tabsContentContainer[offsetWidth];
-              emulateTransitionEnd(tabsContentContainer, triggerEnd);
-            },50);
-          }
-        } else {
-          tabs[isAnimating] = false; 
-        }
-        bootstrapCustomEvent.call(next, shownEvent, component, activeTab);
-      },
-      triggerHide = function() {
-        if (tabsContentContainer) {
-          activeContent[style][float] = left;
-          nextContent[style][float] = left;        
-          containerHeight = activeContent[scrollHeight];
-        }
-          
-        addClass(nextContent,active);
-        bootstrapCustomEvent.call(next, showEvent, component, activeTab);
-  
-        removeClass(activeContent,active);
-        bootstrapCustomEvent.call(activeTab, hiddenEvent, component, next);
-        
-        if (tabsContentContainer) {
-          nextHeight = nextContent[scrollHeight];
-          equalContents = nextHeight === containerHeight;
-          addClass(tabsContentContainer,collapsing);
-          tabsContentContainer[style][height] = containerHeight + 'px'; // height animation
-          tabsContentContainer[offsetHeight];
-          activeContent[style][float] = '';
-          nextContent[style][float] = '';
-        }
-  
-        if ( hasClass(nextContent, 'fade') ) {
-          setTimeout(function(){
-            addClass(nextContent,showClass);
-            emulateTransitionEnd(nextContent,triggerShow);
-          },20);
-        } else { triggerShow(); }        
-      };
-  
-    if (!tabs) return; // invalidate
-  
-    // set default animation state
-    tabs[isAnimating] = false;    
-          
-    // private methods
-    var getActiveTab = function() {
-        var activeTabs = getElementsByClassName(tabs,active), activeTab;
-        if ( activeTabs[length] === 1 && !hasClass(activeTabs[0][parentNode],'dropdown') ) {
-          activeTab = activeTabs[0];
-        } else if ( activeTabs[length] > 1 ) {
-          activeTab = activeTabs[activeTabs[length]-1];
-        }
-        return activeTab;
-      },
-      getActiveContent = function() {
-        return queryElement(getActiveTab()[getAttribute]('href'));
-      },
-      // handler 
-      clickHandler = function(e) {
-        e[preventDefault]();
-        next = e[currentTarget];
-        !tabs[isAnimating] && !hasClass(next,active) && self.show();
-      };
-  
-    // public method
-    this.show = function() { // the tab we clicked is now the next tab
-      next = next || element;
-      nextContent = queryElement(next[getAttribute]('href')); //this is the actual object, the next tab content to activate
-      activeTab = getActiveTab(); 
-      activeContent = getActiveContent();
-      
-      tabs[isAnimating] = true;
-      removeClass(activeTab,active);
-      activeTab[setAttribute](ariaSelected,'false');
-      addClass(next,active);
-      next[setAttribute](ariaSelected,'true');    
-  
-      if ( dropdown ) {
-        if ( !hasClass(element[parentNode],'dropdown-menu') ) {
-          if (hasClass(dropdown,active)) removeClass(dropdown,active);
-        } else {
-          if (!hasClass(dropdown,active)) addClass(dropdown,active);
-        }
-      }
-      
-      bootstrapCustomEvent.call(activeTab, hideEvent, component, next);
-  
-      if (hasClass(activeContent, 'fade')) {
-        removeClass(activeContent,showClass);
-        emulateTransitionEnd(activeContent, triggerHide);
-      } else { triggerHide(); }
-    };
-  
-    // init
-    if ( !(stringTab in element) ) { // prevent adding event handlers twice
-      on(element, clickEvent, clickHandler);
-    }
-    if (self[height]) { tabsContentContainer = getActiveContent()[parentNode]; }
-    element[stringTab] = self;
-  };
-  
-  // TAB DATA API
-  // ============
-  supports[push]( [ stringTab, Tab, '['+dataToggle+'="tab"]' ] );
-  
-  
-  /* Native Javascript for Bootstrap 4 | Toast
-  ---------------------------------------------*/
-  
-  // TOAST DEFINITION
-  // ==================
-  var Toast = function( element,options ) {
-  
-    // initialization element
-    element = queryElement(element);
-  
-    // set options
-    options = options || {};
-  
-    // DATA API
-    var animationData = element[getAttribute](dataAnimation),
-        autohideData = element[getAttribute](dataAutohide),
-        delayData = element[getAttribute](dataDelay),
-        
-        // strings
-        component = 'toast',
-        autohide = 'autohide',
-        animation = 'animation',
-        showing = 'showing',
-        hide = 'hide',
-        fade = 'fade';
-  
-    // set instance options
-    this[animation] = options[animation] === false || animationData === 'false' ? 0 : 1; // true by default
-    this[autohide] = options[autohide] === false || autohideData === 'false' ? 0 : 1; // true by default
-    this[delay] = parseInt(options[delay] || delayData) || 500; // 500ms default
-  
-    // bind,toast and timer
-    var self = this, timer = 0,
-        // get the toast element
-        toast = getClosest(element,'.toast');
-  
-    // private methods
-    // animation complete
-    var showComplete = function() {
-        removeClass( toast, showing );
-        addClass( toast, showClass );
-        bootstrapCustomEvent.call(toast, shownEvent, component);
-        if (self[autohide]) { self.hide(); }
-      },
-      hideComplete = function() {
-        addClass( toast, hide );
-        bootstrapCustomEvent.call(toast, hiddenEvent, component);
-      },
-      close = function() {
-        removeClass( toast,showClass );
-        self[animation] ? emulateTransitionEnd(toast, hideComplete) : hideComplete();
-      },
-      disposeComplete = function(){
-        clearTimeout(timer); timer = null;
-        addClass( toast, hide );
-        off(element, clickEvent, self.hide);
-        element[stringToast] = null;
-        element = null;
-        toast = null;
-      };
-  
-    // public methods
-    this.show = function() {
-      if (toast) {
-        bootstrapCustomEvent.call(toast, showEvent, component);
-        self[animation] && addClass( toast,fade );
-        removeClass( toast,hide );
-        addClass( toast,showing );
-  
-        self[animation] ? emulateTransitionEnd(toast, showComplete) : showComplete();
-      }
-    };
-    this.hide = function(noTimer) {
-      if (toast && hasClass(toast,showClass)) {
-        bootstrapCustomEvent.call(toast, hideEvent, component);
-  
-        if (noTimer) {
-          close();
-        } else {
-          timer = setTimeout( close, self[delay]);
-        }
-      }
-    };
-    this.dispose = function() {
-      if ( toast && hasClass(toast,showClass) ) {
-        removeClass( toast,showClass );
-        self[animation] ? emulateTransitionEnd(toast, disposeComplete) : disposeComplete();
-      }
-    };
-  
-    // init
-    if ( !(stringToast in element) ) { // prevent adding event handlers twice
-      on(element, clickEvent, self.hide);
-    }
-    element[stringToast] = self;
-  };
-  
-  // TOAST DATA API
-  // =================
-  supports[push]( [ stringToast, Toast, '['+dataDismiss+'="toast"]' ] );
-  
-  
-  /* Native Javascript for Bootstrap 4 | Tooltip
-  ---------------------------------------------*/
-  
-  // TOOLTIP DEFINITION
-  // ==================
-  var Tooltip = function( element,options ) {
-  
-    // initialization element
-    element = queryElement(element);
-  
-    // set options
-    options = options || {};
-  
-    // DATA API
-    var animationData = element[getAttribute](dataAnimation),
-        placementData = element[getAttribute](dataPlacement),
-        delayData = element[getAttribute](dataDelay),
-        containerData = element[getAttribute](dataContainer),
-        
-        // strings
-        component = 'tooltip',
-        classString = 'class',
-        title = 'title',
-        fade = 'fade',
-        div = 'div',
-  
-        // check container
-        containerElement = queryElement(options[container]),
-        containerDataElement = queryElement(containerData),      
-  
-        // maybe the element is inside a modal
-        modal = getClosest(element,'.modal'),
-        
-        // maybe the element is inside a fixed navbar
-        navbarFixedTop = getClosest(element,'.'+fixedTop),
-        navbarFixedBottom = getClosest(element,'.'+fixedBottom);
-  
-    // set instance options
-    this[animation] = options[animation] && options[animation] !== fade ? options[animation] : animationData || fade;
-    this[placement] = options[placement] ? options[placement] : placementData || top;
-    this[delay] = parseInt(options[delay] || delayData) || 200;
-    this[container] = containerElement ? containerElement 
-                    : containerDataElement ? containerDataElement
-                    : navbarFixedTop ? navbarFixedTop
-                    : navbarFixedBottom ? navbarFixedBottom
-                    : modal ? modal : DOC[body];
-  
-    // bind, event targets, title and constants
-    var self = this, timer = 0, placementSetting = this[placement], tooltip = null,
-      titleString = element[getAttribute](title) || element[getAttribute](dataTitle) || element[getAttribute](dataOriginalTitle);
-  
-    if ( !titleString || titleString == "" ) return; // invalidate
-  
-    // private methods
-    var removeToolTip = function() {
-        self[container].removeChild(tooltip);
-        tooltip = null; timer = null;
-      },
-      createToolTip = function() {
-        titleString = element[getAttribute](title) || element[getAttribute](dataTitle) || element[getAttribute](dataOriginalTitle); // read the title again
-        if ( !titleString || titleString == "" ) return false; // invalidate
-        tooltip = DOC[createElement](div);
-        tooltip[setAttribute]('role',component);
-  
-        // tooltip arrow
-        var tooltipArrow = DOC[createElement](div);
-        tooltipArrow[setAttribute](classString,'arrow');
-        tooltip[appendChild](tooltipArrow);
-    
-        var tooltipInner = DOC[createElement](div);
-        tooltipInner[setAttribute](classString,component+'-inner');
-        tooltip[appendChild](tooltipInner);
-        tooltipInner[innerHTML] = titleString;
-  
-        self[container][appendChild](tooltip);
-        tooltip[setAttribute](classString, component + ' bs-' + component+'-'+placementSetting + ' ' + self[animation]);
-      },
-      updateTooltip = function () {
-        styleTip(element,tooltip,placementSetting,self[container]);
-      },
-      showTooltip = function () {
-        !hasClass(tooltip,showClass) && ( addClass(tooltip,showClass) );
-      },
-      // triggers
-      showTrigger = function() {
-        on( globalObject, resizeEvent, self.hide );
-        bootstrapCustomEvent.call(element, shownEvent, component);
-      },
-      hideTrigger = function() {
-        off( globalObject, resizeEvent, self.hide );
-        removeToolTip();
-        bootstrapCustomEvent.call(element, hiddenEvent, component);
-      };
-  
-    // public methods
-    this.show = function() {
-      clearTimeout(timer);
-      timer = setTimeout( function() {
-        if (tooltip === null) {
-          placementSetting = self[placement]; // we reset placement in all cases
-          if(createToolTip() == false) return;
-          updateTooltip();
-          showTooltip();
-          bootstrapCustomEvent.call(element, showEvent, component);
-          !!self[animation] ? emulateTransitionEnd(tooltip, showTrigger) : showTrigger();
-        }
-      }, 20 );
-    };
-    this.hide = function() {
-      clearTimeout(timer);
-      timer = setTimeout( function() {
-        if (tooltip && hasClass(tooltip,showClass)) {
-          bootstrapCustomEvent.call(element, hideEvent, component);
-          removeClass(tooltip,showClass);
-          !!self[animation] ? emulateTransitionEnd(tooltip, hideTrigger) : hideTrigger();
-        }
-      }, self[delay]);
-    };
-    this.toggle = function() {
-      if (!tooltip) { self.show(); } 
-      else { self.hide(); }
-    };
-  
-    // init
-    if ( !(stringTooltip in element) ) { // prevent adding event handlers twice
-      element[setAttribute](dataOriginalTitle,titleString);
-      element.removeAttribute(title);
-      on(element, mouseHover[0], self.show);
-      on(element, mouseHover[1], self.hide);
-    }
-    element[stringTooltip] = self;
-  };
-  
-  // TOOLTIP DATA API
-  // =================
-  supports[push]( [ stringTooltip, Tooltip, '['+dataToggle+'="tooltip"]' ] );
-  
-  
-  
-  /* Native Javascript for Bootstrap | Initialize Data API
-  --------------------------------------------------------*/
-  var initializeDataAPI = function( constructor, collection ){
-      for (var i=0, l=collection[length]; i<l; i++) {
-        new constructor(collection[i]);
-      }
-    },
-    initCallback = BSN.initCallback = function(lookUp){
-      lookUp = lookUp || DOC;
-      for (var i=0, l=supports[length]; i<l; i++) {
-        initializeDataAPI( supports[i][1], lookUp[querySelectorAll] (supports[i][2]) );
-      }
-    };
-  
-  // bulk initialize all components
-  DOC[body] ? initCallback() : on( DOC, 'DOMContentLoaded', function(){ initCallback(); } );
-  
-  return {
-    Alert: Alert,
-    Button: Button,
-    Collapse: Collapse,
-    Dropdown: Dropdown,
-    Modal: Modal,
-    Popover: Popover,
-    Tab: Tab,
-    Toast: Toast,
-    Tooltip: Tooltip
-  };
-}));
-
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(14)))
-
-/***/ }),
-/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var require;var require;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return require(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -25111,6 +23509,1608 @@ module.exports = {
 /*** EXPORTS FROM exports-loader ***/
 exports["filterXSS"] = (filterXSS);
 exports["filterCSS"] = (filterCSS);
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports) {
+
+/**
+ * Checks if `value` is object-like. A value is object-like if it's not `null`
+ * and has a `typeof` result of "object".
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+ * @example
+ *
+ * _.isObjectLike({});
+ * // => true
+ *
+ * _.isObjectLike([1, 2, 3]);
+ * // => true
+ *
+ * _.isObjectLike(_.noop);
+ * // => false
+ *
+ * _.isObjectLike(null);
+ * // => false
+ */
+function isObjectLike(value) {
+  return value != null && typeof value == 'object';
+}
+
+module.exports = isObjectLike;
+
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// Native Javascript for Bootstrap 4 v2.0.26 | © dnp_theme | MIT-License
+(function (root, factory) {
+  if (true) {
+    // AMD support:
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+  } else { var bsn; }
+}(this, function () {
+  
+  /* Native Javascript for Bootstrap 4 | Internal Utility Functions
+  ----------------------------------------------------------------*/
+  "use strict";
+  
+  // globals
+  var globalObject = typeof global !== 'undefined' ? global : this||window,
+    DOC = document, HTML = DOC.documentElement, body = 'body', // allow the library to be used in <head>
+  
+    // Native Javascript for Bootstrap Global Object
+    BSN = globalObject.BSN = {},
+    supports = BSN.supports = [],
+  
+    // function toggle attributes
+    dataToggle    = 'data-toggle',
+    dataDismiss   = 'data-dismiss',
+    dataSpy       = 'data-spy',
+    dataRide      = 'data-ride',
+  
+    // components
+    stringAlert     = 'Alert',
+    stringButton    = 'Button',
+    stringCarousel  = 'Carousel',
+    stringCollapse  = 'Collapse',
+    stringDropdown  = 'Dropdown',
+    stringModal     = 'Modal',
+    stringPopover   = 'Popover',
+    stringScrollSpy = 'ScrollSpy',
+    stringTab       = 'Tab',
+    stringTooltip   = 'Tooltip',
+    stringToast     = 'Toast',
+  
+    // options DATA API
+    dataAutohide      = 'data-autohide',
+    databackdrop      = 'data-backdrop',
+    dataKeyboard      = 'data-keyboard',
+    dataTarget        = 'data-target',
+    dataInterval      = 'data-interval',
+    dataHeight        = 'data-height',
+    dataPause         = 'data-pause',
+    dataTitle         = 'data-title',
+    dataOriginalTitle = 'data-original-title',
+    dataDismissible   = 'data-dismissible',
+    dataTrigger       = 'data-trigger',
+    dataAnimation     = 'data-animation',
+    dataContainer     = 'data-container',
+    dataPlacement     = 'data-placement',
+    dataDelay         = 'data-delay',
+  
+    // option keys
+    backdrop = 'backdrop', keyboard = 'keyboard', delay = 'delay',
+    content = 'content', target = 'target', currentTarget = 'currentTarget',
+    interval = 'interval', pause = 'pause', animation = 'animation',
+    placement = 'placement', container = 'container',
+  
+    // box model
+    offsetTop    = 'offsetTop',      offsetBottom   = 'offsetBottom',
+    offsetLeft   = 'offsetLeft',
+    scrollTop    = 'scrollTop',      scrollLeft     = 'scrollLeft',
+    clientWidth  = 'clientWidth',    clientHeight   = 'clientHeight',
+    offsetWidth  = 'offsetWidth',    offsetHeight   = 'offsetHeight',
+    innerWidth   = 'innerWidth',     innerHeight    = 'innerHeight',
+    scrollHeight = 'scrollHeight',   height         = 'height',
+  
+    // aria
+    ariaExpanded = 'aria-expanded',
+    ariaHidden   = 'aria-hidden',
+    ariaSelected = 'aria-selected',
+  
+    // event names
+    clickEvent    = 'click',
+    hoverEvent    = 'hover',
+    keydownEvent  = 'keydown',
+    keyupEvent    = 'keyup',
+    resizeEvent   = 'resize',
+    scrollEvent   = 'scroll',
+    // originalEvents
+    showEvent     = 'show',
+    shownEvent    = 'shown',
+    hideEvent     = 'hide',
+    hiddenEvent   = 'hidden',
+    closeEvent    = 'close',
+    closedEvent   = 'closed',
+    slidEvent     = 'slid',
+    slideEvent    = 'slide',
+    changeEvent   = 'change',
+  
+    // other
+    getAttribute           = 'getAttribute',
+    setAttribute           = 'setAttribute',
+    hasAttribute           = 'hasAttribute',
+    createElement          = 'createElement',
+    appendChild            = 'appendChild',
+    innerHTML              = 'innerHTML',
+    getElementsByTagName   = 'getElementsByTagName',
+    preventDefault         = 'preventDefault',
+    getBoundingClientRect  = 'getBoundingClientRect',
+    querySelectorAll       = 'querySelectorAll',
+    getElementsByCLASSNAME = 'getElementsByClassName',
+    getComputedStyle       = 'getComputedStyle',  
+  
+    indexOf      = 'indexOf',
+    parentNode   = 'parentNode',
+    length       = 'length',
+    toLowerCase  = 'toLowerCase',
+    Transition   = 'Transition',
+    Duration     = 'Duration',
+    Webkit       = 'Webkit',
+    style        = 'style',
+    push         = 'push',
+    tabindex     = 'tabindex',
+    contains     = 'contains',
+  
+    active     = 'active',
+    showClass  = 'show',
+    collapsing = 'collapsing',
+    disabled   = 'disabled',
+    loading    = 'loading',
+    left       = 'left',
+    right      = 'right',
+    top        = 'top',
+    bottom     = 'bottom',
+  
+    // tooltip / popover
+    mouseHover = ('onmouseleave' in DOC) ? [ 'mouseenter', 'mouseleave'] : [ 'mouseover', 'mouseout' ],
+    tipPositions = /\b(top|bottom|left|right)+/,
+  
+    // modal
+    modalOverlay = 0,
+    fixedTop = 'fixed-top',
+    fixedBottom = 'fixed-bottom',
+  
+    // transitionEnd since 2.0.4
+    supportTransitions = Webkit+Transition in HTML[style] || Transition[toLowerCase]() in HTML[style],
+    transitionEndEvent = Webkit+Transition in HTML[style] ? Webkit[toLowerCase]()+Transition+'End' : Transition[toLowerCase]()+'end',
+    transitionDuration = Webkit+Duration in HTML[style] ? Webkit[toLowerCase]()+Transition+Duration : Transition[toLowerCase]()+Duration,
+  
+    // touch since 2.0.26
+    touchEvents = { start: 'touchstart', end: 'touchend', move:'touchmove' },
+  
+    // set new focus element since 2.0.3
+    setFocus = function(element){
+      element.focus ? element.focus() : element.setActive();
+    },
+  
+    // class manipulation, since 2.0.0 requires polyfill.js
+    addClass = function(element,classNAME) {
+      element.classList.add(classNAME);
+    },
+    removeClass = function(element,classNAME) {
+      element.classList.remove(classNAME);
+    },
+    hasClass = function(element,classNAME){ // since 2.0.0
+      return element.classList[contains](classNAME);
+    },
+  
+    // selection methods
+    getElementsByClassName = function(element,classNAME) { // returns Array
+      return [].slice.call(element[getElementsByCLASSNAME]( classNAME ));
+    },
+    queryElement = function (selector, parent) {
+      var lookUp = parent ? parent : DOC;
+      return typeof selector === 'object' ? selector : lookUp.querySelector(selector);
+    },
+    getClosest = function (element, selector) { //element is the element and selector is for the closest parent element to find
+      // source http://gomakethings.com/climbing-up-and-down-the-dom-tree-with-vanilla-javascript/
+      var firstChar = selector.charAt(0), selectorSubstring = selector.substr(1);
+      if ( firstChar === '.' ) {// If selector is a class
+        for ( ; element && element !== DOC; element = element[parentNode] ) { // Get closest match
+          if ( queryElement(selector,element[parentNode]) !== null && hasClass(element,selectorSubstring) ) { return element; }
+        }
+      } else if ( firstChar === '#' ) { // If selector is an ID
+        for ( ; element && element !== DOC; element = element[parentNode] ) { // Get closest match
+          if ( element.id === selectorSubstring ) { return element; }
+        }
+      }
+      return false;
+    },
+  
+    // event attach jQuery style / trigger  since 1.2.0
+    on = function (element, event, handler) {
+      element.addEventListener(event, handler, false);
+    },
+    off = function(element, event, handler) {
+      element.removeEventListener(event, handler, false);
+    },
+    one = function (element, event, handler) { // one since 2.0.4
+      on(element, event, function handlerWrapper(e){
+        handler(e);
+        off(element, event, handlerWrapper);
+      });
+    },
+    getTransitionDurationFromElement = function(element) {
+      var duration = supportTransitions ? globalObject[getComputedStyle](element)[transitionDuration] : 0;
+      duration = parseFloat(duration);
+      duration = typeof duration === 'number' && !isNaN(duration) ? duration * 1000 : 0;
+      return duration; // we take a short offset to make sure we fire on the next frame after animation
+    },
+    emulateTransitionEnd = function(element,handler){ // emulateTransitionEnd since 2.0.4
+      var called = 0, duration = getTransitionDurationFromElement(element);
+      duration ? one(element, transitionEndEvent, function(e){ !called && handler(e), called = 1; })
+               : setTimeout(function() { !called && handler(), called = 1; }, 17);
+    },
+    bootstrapCustomEvent = function (eventName, componentName, related) {
+      var OriginalCustomEvent = new CustomEvent( eventName + '.bs.' + componentName);
+      OriginalCustomEvent.relatedTarget = related;
+      this.dispatchEvent(OriginalCustomEvent);
+    },
+  
+    // tooltip / popover stuff
+    getScroll = function() { // also Affix and ScrollSpy uses it
+      return {
+        y : globalObject.pageYOffset || HTML[scrollTop],
+        x : globalObject.pageXOffset || HTML[scrollLeft]
+      }
+    },
+    styleTip = function(link,element,position,parent) { // both popovers and tooltips (target,tooltip,placement,elementToAppendTo)
+      var elementDimensions = { w : element[offsetWidth], h: element[offsetHeight] },
+          windowWidth = (HTML[clientWidth] || DOC[body][clientWidth]),
+          windowHeight = (HTML[clientHeight] || DOC[body][clientHeight]),
+          rect = link[getBoundingClientRect](),
+          scroll = parent === DOC[body] ? getScroll() : { x: parent[offsetLeft] + parent[scrollLeft], y: parent[offsetTop] + parent[scrollTop] },
+          linkDimensions = { w: rect[right] - rect[left], h: rect[bottom] - rect[top] },
+          isPopover = hasClass(element,'popover'),
+          topPosition, leftPosition,
+  
+          arrow = queryElement('.arrow',element),
+          arrowTop, arrowLeft, arrowWidth, arrowHeight,
+  
+          halfTopExceed = rect[top] + linkDimensions.h/2 - elementDimensions.h/2 < 0,
+          halfLeftExceed = rect[left] + linkDimensions.w/2 - elementDimensions.w/2 < 0,
+          halfRightExceed = rect[left] + elementDimensions.w/2 + linkDimensions.w/2 >= windowWidth,
+          halfBottomExceed = rect[top] + elementDimensions.h/2 + linkDimensions.h/2 >= windowHeight,
+          topExceed = rect[top] - elementDimensions.h < 0,
+          leftExceed = rect[left] - elementDimensions.w < 0,
+          bottomExceed = rect[top] + elementDimensions.h + linkDimensions.h >= windowHeight,
+          rightExceed = rect[left] + elementDimensions.w + linkDimensions.w >= windowWidth;
+  
+      // recompute position
+      position = (position === left || position === right) && leftExceed && rightExceed ? top : position; // first, when both left and right limits are exceeded, we fall back to top|bottom
+      position = position === top && topExceed ? bottom : position;
+      position = position === bottom && bottomExceed ? top : position;
+      position = position === left && leftExceed ? right : position;
+      position = position === right && rightExceed ? left : position;
+  
+      // update tooltip/popover class
+      element.className[indexOf](position) === -1 && (element.className = element.className.replace(tipPositions,position));
+  
+      // we check the computed width & height and update here
+      arrowWidth = arrow[offsetWidth]; arrowHeight = arrow[offsetHeight];
+  
+      // apply styling to tooltip or popover
+      if ( position === left || position === right ) { // secondary|side positions
+        if ( position === left ) { // LEFT
+          leftPosition = rect[left] + scroll.x - elementDimensions.w - ( isPopover ? arrowWidth : 0 );
+        } else { // RIGHT
+          leftPosition = rect[left] + scroll.x + linkDimensions.w;
+        }
+  
+        // adjust top and arrow
+        if (halfTopExceed) {
+          topPosition = rect[top] + scroll.y;
+          arrowTop = linkDimensions.h/2 - arrowWidth;
+        } else if (halfBottomExceed) {
+          topPosition = rect[top] + scroll.y - elementDimensions.h + linkDimensions.h;
+          arrowTop = elementDimensions.h - linkDimensions.h/2 - arrowWidth;
+        } else {
+          topPosition = rect[top] + scroll.y - elementDimensions.h/2 + linkDimensions.h/2;
+          arrowTop = elementDimensions.h/2 - (isPopover ? arrowHeight*0.9 : arrowHeight/2);
+        }
+      } else if ( position === top || position === bottom ) { // primary|vertical positions
+        if ( position === top) { // TOP
+          topPosition =  rect[top] + scroll.y - elementDimensions.h - ( isPopover ? arrowHeight : 0 );
+        } else { // BOTTOM
+          topPosition = rect[top] + scroll.y + linkDimensions.h;
+        }
+        // adjust left | right and also the arrow
+        if (halfLeftExceed) {
+          leftPosition = 0;
+          arrowLeft = rect[left] + linkDimensions.w/2 - arrowWidth;
+        } else if (halfRightExceed) {
+          leftPosition = windowWidth - elementDimensions.w*1.01;
+          arrowLeft = elementDimensions.w - ( windowWidth - rect[left] ) + linkDimensions.w/2 - arrowWidth/2;
+        } else {
+          leftPosition = rect[left] + scroll.x - elementDimensions.w/2 + linkDimensions.w/2;
+          arrowLeft = elementDimensions.w/2 - arrowWidth/2;
+        }
+      }
+  
+      // apply style to tooltip/popover and its arrow
+      element[style][top] = topPosition + 'px';
+      element[style][left] = leftPosition + 'px';
+  
+      arrowTop && (arrow[style][top] = arrowTop + 'px');
+      arrowLeft && (arrow[style][left] = arrowLeft + 'px');
+    };
+  
+  BSN.version = '2.0.26';
+  
+  /* Native Javascript for Bootstrap 4 | Alert
+  -------------------------------------------*/
+  
+  // ALERT DEFINITION
+  // ================
+  var Alert = function( element ) {
+    
+    // initialization element
+    element = queryElement(element);
+  
+    // bind, target alert, duration and stuff
+    var self = this, component = 'alert',
+      alert = getClosest(element,'.'+component),
+      triggerHandler = function(){ hasClass(alert,'fade') ? emulateTransitionEnd(alert,transitionEndHandler) : transitionEndHandler(); },
+      // handlers
+      clickHandler = function(e){
+        alert = getClosest(e[target],'.'+component);
+        element = queryElement('['+dataDismiss+'="'+component+'"]',alert);
+        element && alert && (element === e[target] || element[contains](e[target])) && self.close();
+      },
+      transitionEndHandler = function(){
+        bootstrapCustomEvent.call(alert, closedEvent, component);
+        off(element, clickEvent, clickHandler); // detach it's listener
+        alert[parentNode].removeChild(alert);
+      };
+    
+    // public method
+    this.close = function() {
+      if ( alert && element && hasClass(alert,showClass) ) {
+        bootstrapCustomEvent.call(alert, closeEvent, component);
+        removeClass(alert,showClass);
+        alert && triggerHandler();
+      }
+    };
+  
+    // init
+    if ( !(stringAlert in element ) ) { // prevent adding event handlers twice
+      on(element, clickEvent, clickHandler);
+    }
+    element[stringAlert] = self;
+  };
+  
+  // ALERT DATA API
+  // ==============
+  supports[push]([stringAlert, Alert, '['+dataDismiss+'="alert"]']);
+  
+  
+  /* Native Javascript for Bootstrap 4 | Button
+  ---------------------------------------------*/
+  
+  // BUTTON DEFINITION
+  // ===================
+  var Button = function( element ) {
+  
+    // initialization element
+    element = queryElement(element);
+  
+    // constant
+    var toggled = false, // toggled makes sure to prevent triggering twice the change.bs.button events
+  
+        // strings
+        component = 'button',
+        checked = 'checked',
+        reset = 'reset',
+        LABEL = 'LABEL',
+        INPUT = 'INPUT',
+  
+      // private methods
+      keyHandler = function(e){ 
+        var key = e.which || e.keyCode;
+        key === 32 && e[target] === DOC.activeElement && toggle(e);
+      },
+      preventScroll = function(e){ 
+        var key = e.which || e.keyCode;
+        key === 32 && e[preventDefault]();
+      },
+      toggle = function(e) {
+        var label = e[target].tagName === LABEL ? e[target] : e[target][parentNode].tagName === LABEL ? e[target][parentNode] : null; // the .btn label
+        
+        if ( !label ) return; //react if a label or its immediate child is clicked
+  
+        var eventTarget = e[target], // the button itself, the target of the handler function
+          labels = getElementsByClassName(eventTarget[parentNode],'btn'), // all the button group buttons
+          input = label[getElementsByTagName](INPUT)[0];
+  
+        if ( !input ) return; //return if no input found
+  
+        // manage the dom manipulation
+        if ( input.type === 'checkbox' ) { //checkboxes
+          if ( !input[checked] ) {
+            addClass(label,active);
+            input[getAttribute](checked);
+            input[setAttribute](checked,checked);
+            input[checked] = true;
+          } else {
+            removeClass(label,active);
+            input[getAttribute](checked);
+            input.removeAttribute(checked);
+            input[checked] = false;
+          }
+  
+          if (!toggled) { // prevent triggering the event twice
+            toggled = true;
+            bootstrapCustomEvent.call(input, changeEvent, component); //trigger the change for the input
+            bootstrapCustomEvent.call(element, changeEvent, component); //trigger the change for the btn-group
+          }
+        }
+  
+        if ( input.type === 'radio' && !toggled ) { // radio buttons
+          if ( !input[checked] ) { // don't trigger if already active
+            addClass(label,active);
+            input[setAttribute](checked,checked);
+            input[checked] = true;
+            bootstrapCustomEvent.call(input, changeEvent, component); //trigger the change for the input
+            bootstrapCustomEvent.call(element, changeEvent, component); //trigger the change for the btn-group
+  
+            toggled = true;
+            for (var i = 0, ll = labels[length]; i<ll; i++) {
+              var otherLabel = labels[i], otherInput = otherLabel[getElementsByTagName](INPUT)[0];
+              if ( otherLabel !== label && hasClass(otherLabel,active) )  {
+                removeClass(otherLabel,active);
+                otherInput.removeAttribute(checked);
+                otherInput[checked] = false;
+                bootstrapCustomEvent.call(otherInput, changeEvent, component); // trigger the change
+              }
+            }
+          }
+        }
+        setTimeout( function() { toggled = false; }, 50 );
+      };
+  
+    // init
+    if ( !( stringButton in element ) ) { // prevent adding event handlers twice
+      on( element, clickEvent, toggle );
+      queryElement('['+tabindex+']',element) && on( element, keyupEvent, keyHandler ), 
+                                                on( element, keydownEvent, preventScroll );    
+    }
+  
+    // activate items on load
+    var labelsToACtivate = getElementsByClassName(element, 'btn'), lbll = labelsToACtivate[length];
+    for (var i=0; i<lbll; i++) {
+      !hasClass(labelsToACtivate[i],active) && queryElement('input:checked',labelsToACtivate[i]) 
+                                            && addClass(labelsToACtivate[i],active);
+    }
+    element[stringButton] = this;
+  };
+  
+  // BUTTON DATA API
+  // =================
+  supports[push]( [ stringButton, Button, '['+dataToggle+'="buttons"]' ] );
+  
+  
+  /* Native Javascript for Bootstrap 4 | Collapse
+  -----------------------------------------------*/
+  
+  // COLLAPSE DEFINITION
+  // ===================
+  var Collapse = function( element, options ) {
+  
+    // initialization element
+    element = queryElement(element);
+  
+    // set options
+    options = options || {};
+  
+    // event targets and constants
+    var accordion = null, collapse = null, self = this, 
+      accordionData = element[getAttribute]('data-parent'),
+      activeCollapse, activeElement,
+  
+      // component strings
+      component = 'collapse',
+      collapsed = 'collapsed',
+      isAnimating = 'isAnimating',
+  
+      // private methods
+      openAction = function(collapseElement,toggle) {
+        bootstrapCustomEvent.call(collapseElement, showEvent, component);
+        collapseElement[isAnimating] = true;
+        addClass(collapseElement,collapsing);
+        removeClass(collapseElement,component);
+        collapseElement[style][height] = collapseElement[scrollHeight] + 'px';
+        
+        emulateTransitionEnd(collapseElement, function() {
+          collapseElement[isAnimating] = false;
+          collapseElement[setAttribute](ariaExpanded,'true');
+          toggle[setAttribute](ariaExpanded,'true');
+          removeClass(collapseElement,collapsing);
+          addClass(collapseElement, component);
+          addClass(collapseElement,showClass);
+          collapseElement[style][height] = '';
+          bootstrapCustomEvent.call(collapseElement, shownEvent, component);
+        });
+      },
+      closeAction = function(collapseElement,toggle) {
+        bootstrapCustomEvent.call(collapseElement, hideEvent, component);
+        collapseElement[isAnimating] = true;
+        collapseElement[style][height] = collapseElement[scrollHeight] + 'px'; // set height first
+        removeClass(collapseElement,component);
+        removeClass(collapseElement,showClass);
+        addClass(collapseElement,collapsing);
+        collapseElement[offsetWidth]; // force reflow to enable transition
+        collapseElement[style][height] = '0px';
+        
+        emulateTransitionEnd(collapseElement, function() {
+          collapseElement[isAnimating] = false;
+          collapseElement[setAttribute](ariaExpanded,'false');
+          toggle[setAttribute](ariaExpanded,'false');
+          removeClass(collapseElement,collapsing);
+          addClass(collapseElement,component);
+          collapseElement[style][height] = '';
+          bootstrapCustomEvent.call(collapseElement, hiddenEvent, component);
+        });
+      },
+      getTarget = function() {
+        var href = element.href && element[getAttribute]('href'),
+          parent = element[getAttribute](dataTarget),
+          id = href || ( parent && parent.charAt(0) === '#' ) && parent;
+        return id && queryElement(id);
+      };
+    
+    // public methods
+    this.toggle = function(e) {
+      e[preventDefault]();
+      if (!hasClass(collapse,showClass)) { self.show(); } 
+      else { self.hide(); }
+    };
+    this.hide = function() {
+      if ( collapse[isAnimating] ) return;    
+      closeAction(collapse,element);
+      addClass(element,collapsed);
+    };
+    this.show = function() {
+      if ( accordion ) {
+        activeCollapse = queryElement('.'+component+'.'+showClass,accordion);
+        activeElement = activeCollapse && (queryElement('['+dataTarget+'="#'+activeCollapse.id+'"]',accordion)
+                      || queryElement('[href="#'+activeCollapse.id+'"]',accordion) );
+      }
+  
+      if ( !collapse[isAnimating] || activeCollapse && !activeCollapse[isAnimating] ) {
+        if ( activeElement && activeCollapse !== collapse ) {
+          closeAction(activeCollapse,activeElement); 
+          addClass(activeElement,collapsed);
+        }
+        openAction(collapse,element);
+        removeClass(element,collapsed);
+      }
+    };
+  
+    // init
+    if ( !(stringCollapse in element ) ) { // prevent adding event handlers twice
+      on(element, clickEvent, self.toggle);
+    }
+    collapse = getTarget();
+    collapse[isAnimating] = false;  // when true it will prevent click handlers  
+    accordion = queryElement(options.parent) || accordionData && getClosest(element, accordionData);
+    element[stringCollapse] = self;
+  };
+  
+  // COLLAPSE DATA API
+  // =================
+  supports[push]( [ stringCollapse, Collapse, '['+dataToggle+'="collapse"]' ] );
+  
+  
+  /* Native Javascript for Bootstrap 4 | Dropdown
+  ----------------------------------------------*/
+  
+  // DROPDOWN DEFINITION
+  // ===================
+  var Dropdown = function( element, option ) {
+      
+    // initialization element
+    element = queryElement(element);
+  
+    // set option
+    this.persist = option === true || element[getAttribute]('data-persist') === 'true' || false;
+  
+    // constants, event targets, strings
+    var self = this, children = 'children',
+      parent = element[parentNode],
+      component = 'dropdown', open = 'open',
+      relatedTarget = null,
+      menu = queryElement('.dropdown-menu', parent),
+      menuItems = (function(){
+        var set = menu[children], newSet = [];
+        for ( var i=0; i<set[length]; i++ ){
+          set[i][children][length] && (set[i][children][0].tagName === 'A' && newSet[push](set[i][children][0]));
+          set[i].tagName === 'A' && newSet[push](set[i]);
+        }
+        return newSet;
+      })(),
+  
+      // preventDefault on empty anchor links
+      preventEmptyAnchor = function(anchor){
+        (anchor.href && anchor.href.slice(-1) === '#' || anchor[parentNode] && anchor[parentNode].href 
+          && anchor[parentNode].href.slice(-1) === '#') && this[preventDefault]();    
+      },
+  
+      // toggle dismissible events
+      toggleDismiss = function(){
+        var type = element[open] ? on : off;
+        type(DOC, clickEvent, dismissHandler); 
+        type(DOC, keydownEvent, preventScroll);
+        type(DOC, keyupEvent, keyHandler);
+      },
+  
+      // handlers
+      dismissHandler = function(e) {
+        var eventTarget = e[target], hasData = eventTarget && (stringDropdown in eventTarget || stringDropdown in eventTarget[parentNode]);
+        if ( (eventTarget === menu || menu[contains](eventTarget)) && (self.persist || hasData) ) { return; }
+        else {
+          relatedTarget = eventTarget === element || element[contains](eventTarget) ? element : null;
+          hide();
+        }
+        preventEmptyAnchor.call(e,eventTarget);
+      },
+      clickHandler = function(e) {
+        relatedTarget = element;
+        show();
+        preventEmptyAnchor.call(e,e[target]);
+      },
+      preventScroll = function(e){
+        var key = e.which || e.keyCode;
+        if( key === 38 || key === 40 ) { e[preventDefault](); }
+      },
+      keyHandler = function(e){
+        var key = e.which || e.keyCode,
+          activeItem = DOC.activeElement,
+          idx = menuItems[indexOf](activeItem),
+          isSameElement = activeItem === element,
+          isInsideMenu = menu[contains](activeItem),
+          isMenuItem = activeItem[parentNode] === menu || activeItem[parentNode][parentNode] === menu;          
+  
+        if ( isMenuItem || isSameElement ) { // navigate up | down
+          idx = isSameElement ? 0 
+                              : key === 38 ? (idx>1?idx-1:0)
+                              : key === 40 ? (idx<menuItems[length]-1?idx+1:idx) : idx;
+          menuItems[idx] && setFocus(menuItems[idx]);
+        }
+        if ( (menuItems[length] && isMenuItem // menu has items
+              || !menuItems[length] && (isInsideMenu || isSameElement)  // menu might be a form
+              || !isInsideMenu ) // or the focused element is not in the menu at all
+              && element[open] && key === 27  // menu must be open
+        ) {
+          self.toggle();
+          relatedTarget = null;
+        }
+      },
+  
+      // private methods
+      show = function() {
+        bootstrapCustomEvent.call(parent, showEvent, component, relatedTarget);
+        addClass(menu,showClass);
+        addClass(parent,showClass);
+        element[setAttribute](ariaExpanded,true);
+        bootstrapCustomEvent.call(parent, shownEvent, component, relatedTarget);
+        element[open] = true;
+        off(element, clickEvent, clickHandler);
+        setTimeout(function(){
+          setFocus( menu[getElementsByTagName]('INPUT')[0] || element ); // focus the first input item | element
+          toggleDismiss();
+        },1);
+      },
+      hide = function() {
+        bootstrapCustomEvent.call(parent, hideEvent, component, relatedTarget);
+        removeClass(menu,showClass);
+        removeClass(parent,showClass);
+        element[setAttribute](ariaExpanded,false);
+        bootstrapCustomEvent.call(parent, hiddenEvent, component, relatedTarget);
+        element[open] = false;
+        toggleDismiss();
+        setFocus(element);
+        setTimeout(function(){ on(element, clickEvent, clickHandler); },1);
+      };
+  
+    // set initial state to closed
+    element[open] = false;
+  
+    // public methods
+    this.toggle = function() {
+      if (hasClass(parent,showClass) && element[open]) { hide(); } 
+      else { show(); }
+    };
+  
+    // init
+    if ( !(stringDropdown in element) ) { // prevent adding event handlers twice
+      !tabindex in menu && menu[setAttribute](tabindex, '0'); // Fix onblur on Chrome | Safari
+      on(element, clickEvent, clickHandler);
+    }
+  
+    element[stringDropdown] = self;
+  };
+  
+  // DROPDOWN DATA API
+  // =================
+  supports[push]( [stringDropdown, Dropdown, '['+dataToggle+'="dropdown"]'] );
+  
+  
+  /* Native Javascript for Bootstrap 4 | Modal
+  -------------------------------------------*/
+  
+  // MODAL DEFINITION
+  // ===============
+  var Modal = function(element, options) { // element can be the modal/triggering button
+  
+    // the modal (both JavaScript / DATA API init) / triggering button element (DATA API)
+    element = queryElement(element);
+  
+      // strings
+      var component = 'modal',
+        staticString = 'static',
+        modalTrigger = 'modalTrigger',
+        paddingRight = 'paddingRight',
+        modalBackdropString = 'modal-backdrop',
+        // determine modal, triggering element
+        btnCheck = element[getAttribute](dataTarget)||element[getAttribute]('href'),
+        checkModal = queryElement( btnCheck ),
+        modal = hasClass(element,component) ? element : checkModal;  
+    
+      if ( hasClass(element, component) ) { element = null; } // modal is now independent of it's triggering element
+  
+    if ( !modal ) { return; } // invalidate
+  
+    // set options
+    options = options || {};
+  
+    this[keyboard] = options[keyboard] === false || modal[getAttribute](dataKeyboard) === 'false' ? false : true;
+    this[backdrop] = options[backdrop] === staticString || modal[getAttribute](databackdrop) === staticString ? staticString : true;
+    this[backdrop] = options[backdrop] === false || modal[getAttribute](databackdrop) === 'false' ? false : this[backdrop];
+    this[content]  = options[content]; // JavaScript only
+  
+    // bind, constants, event targets and other vars
+    var self = this, relatedTarget = null,
+      bodyIsOverflowing, scrollBarWidth, overlay, overlayDelay,
+  
+      // also find fixed-top / fixed-bottom items
+      fixedItems = getElementsByClassName(HTML,fixedTop).concat(getElementsByClassName(HTML,fixedBottom)),
+  
+      // private methods
+      getWindowWidth = function() {
+        var htmlRect = HTML[getBoundingClientRect]();
+        return globalObject[innerWidth] || (htmlRect[right] - Math.abs(htmlRect[left]));
+      },
+      setScrollbar = function () {
+        var bodyStyle = globalObject[getComputedStyle](DOC[body]),
+            bodyPad = parseInt((bodyStyle[paddingRight]), 10), itemPad;
+        if (bodyIsOverflowing) {
+          DOC[body][style][paddingRight] = (bodyPad + scrollBarWidth) + 'px';
+          modal[style][paddingRight] = scrollBarWidth+'px';
+          if (fixedItems[length]){
+            for (var i = 0; i < fixedItems[length]; i++) {
+              itemPad = globalObject[getComputedStyle](fixedItems[i])[paddingRight];
+              fixedItems[i][style][paddingRight] = ( parseInt(itemPad) + scrollBarWidth) + 'px';
+            }
+          }
+        }
+      },
+      resetScrollbar = function () {
+        DOC[body][style][paddingRight] = '';
+        modal[style][paddingRight] = '';
+        if (fixedItems[length]){
+          for (var i = 0; i < fixedItems[length]; i++) {
+            fixedItems[i][style][paddingRight] = '';
+          }
+        }
+      },
+      measureScrollbar = function () { // thx walsh
+        var scrollDiv = DOC[createElement]('div'), widthValue;
+        scrollDiv.className = component+'-scrollbar-measure'; // this is here to stay
+        DOC[body][appendChild](scrollDiv);
+        widthValue = scrollDiv[offsetWidth] - scrollDiv[clientWidth];
+        DOC[body].removeChild(scrollDiv);
+        return widthValue;
+      },
+      checkScrollbar = function () {
+        bodyIsOverflowing = DOC[body][clientWidth] < getWindowWidth();
+        scrollBarWidth = measureScrollbar();
+      },
+      createOverlay = function() {
+        modalOverlay = 1;        
+        
+        var newOverlay = DOC[createElement]('div');
+        overlay = queryElement('.'+modalBackdropString);
+  
+        if ( overlay === null ) {
+          newOverlay[setAttribute]('class',modalBackdropString+' fade');
+          overlay = newOverlay;
+          DOC[body][appendChild](overlay);
+        }
+      },
+      removeOverlay = function() {
+        overlay = queryElement('.'+modalBackdropString);
+        if ( overlay && overlay !== null && typeof overlay === 'object' ) {
+          modalOverlay = 0;        
+          DOC[body].removeChild(overlay); overlay = null;
+        }
+        bootstrapCustomEvent.call(modal, hiddenEvent, component);      
+      },
+      keydownHandlerToggle = function() {
+        if (hasClass(modal,showClass)) {
+          on(DOC, keydownEvent, keyHandler);
+        } else {
+          off(DOC, keydownEvent, keyHandler);
+        }
+      },
+      resizeHandlerToggle = function() {
+        if (hasClass(modal,showClass)) {
+          on(globalObject, resizeEvent, self.update);
+        } else {
+          off(globalObject, resizeEvent, self.update);
+        }
+      },
+      dismissHandlerToggle = function() {
+        if (hasClass(modal,showClass)) {
+          on(modal, clickEvent, dismissHandler);
+        } else {
+          off(modal, clickEvent, dismissHandler);
+        }
+      },
+      // triggers
+      triggerShow = function() {
+        resizeHandlerToggle();
+        dismissHandlerToggle();
+        keydownHandlerToggle();
+        setFocus(modal);
+        bootstrapCustomEvent.call(modal, shownEvent, component, relatedTarget);
+      },
+      triggerHide = function() {
+        modal[style].display = '';
+        element && (setFocus(element));
+        
+        (function(){
+          if (!getElementsByClassName(DOC,component+' '+showClass)[0]) {
+            resetScrollbar();
+            removeClass(DOC[body],component+'-open');
+            overlay && hasClass(overlay,'fade') ? (removeClass(overlay,showClass), emulateTransitionEnd(overlay,removeOverlay)) 
+            : removeOverlay();
+  
+            resizeHandlerToggle();
+            dismissHandlerToggle();
+            keydownHandlerToggle();
+          }
+        }());
+      },
+      // handlers
+      clickHandler = function(e) {
+        var clickTarget = e[target];
+        clickTarget = clickTarget[hasAttribute](dataTarget) || clickTarget[hasAttribute]('href') ? clickTarget : clickTarget[parentNode];
+        if ( clickTarget === element && !hasClass(modal,showClass) ) {
+          modal[modalTrigger] = element;
+          relatedTarget = element;
+          self.show();
+          e[preventDefault]();
+        }
+      },
+      keyHandler = function(e) {
+        if (self[keyboard] && e.which == 27 && hasClass(modal,showClass)) {
+          self.hide();
+        }
+      },
+      dismissHandler = function(e) {
+        var clickTarget = e[target];
+        if ( hasClass(modal,showClass) && (clickTarget[parentNode][getAttribute](dataDismiss) === component
+            || clickTarget[getAttribute](dataDismiss) === component
+            || (clickTarget === modal && self[backdrop] !== staticString) ) ) {
+          self.hide(); relatedTarget = null;
+          e[preventDefault]();
+        }
+      };
+  
+    // public methods
+    this.toggle = function() {
+      if ( hasClass(modal,showClass) ) {this.hide();} else {this.show();}
+    };
+    this.show = function() {
+      bootstrapCustomEvent.call(modal, showEvent, component, relatedTarget);
+  
+      // we elegantly hide any opened modal
+      var currentOpen = getElementsByClassName(DOC,component+' '+showClass)[0];
+      if (currentOpen && currentOpen !== modal) {
+        modalTrigger in currentOpen && currentOpen[modalTrigger][stringModal].hide();
+        stringModal in currentOpen && currentOpen[stringModal].hide();
+      }
+  
+      if ( this[backdrop] ) {
+        !modalOverlay && createOverlay();
+      }
+  
+      if ( overlay && modalOverlay && !hasClass(overlay,showClass)) {
+        overlay[offsetWidth]; // force reflow to enable trasition
+        overlayDelay = getTransitionDurationFromElement(overlay);              
+        addClass(overlay, showClass);
+      }
+  
+      setTimeout( function() {
+        modal[style].display = 'block';
+  
+        checkScrollbar();
+        setScrollbar();
+  
+        addClass(DOC[body],component+'-open');
+        addClass(modal,showClass);
+        modal[setAttribute](ariaHidden, false);
+  
+        hasClass(modal,'fade') ? emulateTransitionEnd(modal, triggerShow) : triggerShow();
+      }, supportTransitions && overlay ? overlayDelay : 0);
+    };
+    this.hide = function() {
+      bootstrapCustomEvent.call(modal, hideEvent, component);
+      overlay = queryElement('.'+modalBackdropString);
+      overlayDelay = overlay && getTransitionDurationFromElement(overlay);    
+  
+      removeClass(modal,showClass);
+      modal[setAttribute](ariaHidden, true);
+  
+      setTimeout(function(){
+        hasClass(modal,'fade') ? emulateTransitionEnd(modal, triggerHide) : triggerHide();
+      }, supportTransitions && overlay ? overlayDelay : 0);
+    };
+    this.setContent = function( content ) {
+      queryElement('.'+component+'-content',modal)[innerHTML] = content;
+    };
+    this.update = function() {
+      if (hasClass(modal,showClass)) {
+        checkScrollbar();
+        setScrollbar();
+      }
+    };
+  
+    // init
+    // prevent adding event handlers over and over
+    // modal is independent of a triggering element
+    if ( !!element && !(stringModal in element) ) {
+      on(element, clickEvent, clickHandler);
+    }
+    if ( !!self[content] ) { self.setContent( self[content] ); }
+    if (element) { element[stringModal] = self; modal[modalTrigger] = element; }
+    else { modal[stringModal] = self; }
+  };
+  
+  // DATA API
+  supports[push]( [ stringModal, Modal, '['+dataToggle+'="modal"]' ] );
+  
+  /* Native Javascript for Bootstrap 4 | Popover
+  ----------------------------------------------*/
+  
+  // POPOVER DEFINITION
+  // ==================
+  var Popover = function( element, options ) {
+  
+    // initialization element
+    element = queryElement(element);
+  
+    // set options
+    options = options || {};
+  
+    // DATA API
+    var triggerData = element[getAttribute](dataTrigger), // click / hover / focus
+        animationData = element[getAttribute](dataAnimation), // true / false
+        placementData = element[getAttribute](dataPlacement),
+        dismissibleData = element[getAttribute](dataDismissible),
+        delayData = element[getAttribute](dataDelay),
+        containerData = element[getAttribute](dataContainer),
+  
+        // internal strings
+        component = 'popover',
+        template = 'template',
+        trigger = 'trigger',
+        classString = 'class',
+        div = 'div',
+        fade = 'fade',
+        dataContent = 'data-content',
+        dismissible = 'dismissible',
+        closeBtn = '<button type="button" class="close">×</button>',
+  
+        // check container
+        containerElement = queryElement(options[container]),
+        containerDataElement = queryElement(containerData),       
+        
+        // maybe the element is inside a modal
+        modal = getClosest(element,'.modal'),
+        
+        // maybe the element is inside a fixed navbar
+        navbarFixedTop = getClosest(element,'.'+fixedTop),
+        navbarFixedBottom = getClosest(element,'.'+fixedBottom);
+  
+    // set instance options
+    this[template] = options[template] ? options[template] : null; // JavaScript only
+    this[trigger] = options[trigger] ? options[trigger] : triggerData || hoverEvent;
+    this[animation] = options[animation] && options[animation] !== fade ? options[animation] : animationData || fade;
+    this[placement] = options[placement] ? options[placement] : placementData || top;
+    this[delay] = parseInt(options[delay] || delayData) || 200;
+    this[dismissible] = options[dismissible] || dismissibleData === 'true' ? true : false;
+    this[container] = containerElement ? containerElement 
+                    : containerDataElement ? containerDataElement 
+                    : navbarFixedTop ? navbarFixedTop
+                    : navbarFixedBottom ? navbarFixedBottom
+                    : modal ? modal : DOC[body];
+    
+    // bind, content
+    var self = this, 
+      titleString = element[getAttribute](dataTitle) || null,
+      contentString = element[getAttribute](dataContent) || null;
+  
+    if ( !contentString && !this[template] ) return; // invalidate
+  
+    // constants, vars
+    var popover = null, timer = 0, placementSetting = this[placement],
+      
+      // handlers
+      dismissibleHandler = function(e) {
+        if (popover !== null && e[target] === queryElement('.close',popover)) {
+          self.hide();
+        }
+      },
+  
+      // private methods
+      removePopover = function() {
+        self[container].removeChild(popover);
+        timer = null; popover = null; 
+      },
+      createPopover = function() {
+        titleString = options.title || element[getAttribute](dataTitle) || null,
+        contentString = options.content || element[getAttribute](dataContent) || null;
+  
+        popover = DOC[createElement](div);
+  
+        // popover arrow
+        var popoverArrow = DOC[createElement](div);
+        popoverArrow[setAttribute](classString,'arrow');
+        popover[appendChild](popoverArrow);
+  
+        if ( contentString !== null && self[template] === null ) { //create the popover from data attributes
+  
+          popover[setAttribute]('role','tooltip');
+  
+          if (titleString !== null) {
+            var popoverTitle = DOC[createElement]('h3');
+            popoverTitle[setAttribute](classString,component+'-header');
+  
+            popoverTitle[innerHTML] = self[dismissible] ? titleString + closeBtn : titleString;
+            popover[appendChild](popoverTitle);
+          }
+  
+          //set popover content
+          var popoverContent = DOC[createElement](div);
+          popoverContent[setAttribute](classString,component+'-body');
+          popoverContent[innerHTML] = self[dismissible] && titleString === null ? contentString + closeBtn : contentString;
+          popover[appendChild](popoverContent);
+  
+        } else {  // or create the popover from template
+          var popoverTemplate = DOC[createElement](div);
+          popoverTemplate[innerHTML] = self[template];
+          popover[innerHTML] = popoverTemplate.firstChild[innerHTML];
+        }
+  
+        //append to the container
+        self[container][appendChild](popover);
+        popover[style].display = 'block';
+        popover[setAttribute](classString, component+ ' bs-' + component+'-'+placementSetting + ' ' + self[animation]);
+      },
+      showPopover = function () {
+        !hasClass(popover,showClass) && ( addClass(popover,showClass) );
+      },
+      updatePopover = function() {
+        styleTip(element,popover,placementSetting,self[container]);
+      },
+  
+      // event toggle
+      dismissHandlerToggle = function(type){
+        if (clickEvent == self[trigger] || 'focus' == self[trigger]) {
+          !self[dismissible] && type( element, 'blur', self.hide );
+        }
+        self[dismissible] && type( DOC, clickEvent, dismissibleHandler );     
+        type( globalObject, resizeEvent, self.hide );
+      },
+  
+      // triggers
+      showTrigger = function() {
+        dismissHandlerToggle(on);
+        bootstrapCustomEvent.call(element, shownEvent, component);
+      },
+      hideTrigger = function() {
+        dismissHandlerToggle(off);
+        removePopover();
+        bootstrapCustomEvent.call(element, hiddenEvent, component);
+      };
+  
+    // public methods / handlers
+    this.toggle = function() {
+      if (popover === null) { self.show(); } 
+      else { self.hide(); }
+    };
+    this.show = function() {
+      clearTimeout(timer);
+      timer = setTimeout( function() {
+        if (popover === null) {
+          placementSetting = self[placement]; // we reset placement in all cases
+          createPopover();
+          updatePopover();
+          showPopover();
+          bootstrapCustomEvent.call(element, showEvent, component);
+          !!self[animation] ? emulateTransitionEnd(popover, showTrigger) : showTrigger();
+        }
+      }, 20 );
+    };
+    this.hide = function() {
+      clearTimeout(timer);
+      timer = setTimeout( function() {
+        if (popover && popover !== null && hasClass(popover,showClass)) {
+          bootstrapCustomEvent.call(element, hideEvent, component);
+          removeClass(popover,showClass);
+          !!self[animation] ? emulateTransitionEnd(popover, hideTrigger) : hideTrigger();
+        }
+      }, self[delay] );
+    };
+  
+    // init
+    if ( !(stringPopover in element) ) { // prevent adding event handlers twice
+      if (self[trigger] === hoverEvent) {
+        on( element, mouseHover[0], self.show );
+        if (!self[dismissible]) { on( element, mouseHover[1], self.hide ); }
+      } else if (clickEvent == self[trigger] || 'focus' == self[trigger]) {
+        on( element, self[trigger], self.toggle );
+      }
+    }
+    element[stringPopover] = self;
+  };
+  
+  // POPOVER DATA API
+  // ================
+  supports[push]( [ stringPopover, Popover, '['+dataToggle+'="popover"]' ] );
+  
+  
+  /* Native Javascript for Bootstrap 4 | Tab
+  -----------------------------------------*/
+  
+  // TAB DEFINITION
+  // ==============
+  var Tab = function( element, options ) {
+  
+    // initialization element
+    element = queryElement(element);
+  
+    // DATA API
+    var heightData = element[getAttribute](dataHeight),
+      
+        // strings
+        component = 'tab', height = 'height', float = 'float', isAnimating = 'isAnimating';
+        
+    // set options
+    options = options || {};
+    this[height] = supportTransitions ? (options[height] || heightData === 'true') : false;
+  
+    // bind, event targets
+    var self = this, next,
+      tabs = getClosest(element,'.nav'),
+      tabsContentContainer = false,
+      dropdown = tabs && queryElement('.dropdown-toggle',tabs),
+      activeTab, activeContent, nextContent, containerHeight, equalContents, nextHeight,
+      
+      // trigger
+      triggerEnd = function(){
+        tabsContentContainer[style][height] = '';
+        removeClass(tabsContentContainer,collapsing);
+        tabs[isAnimating] = false;
+      },
+      triggerShow = function() {
+        if (tabsContentContainer) { // height animation
+          if ( equalContents ) {
+            triggerEnd();
+          } else {
+            setTimeout(function(){ // enables height animation
+              tabsContentContainer[style][height] = nextHeight + 'px'; // height animation
+              tabsContentContainer[offsetWidth];
+              emulateTransitionEnd(tabsContentContainer, triggerEnd);
+            },50);
+          }
+        } else {
+          tabs[isAnimating] = false; 
+        }
+        bootstrapCustomEvent.call(next, shownEvent, component, activeTab);
+      },
+      triggerHide = function() {
+        if (tabsContentContainer) {
+          activeContent[style][float] = left;
+          nextContent[style][float] = left;        
+          containerHeight = activeContent[scrollHeight];
+        }
+          
+        addClass(nextContent,active);
+        bootstrapCustomEvent.call(next, showEvent, component, activeTab);
+  
+        removeClass(activeContent,active);
+        bootstrapCustomEvent.call(activeTab, hiddenEvent, component, next);
+        
+        if (tabsContentContainer) {
+          nextHeight = nextContent[scrollHeight];
+          equalContents = nextHeight === containerHeight;
+          addClass(tabsContentContainer,collapsing);
+          tabsContentContainer[style][height] = containerHeight + 'px'; // height animation
+          tabsContentContainer[offsetHeight];
+          activeContent[style][float] = '';
+          nextContent[style][float] = '';
+        }
+  
+        if ( hasClass(nextContent, 'fade') ) {
+          setTimeout(function(){
+            addClass(nextContent,showClass);
+            emulateTransitionEnd(nextContent,triggerShow);
+          },20);
+        } else { triggerShow(); }        
+      };
+  
+    if (!tabs) return; // invalidate
+  
+    // set default animation state
+    tabs[isAnimating] = false;    
+          
+    // private methods
+    var getActiveTab = function() {
+        var activeTabs = getElementsByClassName(tabs,active), activeTab;
+        if ( activeTabs[length] === 1 && !hasClass(activeTabs[0][parentNode],'dropdown') ) {
+          activeTab = activeTabs[0];
+        } else if ( activeTabs[length] > 1 ) {
+          activeTab = activeTabs[activeTabs[length]-1];
+        }
+        return activeTab;
+      },
+      getActiveContent = function() {
+        return queryElement(getActiveTab()[getAttribute]('href'));
+      },
+      // handler 
+      clickHandler = function(e) {
+        e[preventDefault]();
+        next = e[currentTarget];
+        !tabs[isAnimating] && !hasClass(next,active) && self.show();
+      };
+  
+    // public method
+    this.show = function() { // the tab we clicked is now the next tab
+      next = next || element;
+      nextContent = queryElement(next[getAttribute]('href')); //this is the actual object, the next tab content to activate
+      activeTab = getActiveTab(); 
+      activeContent = getActiveContent();
+      
+      tabs[isAnimating] = true;
+      removeClass(activeTab,active);
+      activeTab[setAttribute](ariaSelected,'false');
+      addClass(next,active);
+      next[setAttribute](ariaSelected,'true');    
+  
+      if ( dropdown ) {
+        if ( !hasClass(element[parentNode],'dropdown-menu') ) {
+          if (hasClass(dropdown,active)) removeClass(dropdown,active);
+        } else {
+          if (!hasClass(dropdown,active)) addClass(dropdown,active);
+        }
+      }
+      
+      bootstrapCustomEvent.call(activeTab, hideEvent, component, next);
+  
+      if (hasClass(activeContent, 'fade')) {
+        removeClass(activeContent,showClass);
+        emulateTransitionEnd(activeContent, triggerHide);
+      } else { triggerHide(); }
+    };
+  
+    // init
+    if ( !(stringTab in element) ) { // prevent adding event handlers twice
+      on(element, clickEvent, clickHandler);
+    }
+    if (self[height]) { tabsContentContainer = getActiveContent()[parentNode]; }
+    element[stringTab] = self;
+  };
+  
+  // TAB DATA API
+  // ============
+  supports[push]( [ stringTab, Tab, '['+dataToggle+'="tab"]' ] );
+  
+  
+  /* Native Javascript for Bootstrap 4 | Toast
+  ---------------------------------------------*/
+  
+  // TOAST DEFINITION
+  // ==================
+  var Toast = function( element,options ) {
+  
+    // initialization element
+    element = queryElement(element);
+  
+    // set options
+    options = options || {};
+  
+    // DATA API
+    var animationData = element[getAttribute](dataAnimation),
+        autohideData = element[getAttribute](dataAutohide),
+        delayData = element[getAttribute](dataDelay),
+        
+        // strings
+        component = 'toast',
+        autohide = 'autohide',
+        animation = 'animation',
+        showing = 'showing',
+        hide = 'hide',
+        fade = 'fade';
+  
+    // set instance options
+    this[animation] = options[animation] === false || animationData === 'false' ? 0 : 1; // true by default
+    this[autohide] = options[autohide] === false || autohideData === 'false' ? 0 : 1; // true by default
+    this[delay] = parseInt(options[delay] || delayData) || 500; // 500ms default
+  
+    // bind,toast and timer
+    var self = this, timer = 0,
+        // get the toast element
+        toast = getClosest(element,'.toast');
+  
+    // private methods
+    // animation complete
+    var showComplete = function() {
+        removeClass( toast, showing );
+        addClass( toast, showClass );
+        bootstrapCustomEvent.call(toast, shownEvent, component);
+        if (self[autohide]) { self.hide(); }
+      },
+      hideComplete = function() {
+        addClass( toast, hide );
+        bootstrapCustomEvent.call(toast, hiddenEvent, component);
+      },
+      close = function() {
+        removeClass( toast,showClass );
+        self[animation] ? emulateTransitionEnd(toast, hideComplete) : hideComplete();
+      },
+      disposeComplete = function(){
+        clearTimeout(timer); timer = null;
+        addClass( toast, hide );
+        off(element, clickEvent, self.hide);
+        element[stringToast] = null;
+        element = null;
+        toast = null;
+      };
+  
+    // public methods
+    this.show = function() {
+      if (toast) {
+        bootstrapCustomEvent.call(toast, showEvent, component);
+        self[animation] && addClass( toast,fade );
+        removeClass( toast,hide );
+        addClass( toast,showing );
+  
+        self[animation] ? emulateTransitionEnd(toast, showComplete) : showComplete();
+      }
+    };
+    this.hide = function(noTimer) {
+      if (toast && hasClass(toast,showClass)) {
+        bootstrapCustomEvent.call(toast, hideEvent, component);
+  
+        if (noTimer) {
+          close();
+        } else {
+          timer = setTimeout( close, self[delay]);
+        }
+      }
+    };
+    this.dispose = function() {
+      if ( toast && hasClass(toast,showClass) ) {
+        removeClass( toast,showClass );
+        self[animation] ? emulateTransitionEnd(toast, disposeComplete) : disposeComplete();
+      }
+    };
+  
+    // init
+    if ( !(stringToast in element) ) { // prevent adding event handlers twice
+      on(element, clickEvent, self.hide);
+    }
+    element[stringToast] = self;
+  };
+  
+  // TOAST DATA API
+  // =================
+  supports[push]( [ stringToast, Toast, '['+dataDismiss+'="toast"]' ] );
+  
+  
+  /* Native Javascript for Bootstrap 4 | Tooltip
+  ---------------------------------------------*/
+  
+  // TOOLTIP DEFINITION
+  // ==================
+  var Tooltip = function( element,options ) {
+  
+    // initialization element
+    element = queryElement(element);
+  
+    // set options
+    options = options || {};
+  
+    // DATA API
+    var animationData = element[getAttribute](dataAnimation),
+        placementData = element[getAttribute](dataPlacement),
+        delayData = element[getAttribute](dataDelay),
+        containerData = element[getAttribute](dataContainer),
+        
+        // strings
+        component = 'tooltip',
+        classString = 'class',
+        title = 'title',
+        fade = 'fade',
+        div = 'div',
+  
+        // check container
+        containerElement = queryElement(options[container]),
+        containerDataElement = queryElement(containerData),      
+  
+        // maybe the element is inside a modal
+        modal = getClosest(element,'.modal'),
+        
+        // maybe the element is inside a fixed navbar
+        navbarFixedTop = getClosest(element,'.'+fixedTop),
+        navbarFixedBottom = getClosest(element,'.'+fixedBottom);
+  
+    // set instance options
+    this[animation] = options[animation] && options[animation] !== fade ? options[animation] : animationData || fade;
+    this[placement] = options[placement] ? options[placement] : placementData || top;
+    this[delay] = parseInt(options[delay] || delayData) || 200;
+    this[container] = containerElement ? containerElement 
+                    : containerDataElement ? containerDataElement
+                    : navbarFixedTop ? navbarFixedTop
+                    : navbarFixedBottom ? navbarFixedBottom
+                    : modal ? modal : DOC[body];
+  
+    // bind, event targets, title and constants
+    var self = this, timer = 0, placementSetting = this[placement], tooltip = null,
+      titleString = element[getAttribute](title) || element[getAttribute](dataTitle) || element[getAttribute](dataOriginalTitle);
+  
+    if ( !titleString || titleString == "" ) return; // invalidate
+  
+    // private methods
+    var removeToolTip = function() {
+        self[container].removeChild(tooltip);
+        tooltip = null; timer = null;
+      },
+      createToolTip = function() {
+        titleString = element[getAttribute](title) || element[getAttribute](dataTitle) || element[getAttribute](dataOriginalTitle); // read the title again
+        if ( !titleString || titleString == "" ) return false; // invalidate
+        tooltip = DOC[createElement](div);
+        tooltip[setAttribute]('role',component);
+  
+        // tooltip arrow
+        var tooltipArrow = DOC[createElement](div);
+        tooltipArrow[setAttribute](classString,'arrow');
+        tooltip[appendChild](tooltipArrow);
+    
+        var tooltipInner = DOC[createElement](div);
+        tooltipInner[setAttribute](classString,component+'-inner');
+        tooltip[appendChild](tooltipInner);
+        tooltipInner[innerHTML] = titleString;
+  
+        self[container][appendChild](tooltip);
+        tooltip[setAttribute](classString, component + ' bs-' + component+'-'+placementSetting + ' ' + self[animation]);
+      },
+      updateTooltip = function () {
+        styleTip(element,tooltip,placementSetting,self[container]);
+      },
+      showTooltip = function () {
+        !hasClass(tooltip,showClass) && ( addClass(tooltip,showClass) );
+      },
+      // triggers
+      showTrigger = function() {
+        on( globalObject, resizeEvent, self.hide );
+        bootstrapCustomEvent.call(element, shownEvent, component);
+      },
+      hideTrigger = function() {
+        off( globalObject, resizeEvent, self.hide );
+        removeToolTip();
+        bootstrapCustomEvent.call(element, hiddenEvent, component);
+      };
+  
+    // public methods
+    this.show = function() {
+      clearTimeout(timer);
+      timer = setTimeout( function() {
+        if (tooltip === null) {
+          placementSetting = self[placement]; // we reset placement in all cases
+          if(createToolTip() == false) return;
+          updateTooltip();
+          showTooltip();
+          bootstrapCustomEvent.call(element, showEvent, component);
+          !!self[animation] ? emulateTransitionEnd(tooltip, showTrigger) : showTrigger();
+        }
+      }, 20 );
+    };
+    this.hide = function() {
+      clearTimeout(timer);
+      timer = setTimeout( function() {
+        if (tooltip && hasClass(tooltip,showClass)) {
+          bootstrapCustomEvent.call(element, hideEvent, component);
+          removeClass(tooltip,showClass);
+          !!self[animation] ? emulateTransitionEnd(tooltip, hideTrigger) : hideTrigger();
+        }
+      }, self[delay]);
+    };
+    this.toggle = function() {
+      if (!tooltip) { self.show(); } 
+      else { self.hide(); }
+    };
+  
+    // init
+    if ( !(stringTooltip in element) ) { // prevent adding event handlers twice
+      element[setAttribute](dataOriginalTitle,titleString);
+      element.removeAttribute(title);
+      on(element, mouseHover[0], self.show);
+      on(element, mouseHover[1], self.hide);
+    }
+    element[stringTooltip] = self;
+  };
+  
+  // TOOLTIP DATA API
+  // =================
+  supports[push]( [ stringTooltip, Tooltip, '['+dataToggle+'="tooltip"]' ] );
+  
+  
+  
+  /* Native Javascript for Bootstrap | Initialize Data API
+  --------------------------------------------------------*/
+  var initializeDataAPI = function( constructor, collection ){
+      for (var i=0, l=collection[length]; i<l; i++) {
+        new constructor(collection[i]);
+      }
+    },
+    initCallback = BSN.initCallback = function(lookUp){
+      lookUp = lookUp || DOC;
+      for (var i=0, l=supports[length]; i<l; i++) {
+        initializeDataAPI( supports[i][1], lookUp[querySelectorAll] (supports[i][2]) );
+      }
+    };
+  
+  // bulk initialize all components
+  DOC[body] ? initCallback() : on( DOC, 'DOMContentLoaded', function(){ initCallback(); } );
+  
+  return {
+    Alert: Alert,
+    Button: Button,
+    Collapse: Collapse,
+    Dropdown: Dropdown,
+    Modal: Modal,
+    Popover: Popover,
+    Tab: Tab,
+    Toast: Toast,
+    Tooltip: Tooltip
+  };
+}));
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(14)))
 
 /***/ }),
 /* 14 */
@@ -28042,8 +28042,8 @@ module.exports = isArrayLike;
 /* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var arrayLikeKeys = __webpack_require__(69),
-    baseKeys = __webpack_require__(73),
+var arrayLikeKeys = __webpack_require__(68),
+    baseKeys = __webpack_require__(72),
     isArrayLike = __webpack_require__(18);
 
 /**
@@ -28102,10 +28102,10 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   // https://github.com/umdjs/umd/blob/master/returnExports.js
   if ( true && module.exports) {
     // Node
-    module.exports = factory(__webpack_require__(110), __webpack_require__(111), __webpack_require__(112));
+    module.exports = factory(__webpack_require__(109), __webpack_require__(110), __webpack_require__(111));
   } else if (true) {
     // AMD. Register as an anonymous module.
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(110), __webpack_require__(111), __webpack_require__(112)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(109), __webpack_require__(110), __webpack_require__(111)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
 				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
 				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
@@ -30429,9 +30429,9 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 /* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseIndexOf = __webpack_require__(84),
+var baseIndexOf = __webpack_require__(83),
     isArrayLike = __webpack_require__(18),
-    isString = __webpack_require__(85),
+    isString = __webpack_require__(84),
     toInteger = __webpack_require__(47),
     values = __webpack_require__(59);
 
@@ -30616,7 +30616,7 @@ module.exports = function(module) {
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseGetTag = __webpack_require__(15),
-    isObjectLike = __webpack_require__(11);
+    isObjectLike = __webpack_require__(12);
 
 /** `Object#toString` result references. */
 var symbolTag = '[object Symbol]';
@@ -30887,7 +30887,7 @@ module.exports = getMapData;
 var isArray = __webpack_require__(6),
     isKey = __webpack_require__(58),
     stringToPath = __webpack_require__(430),
-    toString = __webpack_require__(108);
+    toString = __webpack_require__(107);
 
 /**
  * Casts `value` to a path array if it's not one.
@@ -33312,7 +33312,7 @@ module.exports = values;
 /* 60 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseRest = __webpack_require__(80),
+var baseRest = __webpack_require__(79),
     createWrap = __webpack_require__(369),
     getHolder = __webpack_require__(54),
     replaceHolders = __webpack_require__(32);
@@ -33381,21 +33381,6 @@ return __p
 
 var _ = {escape:__webpack_require__(1)};
 module.exports = function(o) {
-var __t, __p = '', __e = _.escape;
-__p += '<!-- src/templates/image.html -->\n<a href="' +
-__e(o.url) +
-'" target="_blank" rel="noopener"><img class="chat-image img-thumbnail" src="' +
-__e(o.url) +
-'"/></a>\n';
-return __p
-};
-
-/***/ }),
-/* 63 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var _ = {escape:__webpack_require__(1)};
-module.exports = function(o) {
 var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
 function print() { __p += __j.call(arguments, '') }
 __p += '<!-- src/templates/prompt.html -->\n<div class="modal" tabindex="-1" role="dialog">\n  <div class="modal-dialog" role="document">\n    <div class="modal-content">\n      <div class="modal-header ' +
@@ -33423,7 +33408,7 @@ return __p
 };
 
 /***/ }),
-/* 64 */
+/* 63 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -33436,7 +33421,7 @@ return __p
 };
 
 /***/ }),
-/* 65 */
+/* 64 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -33456,7 +33441,7 @@ return __p
 };
 
 /***/ }),
-/* 66 */
+/* 65 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -33469,7 +33454,7 @@ return __p
 };
 
 /***/ }),
-/* 67 */
+/* 66 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/** Detect free variable `global` from Node.js. */
@@ -33480,7 +33465,7 @@ module.exports = freeGlobal;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(14)))
 
 /***/ }),
-/* 68 */
+/* 67 */
 /***/ (function(module, exports) {
 
 /**
@@ -33508,15 +33493,15 @@ module.exports = arrayEach;
 
 
 /***/ }),
-/* 69 */
+/* 68 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseTimes = __webpack_require__(343),
-    isArguments = __webpack_require__(70),
+    isArguments = __webpack_require__(69),
     isArray = __webpack_require__(6),
-    isBuffer = __webpack_require__(71),
+    isBuffer = __webpack_require__(70),
     isIndex = __webpack_require__(22),
-    isTypedArray = __webpack_require__(72);
+    isTypedArray = __webpack_require__(71);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -33563,11 +33548,11 @@ module.exports = arrayLikeKeys;
 
 
 /***/ }),
-/* 70 */
+/* 69 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseIsArguments = __webpack_require__(344),
-    isObjectLike = __webpack_require__(11);
+    isObjectLike = __webpack_require__(12);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -33605,7 +33590,7 @@ module.exports = isArguments;
 
 
 /***/ }),
-/* 71 */
+/* 70 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(module) {var root = __webpack_require__(5),
@@ -33650,7 +33635,7 @@ module.exports = isBuffer;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(27)(module)))
 
 /***/ }),
-/* 72 */
+/* 71 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseIsTypedArray = __webpack_require__(346),
@@ -33683,10 +33668,10 @@ module.exports = isTypedArray;
 
 
 /***/ }),
-/* 73 */
+/* 72 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var isPrototype = __webpack_require__(74),
+var isPrototype = __webpack_require__(73),
     nativeKeys = __webpack_require__(349);
 
 /** Used for built-in method references. */
@@ -33719,7 +33704,7 @@ module.exports = baseKeys;
 
 
 /***/ }),
-/* 74 */
+/* 73 */
 /***/ (function(module, exports) {
 
 /** Used for built-in method references. */
@@ -33743,7 +33728,7 @@ module.exports = isPrototype;
 
 
 /***/ }),
-/* 75 */
+/* 74 */
 /***/ (function(module, exports) {
 
 /**
@@ -33764,10 +33749,10 @@ module.exports = overArg;
 
 
 /***/ }),
-/* 76 */
+/* 75 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseAssignValue = __webpack_require__(77),
+var baseAssignValue = __webpack_require__(76),
     eq = __webpack_require__(30);
 
 /** Used for built-in method references. */
@@ -33798,10 +33783,10 @@ module.exports = assignValue;
 
 
 /***/ }),
-/* 77 */
+/* 76 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var defineProperty = __webpack_require__(78);
+var defineProperty = __webpack_require__(77);
 
 /**
  * The base implementation of `assignValue` and `assignMergeValue` without
@@ -33829,7 +33814,7 @@ module.exports = baseAssignValue;
 
 
 /***/ }),
-/* 78 */
+/* 77 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var getNative = __webpack_require__(16);
@@ -33846,7 +33831,7 @@ module.exports = defineProperty;
 
 
 /***/ }),
-/* 79 */
+/* 78 */
 /***/ (function(module, exports) {
 
 /** Used for built-in method references. */
@@ -33878,12 +33863,12 @@ module.exports = toSource;
 
 
 /***/ }),
-/* 80 */
+/* 79 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var identity = __webpack_require__(23),
     overRest = __webpack_require__(359),
-    setToString = __webpack_require__(81);
+    setToString = __webpack_require__(80);
 
 /**
  * The base implementation of `_.rest` which doesn't validate or coerce arguments.
@@ -33901,11 +33886,11 @@ module.exports = baseRest;
 
 
 /***/ }),
-/* 81 */
+/* 80 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseSetToString = __webpack_require__(360),
-    shortOut = __webpack_require__(82);
+    shortOut = __webpack_require__(81);
 
 /**
  * Sets the `toString` method of `func` to return `string`.
@@ -33921,7 +33906,7 @@ module.exports = setToString;
 
 
 /***/ }),
-/* 82 */
+/* 81 */
 /***/ (function(module, exports) {
 
 /** Used to detect hot functions by number of calls within a span of milliseconds. */
@@ -33964,10 +33949,10 @@ module.exports = shortOut;
 
 
 /***/ }),
-/* 83 */
+/* 82 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var arrayLikeKeys = __webpack_require__(69),
+var arrayLikeKeys = __webpack_require__(68),
     baseKeysIn = __webpack_require__(363),
     isArrayLike = __webpack_require__(18);
 
@@ -34002,7 +33987,7 @@ module.exports = keysIn;
 
 
 /***/ }),
-/* 84 */
+/* 83 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseFindIndex = __webpack_require__(365),
@@ -34028,12 +34013,12 @@ module.exports = baseIndexOf;
 
 
 /***/ }),
-/* 85 */
+/* 84 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseGetTag = __webpack_require__(15),
     isArray = __webpack_require__(6),
-    isObjectLike = __webpack_require__(11);
+    isObjectLike = __webpack_require__(12);
 
 /** `Object#toString` result references. */
 var stringTag = '[object String]';
@@ -34064,11 +34049,11 @@ module.exports = isString;
 
 
 /***/ }),
-/* 86 */
+/* 85 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var identity = __webpack_require__(23),
-    metaMap = __webpack_require__(87);
+    metaMap = __webpack_require__(86);
 
 /**
  * The base implementation of `setData` without support for hot loop shorting.
@@ -34087,10 +34072,10 @@ module.exports = baseSetData;
 
 
 /***/ }),
-/* 87 */
+/* 86 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var WeakMap = __webpack_require__(88);
+var WeakMap = __webpack_require__(87);
 
 /** Used to store function metadata. */
 var metaMap = WeakMap && new WeakMap;
@@ -34099,7 +34084,7 @@ module.exports = metaMap;
 
 
 /***/ }),
-/* 88 */
+/* 87 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var getNative = __webpack_require__(16),
@@ -34112,14 +34097,14 @@ module.exports = WeakMap;
 
 
 /***/ }),
-/* 89 */
+/* 88 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var composeArgs = __webpack_require__(90),
-    composeArgsRight = __webpack_require__(91),
+var composeArgs = __webpack_require__(89),
+    composeArgsRight = __webpack_require__(90),
     countHolders = __webpack_require__(372),
     createCtor = __webpack_require__(31),
-    createRecurry = __webpack_require__(92),
+    createRecurry = __webpack_require__(91),
     getHolder = __webpack_require__(54),
     reorder = __webpack_require__(383),
     replaceHolders = __webpack_require__(32),
@@ -34210,7 +34195,7 @@ module.exports = createHybrid;
 
 
 /***/ }),
-/* 90 */
+/* 89 */
 /***/ (function(module, exports) {
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
@@ -34255,7 +34240,7 @@ module.exports = composeArgs;
 
 
 /***/ }),
-/* 91 */
+/* 90 */
 /***/ (function(module, exports) {
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
@@ -34302,12 +34287,12 @@ module.exports = composeArgsRight;
 
 
 /***/ }),
-/* 92 */
+/* 91 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var isLaziable = __webpack_require__(373),
-    setData = __webpack_require__(96),
-    setWrapToString = __webpack_require__(97);
+    setData = __webpack_require__(95),
+    setWrapToString = __webpack_require__(96);
 
 /** Used to compose bitmasks for function metadata. */
 var WRAP_BIND_FLAG = 1,
@@ -34364,10 +34349,10 @@ module.exports = createRecurry;
 
 
 /***/ }),
-/* 93 */
+/* 92 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var metaMap = __webpack_require__(87),
+var metaMap = __webpack_require__(86),
     noop = __webpack_require__(374);
 
 /**
@@ -34385,7 +34370,7 @@ module.exports = getData;
 
 
 /***/ }),
-/* 94 */
+/* 93 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseCreate = __webpack_require__(51),
@@ -34413,7 +34398,7 @@ module.exports = LodashWrapper;
 
 
 /***/ }),
-/* 95 */
+/* 94 */
 /***/ (function(module, exports) {
 
 /**
@@ -34439,11 +34424,11 @@ module.exports = copyArray;
 
 
 /***/ }),
-/* 96 */
+/* 95 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseSetData = __webpack_require__(86),
-    shortOut = __webpack_require__(82);
+var baseSetData = __webpack_require__(85),
+    shortOut = __webpack_require__(81);
 
 /**
  * Sets metadata for `func`.
@@ -34465,12 +34450,12 @@ module.exports = setData;
 
 
 /***/ }),
-/* 97 */
+/* 96 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var getWrapDetails = __webpack_require__(379),
     insertWrapDetails = __webpack_require__(380),
-    setToString = __webpack_require__(81),
+    setToString = __webpack_require__(80),
     updateWrapDetails = __webpack_require__(381);
 
 /**
@@ -34492,7 +34477,7 @@ module.exports = setWrapToString;
 
 
 /***/ }),
-/* 98 */
+/* 97 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var ListCache = __webpack_require__(33),
@@ -34525,11 +34510,11 @@ module.exports = Stack;
 
 
 /***/ }),
-/* 99 */
+/* 98 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseIsEqualDeep = __webpack_require__(411),
-    isObjectLike = __webpack_require__(11);
+    isObjectLike = __webpack_require__(12);
 
 /**
  * The base implementation of `_.isEqual` which supports partial comparisons
@@ -34559,7 +34544,7 @@ module.exports = baseIsEqual;
 
 
 /***/ }),
-/* 100 */
+/* 99 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var SetCache = __webpack_require__(412),
@@ -34648,10 +34633,10 @@ module.exports = equalArrays;
 
 
 /***/ }),
-/* 101 */
+/* 100 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var arrayPush = __webpack_require__(102),
+var arrayPush = __webpack_require__(101),
     isArray = __webpack_require__(6);
 
 /**
@@ -34674,7 +34659,7 @@ module.exports = baseGetAllKeys;
 
 
 /***/ }),
-/* 102 */
+/* 101 */
 /***/ (function(module, exports) {
 
 /**
@@ -34700,11 +34685,11 @@ module.exports = arrayPush;
 
 
 /***/ }),
-/* 103 */
+/* 102 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var arrayFilter = __webpack_require__(423),
-    stubArray = __webpack_require__(104);
+    stubArray = __webpack_require__(103);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -34736,7 +34721,7 @@ module.exports = getSymbols;
 
 
 /***/ }),
-/* 104 */
+/* 103 */
 /***/ (function(module, exports) {
 
 /**
@@ -34765,16 +34750,16 @@ module.exports = stubArray;
 
 
 /***/ }),
-/* 105 */
+/* 104 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var DataView = __webpack_require__(424),
     Map = __webpack_require__(55),
     Promise = __webpack_require__(425),
     Set = __webpack_require__(426),
-    WeakMap = __webpack_require__(88),
+    WeakMap = __webpack_require__(87),
     baseGetTag = __webpack_require__(15),
-    toSource = __webpack_require__(79);
+    toSource = __webpack_require__(78);
 
 /** `Object#toString` result references. */
 var mapTag = '[object Map]',
@@ -34829,7 +34814,7 @@ module.exports = getTag;
 
 
 /***/ }),
-/* 106 */
+/* 105 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var isObject = __webpack_require__(9);
@@ -34850,7 +34835,7 @@ module.exports = isStrictComparable;
 
 
 /***/ }),
-/* 107 */
+/* 106 */
 /***/ (function(module, exports) {
 
 /**
@@ -34876,7 +34861,7 @@ module.exports = matchesStrictComparable;
 
 
 /***/ }),
-/* 108 */
+/* 107 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseToString = __webpack_require__(433);
@@ -34910,7 +34895,7 @@ module.exports = toString;
 
 
 /***/ }),
-/* 109 */
+/* 108 */
 /***/ (function(module, exports) {
 
 /**
@@ -34930,7 +34915,7 @@ module.exports = baseProperty;
 
 
 /***/ }),
-/* 110 */
+/* 109 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(module, global) {var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/punycode v1.4.0 by @mathias */
@@ -35456,7 +35441,7 @@ module.exports = baseProperty;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(27)(module), __webpack_require__(14)))
 
 /***/ }),
-/* 111 */
+/* 110 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -35648,7 +35633,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
 
 /***/ }),
-/* 112 */
+/* 111 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -35900,7 +35885,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
 
 /***/ }),
-/* 113 */
+/* 112 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*** IMPORTS FROM imports-loader ***/
@@ -36021,14 +36006,14 @@ backbone.nativeview = __webpack_require__(38);
 
 
 /***/ }),
-/* 114 */
+/* 113 */
 /***/ (function(module, exports, __webpack_require__) {
 
 !function(e,t){ true?module.exports=t():undefined}(this,function(){"use strict";return function(e,t,r){var n=t.prototype,o=n.format;r.en.ordinal=function(e){var t=["th","st","nd","rd"],r=e%100;return"["+e+(t[(r-20)%10]||t[r]||t[0])+"]"},n.format=function(e){var t=this,r=this.$locale(),n=this.$utils(),i=(e||"YYYY-MM-DDTHH:mm:ssZ").replace(/\[([^\]]+)]|Q|wo|gggg|Do|X|x|k{1,2}|S/g,function(e){switch(e){case"Q":return Math.ceil((t.$M+1)/3);case"Do":return r.ordinal(t.$D);case"gggg":return t.weekYear();case"wo":return r.ordinal(t.week(),"W");case"k":case"kk":return n.s(String(0===t.$H?24:t.$H),"k"===e?1:2,"0");case"X":return Math.floor(t.$d.getTime()/1e3);case"x":return t.$d.getTime();default:return e}});return o.bind(this)(i)}}});
 
 
 /***/ }),
-/* 115 */
+/* 114 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseSlice = __webpack_require__(333),
@@ -36072,11 +36057,11 @@ module.exports = drop;
 
 
 /***/ }),
-/* 116 */
+/* 115 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseGetTag = __webpack_require__(15),
-    isObjectLike = __webpack_require__(11);
+    isObjectLike = __webpack_require__(12);
 
 /** `Object#toString` result references. */
 var boolTag = '[object Boolean]';
@@ -36107,7 +36092,7 @@ module.exports = isBoolean;
 
 
 /***/ }),
-/* 117 */
+/* 116 */
 /***/ (function(module, exports) {
 
 /**
@@ -36138,7 +36123,7 @@ module.exports = isNil;
 
 
 /***/ }),
-/* 118 */
+/* 117 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var arrayMap = __webpack_require__(50),
@@ -36181,13 +36166,13 @@ module.exports = pickBy;
 
 
 /***/ }),
-/* 119 */
+/* 118 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseKeys = __webpack_require__(73),
-    getTag = __webpack_require__(105),
+var baseKeys = __webpack_require__(72),
+    getTag = __webpack_require__(104),
     isArrayLike = __webpack_require__(18),
-    isString = __webpack_require__(85),
+    isString = __webpack_require__(84),
     stringSize = __webpack_require__(444);
 
 /** `Object#toString` result references. */
@@ -36233,7 +36218,7 @@ module.exports = size;
 
 
 /***/ }),
-/* 120 */
+/* 119 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36261,7 +36246,7 @@ return __p
 };
 
 /***/ }),
-/* 121 */
+/* 120 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36284,7 +36269,7 @@ return __p
 };
 
 /***/ }),
-/* 122 */
+/* 121 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36295,7 +36280,7 @@ return __p
 };
 
 /***/ }),
-/* 123 */
+/* 122 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36312,7 +36297,7 @@ return __p
 };
 
 /***/ }),
-/* 124 */
+/* 123 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36327,7 +36312,7 @@ return __p
 };
 
 /***/ }),
-/* 125 */
+/* 124 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36355,7 +36340,7 @@ return __p
 };
 
 /***/ }),
-/* 126 */
+/* 125 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36381,7 +36366,7 @@ return __p
 };
 
 /***/ }),
-/* 127 */
+/* 126 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36407,7 +36392,7 @@ return __p
 };
 
 /***/ }),
-/* 128 */
+/* 127 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36424,7 +36409,7 @@ return __p
 };
 
 /***/ }),
-/* 129 */
+/* 128 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var _ = {escape:__webpack_require__(1)};
@@ -36437,6 +36422,21 @@ __e(o.value) +
 '">' +
 __e(o.value) +
 '</a>\n</label>\n';
+return __p
+};
+
+/***/ }),
+/* 129 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var _ = {escape:__webpack_require__(1)};
+module.exports = function(o) {
+var __t, __p = '', __e = _.escape;
+__p += '<!-- src/templates/image.html -->\n<a href="' +
+__e(o.url) +
+'" target="_blank" rel="noopener"><img class="chat-image img-thumbnail" src="' +
+__e(o.url) +
+'"/></a>\n';
 return __p
 };
 
@@ -36718,35 +36718,35 @@ var _ = {escape:__webpack_require__(1)};
 module.exports = function(o) {
 var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
 function print() { __p += __j.call(arguments, '') }
-__p += '<!-- src/templates/chatbox_head.html -->\n<div class="chat-head chat-head-chatbox row no-gutters">\n    ';
+__p += '<!-- src/templates/chatbox_head.html -->\n<div class="chat-head chat-head-chatbox row no-gutters">\n    <div class="chatbox-title">\n        <div class="chatbox-title--row">\n            ';
  if (!o._converse.singleton) { ;
-__p += '\n        <div class="chatbox-navback"><i class="fa fa-arrow-left"></i></div>\n    ';
+__p += '\n                <div class="chatbox-navback"><i class="fa fa-arrow-left"></i></div>\n            ';
  } ;
-__p += '\n    <div class="chatbox-title">\n        <div class="row no-gutters">\n            ';
+__p += '\n            ';
  if (o.type !== o._converse.HEADLINES_TYPE) { ;
-__p += '\n                <canvas class="avatar" height="36" width="36"></canvas>\n            ';
+__p += '\n                <div> <canvas class="avatar" height="36" width="36"></canvas> </div>\n            ';
  } ;
-__p += '\n            <div class="col chat-title" title="' +
+__p += '\n            <div class="chatbox-title__text" title="' +
 __e(o.jid) +
 '">\n                ';
  if (o.url) { ;
-__p += '\n                    <a href="' +
+__p += ' <a href="' +
 __e(o.url) +
-'" target="_blank" rel="noopener" class="user">\n                ';
+'" target="_blank" rel="noopener" class="user"> ';
  } ;
-__p += '\n                        ' +
+__p += '\n                    ' +
 __e( o.display_name ) +
 '\n                ';
  if (o.url) { ;
-__p += '\n                    </a>\n                ';
+__p += ' </a> ';
  } ;
-__p += '\n                <p class="user-custom-message">' +
-__e( o.status ) +
-'</p>\n            </div>\n        </div>\n    </div>\n    <div class="chatbox-buttons row no-gutters">\n        <a class="chatbox-btn close-chatbox-button fa fa-times" title="' +
+__p += '\n            </div>\n        </div>\n        <div class="chatbox-title__buttons row no-gutters">\n            <a class="chatbox-btn close-chatbox-button fa fa-times" title="' +
 __e(o.info_close) +
-'"></a>\n        <a class="chatbox-btn show-user-details-modal fa fa-id-card" title="' +
+'"></a>\n            <a class="chatbox-btn show-user-details-modal fa fa-id-card" title="' +
 __e(o.info_details) +
-'"></a>\n    </div>\n</div>\n';
+'"></a>\n        </div>\n    </div>\n    <p class="chat-head__desc">' +
+__e( o.status ) +
+'</p>\n</div>\n';
 return __p
 };
 
@@ -36761,8 +36761,18 @@ function print() { __p += __j.call(arguments, '') }
 __p += '<!-- src/templates/chatbox_message_form.html -->\n<div class="new-msgs-indicator hidden">▼ ' +
 __e( o.unread_msgs ) +
 ' ▼</div>\n<form class="setNicknameButtonForm hidden">\n    <input type="submit" class="btn btn-primary" name="join" value="Join"/>\n</form>\n<form class="sendXMPPMessage">\n    ';
+ if (o.show_toolbar || o.show_send_button) { ;
+__p += '\n    <div class="chat-toolbar--container">\n    ';
  if (o.show_toolbar) { ;
 __p += '\n        <ul class="chat-toolbar no-text-select"></ul>\n    ';
+ } ;
+__p += '\n    ';
+ if (o.show_send_button) { ;
+__p += '\n        <button type="submit" class="btn send-button fa fa-paper-plane" title="' +
+__e( o.__('Send the message') ) +
+'"></button>\n    ';
+ } ;
+__p += '\n    </div>\n    ';
  } ;
 __p += '\n    <input type="text" placeholder="' +
 ((__t = (o.label_spoiler_hint)) == null ? '' : __t) +
@@ -36784,13 +36794,7 @@ __p += '"\n            placeholder="' +
 __e(o.label_message) +
 '">' +
 ((__t = ( o.message_value )) == null ? '' : __t) +
-'</textarea>\n        <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span>\n\n        ';
- if (o.show_send_button) { ;
-__p += '\n            <button type="submit" class="pure-button send-button">' +
-__e( o.label_send ) +
-'</button>\n        ';
- } ;
-__p += '\n    </div>\n</form>\n';
+'</textarea>\n        <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span>\n    </div>\n</form>\n';
 return __p
 };
 
@@ -37532,9 +37536,21 @@ __p += '<!-- src/templates/add_chatroom_modal.html -->\n<div class="modal" id="a
 __e(o.__('Enter a new Groupchat')) +
 '</h5>\n                <button type="button" class="close" data-dismiss="modal" aria-label="Close">\n                    <span aria-hidden="true">×</span>\n                </button>\n            </div>\n            <div class="modal-body">\n                <form class="converse-form add-chatroom">\n                    <div class="form-group">\n                        <label for="chatroom">' +
 __e(o.label_room_address) +
-':</label>\n                        <input type="text" required="required" name="chatroom" class="form-control" placeholder="' +
+':</label>\n                        ';
+ if (o.muc_roomid_policy_error_msg) { ;
+__p += '\n                            <label class="roomid-policy-error">' +
+__e(o.muc_roomid_policy_error_msg) +
+'</label>\n                        ';
+ } ;
+__p += '\n                        <input type="text" required="required" name="chatroom" class="form-control roomjid-input" placeholder="' +
 __e(o.chatroom_placeholder) +
 '"/>\n                    </div>\n                    ';
+ if (o.muc_roomid_policy_hint) { ;
+__p += '\n                        <div class="form-group">\n                            ' +
+((__t = (o.muc_roomid_policy_hint)) == null ? '' : __t) +
+'\n                        </div>\n                    ';
+ } ;
+__p += '\n                    ';
  if (!o._converse.locked_muc_nickname) { ;
 __p += '\n                    <div class="form-group" >\n                        <label for="nickname">' +
 __e(o.__('Nickname')) +
@@ -37546,7 +37562,11 @@ __e(o.nick) +
  } ;
 __p += '\n                    <input type="submit" class="btn btn-primary" name="join" value="' +
 __e(o.__('Join')) +
-'"/>\n                </form>\n            </div>\n        </div>\n    </div>\n</div>\n';
+'" ';
+ if (o.muc_roomid_policy_error_msg) { ;
+__p += ' disabled=true ';
+ } ;
+__p += '/>\n                </form>\n            </div>\n        </div>\n    </div>\n</div>\n';
 return __p
 };
 
@@ -37619,13 +37639,13 @@ var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
 function print() { __p += __j.call(arguments, '') }
 __p += '<!-- src/templates/chatroom_destroyed.html -->\n<div class="alert alert-danger">\n    <h3 class="alert-heading disconnect-msg">' +
 __e(o.__('This groupchat no longer exists')) +
-'</h3>\n\n    <p class="destroyed-reason">' +
+'</h3>\n    <p class="destroyed-reason">' +
 __e(o.reason) +
-'</p>\n\n    ';
+'</p>\n    ';
  if (o.jid) { ;
-__p += '\n    <p class="moved-label">\n        ' +
+__p += '\n        <p class="moved-label">' +
 __e(o.__('The conversation has moved. Click below to enter.') ) +
-'\n    </p>\n    <p class="moved-link"><a class="switch-chat" href="#">' +
+'</p>\n        <p class="moved-link"><a class="switch-chat" href="#">' +
 __e(o.jid) +
 '</a></p>\n    ';
  } ;
@@ -37656,7 +37676,7 @@ __e(o.jid) +
 '</p>\n                    <p class="room-info"><strong>' +
 __e(o.__('Description')) +
 '</strong>: ' +
-__e(o.description) +
+__e(o.config.description) +
 '</p>\n                    ';
  if (o.subject) { ;
 __p += '\n                    <p class="room-info"><strong>' +
@@ -37666,7 +37686,7 @@ __e(o.__('Topic')) +
 '</p> <!-- Sanitized in converse-muc-views. We want to render links. -->\n                        <p class="room-info"><strong>' +
 __e(o.__('Topic author')) +
 '</strong>: ' +
-__e(o._.get(o.subject, 'author')) +
+__e(o.subject && o.subject.author) +
 '</p>\n                    ';
  } ;
 __p += '\n                    <p class="room-info"><strong>' +
@@ -37794,9 +37814,9 @@ module.exports = function(o) {
 var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
 function print() { __p += __j.call(arguments, '') }
 __p += '<!-- src/templates/chatroom_disconnect.html -->\n<div class="alert alert-danger">\n    <h3 class="alert-heading disconnect-msg">' +
-__e(o.disconnect_messages[0]) +
-'</h3>\n\n    ';
- o._.forEach(o.disconnect_messages.slice(1), function (msg) { ;
+__e(o.messages[0]) +
+'</h3>\n    ';
+ o.messages.slice(1).forEach(function (msg) { ;
 __p += '\n        <p class="disconnect-msg">' +
 __e(msg) +
 '</p>\n    ';
@@ -37961,35 +37981,35 @@ var _ = {escape:__webpack_require__(1)};
 module.exports = function(o) {
 var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
 function print() { __p += __j.call(arguments, '') }
-__p += '<!-- src/templates/chatroom_head.html -->\n';
+__p += '<!-- src/templates/chatroom_head.html -->\n<div class="chatbox-title">\n    ';
  if (!o._converse.singleton) { ;
-__p += '\n    <div class="chatbox-navback"><i class="fa fa-arrow-left"></i></div>\n';
+__p += '\n        <div class="chatbox-navback"><i class="fa fa-arrow-left"></i></div>\n    ';
  } ;
-__p += '\n<div class="chatbox-title">\n    <div class="chat-title" ';
+__p += '\n    <div class="chatbox-title__text" ';
  if (o._converse.locked_muc_domain !== 'hidden') { ;
 __p += ' title="' +
 __e(o.jid) +
 '" ';
  } ;
-__p += ' >\n        ' +
+__p += ' >' +
 __e( o.title ) +
-'\n    </div>\n    <!-- Sanitized in converse-muc-views. We want to render links. -->\n    <p class="chatroom-description">' +
-((__t = (o.description)) == null ? '' : __t) +
-'</p>\n</div>\n<div class="chatbox-buttons row no-gutters">\n    ';
+'</div>\n    <div class="chatbox-title__buttons row no-gutters">\n        ';
  if (!o._converse.singleton) { ;
-__p += '\n        <a class="chatbox-btn close-chatbox-button fa fa-sign-out-alt" title="' +
+__p += '\n            <a class="chatbox-btn close-chatbox-button fa fa-sign-out-alt" title="' +
 __e(o.info_close) +
-'"></a>\n    ';
+'"></a>\n        ';
  } ;
-__p += '\n    ';
+__p += '\n        ';
  if (o.isOwner) { ;
-__p += '\n        <a class="chatbox-btn configure-chatroom-button fa fa-wrench" title="' +
+__p += '\n            <a class="chatbox-btn configure-chatroom-button fa fa-wrench" title="' +
 __e(o.info_configure) +
-' "></a>\n    ';
+' "></a>\n        ';
  } ;
-__p += '\n    <a class="chatbox-btn show-room-details-modal fa fa-info-circle" title="' +
+__p += '\n        <a class="chatbox-btn show-room-details-modal fa fa-info-circle" title="' +
 __e(o.info_details) +
-'"></a>\n</div>\n';
+'"></a>\n    </div>\n</div>\n<!-- Sanitized in converse-muc-views. We want to render links. -->\n<p class="chat-head__desc">' +
+((__t = (o.subject)) == null ? '' : __t) +
+'</p>\n';
 return __p
 };
 
@@ -38305,7 +38325,7 @@ __e( o.id ) +
 __p += '\n       title="' +
 __e( o.jid ) +
 ' ' +
-__e( o.desc_moderator ) +
+__e( o.__('This user is a moderator.') ) +
 ' ' +
 __e( o.hint_occupant ) +
 '"\n    ';
@@ -38315,7 +38335,7 @@ __p += '\n    ';
 __p += '\n       title="' +
 __e( o.jid ) +
 ' ' +
-__e( o.desc_participant ) +
+__e( o.__('This user can send messages in this groupchat.') ) +
 ' ' +
 __e( o.hint_occupant ) +
 '"\n    ';
@@ -38325,13 +38345,13 @@ __p += '\n    ';
 __p += '\n       title="' +
 __e( o.jid ) +
 ' ' +
-__e( o.desc_visitor ) +
+__e( o.__('This user can NOT send messages in this groupchat.') ) +
 ' ' +
 __e( o.hint_occupant ) +
 '"\n    ';
  } ;
 __p += '\n    ';
- if (!o._.includes(["visitor", "participant", "moderator"], o.role)) { ;
+ if (!["visitor", "participant", "moderator"].includes(o.role)) { ;
 __p += '\n       title="' +
 __e( o.jid ) +
 ' ' +
@@ -38347,31 +38367,31 @@ __e(o.nick || o.jid) +
 '</span>\n            <span class="occupant-badges">\n                ';
  if (o.affiliation === "owner") { ;
 __p += '\n                    <span class="badge badge-groupchat">' +
-__e(o.label_owner) +
+__e(o.__('Owner')) +
 '</span>\n                ';
  } ;
 __p += '\n                ';
  if (o.affiliation === "admin") { ;
 __p += '\n                    <span class="badge badge-info">' +
-__e(o.label_admin) +
+__e(o.__('Admin')) +
 '</span>\n                ';
  } ;
 __p += '\n                ';
  if (o.affiliation === "member") { ;
 __p += '\n                    <span class="badge badge-info">' +
-__e(o.label_member) +
+__e(o.__('Member')) +
 '</span>\n                ';
  } ;
 __p += '\n\n                ';
  if (o.role === "moderator") { ;
 __p += '\n                    <span class="badge badge-info">' +
-__e(o.label_moderator) +
+__e(o.__('Moderator')) +
 '</span>\n                ';
  } ;
 __p += '\n                ';
  if (o.role === "visitor") { ;
 __p += '\n                    <span class="badge badge-secondary">' +
-__e(o.label_visitor) +
+__e(o.__('Visitor')) +
 '</span>\n                ';
  } ;
 __p += '\n            </span>\n        </div>\n    </div>\n</li>\n';
@@ -40989,7 +41009,7 @@ module.exports = objectToString;
 /* 338 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var arrayEach = __webpack_require__(68),
+var arrayEach = __webpack_require__(67),
     baseEach = __webpack_require__(339),
     castFunction = __webpack_require__(351),
     isArray = __webpack_require__(6);
@@ -41158,7 +41178,7 @@ module.exports = baseTimes;
 /***/ (function(module, exports, __webpack_require__) {
 
 var baseGetTag = __webpack_require__(15),
-    isObjectLike = __webpack_require__(11);
+    isObjectLike = __webpack_require__(12);
 
 /** `Object#toString` result references. */
 var argsTag = '[object Arguments]';
@@ -41207,7 +41227,7 @@ module.exports = stubFalse;
 
 var baseGetTag = __webpack_require__(15),
     isLength = __webpack_require__(48),
-    isObjectLike = __webpack_require__(11);
+    isObjectLike = __webpack_require__(12);
 
 /** `Object#toString` result references. */
 var argsTag = '[object Arguments]',
@@ -41291,7 +41311,7 @@ module.exports = baseUnary;
 /* 348 */
 /***/ (function(module, exports, __webpack_require__) {
 
-/* WEBPACK VAR INJECTION */(function(module) {var freeGlobal = __webpack_require__(67);
+/* WEBPACK VAR INJECTION */(function(module) {var freeGlobal = __webpack_require__(66);
 
 /** Detect free variable `exports`. */
 var freeExports =  true && exports && !exports.nodeType && exports;
@@ -41328,7 +41348,7 @@ module.exports = nodeUtil;
 /* 349 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var overArg = __webpack_require__(75);
+var overArg = __webpack_require__(74);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeKeys = overArg(Object.keys, Object);
@@ -41400,7 +41420,7 @@ module.exports = castFunction;
 
 var copyObject = __webpack_require__(353),
     createAssigner = __webpack_require__(358),
-    keysIn = __webpack_require__(83);
+    keysIn = __webpack_require__(82);
 
 /**
  * This method is like `_.assign` except that it iterates over own and
@@ -41444,8 +41464,8 @@ module.exports = assignIn;
 /* 353 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var assignValue = __webpack_require__(76),
-    baseAssignValue = __webpack_require__(77);
+var assignValue = __webpack_require__(75),
+    baseAssignValue = __webpack_require__(76);
 
 /**
  * Copies properties of `source` to `object`.
@@ -41493,7 +41513,7 @@ module.exports = copyObject;
 var isFunction = __webpack_require__(40),
     isMasked = __webpack_require__(355),
     isObject = __webpack_require__(9),
-    toSource = __webpack_require__(79);
+    toSource = __webpack_require__(78);
 
 /**
  * Used to match `RegExp`
@@ -41600,7 +41620,7 @@ module.exports = getValue;
 /* 358 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseRest = __webpack_require__(80),
+var baseRest = __webpack_require__(79),
     isIterateeCall = __webpack_require__(362);
 
 /**
@@ -41686,7 +41706,7 @@ module.exports = overRest;
 /***/ (function(module, exports, __webpack_require__) {
 
 var constant = __webpack_require__(361),
-    defineProperty = __webpack_require__(78),
+    defineProperty = __webpack_require__(77),
     identity = __webpack_require__(23);
 
 /**
@@ -41782,7 +41802,7 @@ module.exports = isIterateeCall;
 /***/ (function(module, exports, __webpack_require__) {
 
 var isObject = __webpack_require__(9),
-    isPrototype = __webpack_require__(74),
+    isPrototype = __webpack_require__(73),
     nativeKeysIn = __webpack_require__(364);
 
 /** Used for built-in method references. */
@@ -41948,15 +41968,15 @@ module.exports = baseValues;
 /* 369 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseSetData = __webpack_require__(86),
+var baseSetData = __webpack_require__(85),
     createBind = __webpack_require__(370),
     createCurry = __webpack_require__(371),
-    createHybrid = __webpack_require__(89),
+    createHybrid = __webpack_require__(88),
     createPartial = __webpack_require__(384),
-    getData = __webpack_require__(93),
+    getData = __webpack_require__(92),
     mergeData = __webpack_require__(385),
-    setData = __webpack_require__(96),
-    setWrapToString = __webpack_require__(97),
+    setData = __webpack_require__(95),
+    setWrapToString = __webpack_require__(96),
     toInteger = __webpack_require__(47);
 
 /** Error message constants. */
@@ -42096,8 +42116,8 @@ module.exports = createBind;
 
 var apply = __webpack_require__(49),
     createCtor = __webpack_require__(31),
-    createHybrid = __webpack_require__(89),
-    createRecurry = __webpack_require__(92),
+    createHybrid = __webpack_require__(88),
+    createRecurry = __webpack_require__(91),
     getHolder = __webpack_require__(54),
     replaceHolders = __webpack_require__(32),
     root = __webpack_require__(5);
@@ -42174,7 +42194,7 @@ module.exports = countHolders;
 /***/ (function(module, exports, __webpack_require__) {
 
 var LazyWrapper = __webpack_require__(52),
-    getData = __webpack_require__(93),
+    getData = __webpack_require__(92),
     getFuncName = __webpack_require__(375),
     lodash = __webpack_require__(377);
 
@@ -42278,10 +42298,10 @@ module.exports = realNames;
 /***/ (function(module, exports, __webpack_require__) {
 
 var LazyWrapper = __webpack_require__(52),
-    LodashWrapper = __webpack_require__(94),
+    LodashWrapper = __webpack_require__(93),
     baseLodash = __webpack_require__(53),
     isArray = __webpack_require__(6),
-    isObjectLike = __webpack_require__(11),
+    isObjectLike = __webpack_require__(12),
     wrapperClone = __webpack_require__(378);
 
 /** Used for built-in method references. */
@@ -42431,8 +42451,8 @@ module.exports = lodash;
 /***/ (function(module, exports, __webpack_require__) {
 
 var LazyWrapper = __webpack_require__(52),
-    LodashWrapper = __webpack_require__(94),
-    copyArray = __webpack_require__(95);
+    LodashWrapper = __webpack_require__(93),
+    copyArray = __webpack_require__(94);
 
 /**
  * Creates a clone of `wrapper`.
@@ -42511,7 +42531,7 @@ module.exports = insertWrapDetails;
 /* 381 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var arrayEach = __webpack_require__(68),
+var arrayEach = __webpack_require__(67),
     arrayIncludes = __webpack_require__(382);
 
 /** Used to compose bitmasks for function metadata. */
@@ -42563,7 +42583,7 @@ module.exports = updateWrapDetails;
 /* 382 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseIndexOf = __webpack_require__(84);
+var baseIndexOf = __webpack_require__(83);
 
 /**
  * A specialized version of `_.includes` for arrays without support for
@@ -42586,7 +42606,7 @@ module.exports = arrayIncludes;
 /* 383 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var copyArray = __webpack_require__(95),
+var copyArray = __webpack_require__(94),
     isIndex = __webpack_require__(22);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
@@ -42670,8 +42690,8 @@ module.exports = createPartial;
 /* 385 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var composeArgs = __webpack_require__(90),
-    composeArgsRight = __webpack_require__(91),
+var composeArgs = __webpack_require__(89),
+    composeArgsRight = __webpack_require__(90),
     replaceHolders = __webpack_require__(32);
 
 /** Used as the internal argument placeholder. */
@@ -42805,7 +42825,7 @@ module.exports = baseIteratee;
 
 var baseIsMatch = __webpack_require__(388),
     getMatchData = __webpack_require__(427),
-    matchesStrictComparable = __webpack_require__(107);
+    matchesStrictComparable = __webpack_require__(106);
 
 /**
  * The base implementation of `_.matches` which doesn't clone `source`.
@@ -42831,8 +42851,8 @@ module.exports = baseMatches;
 /* 388 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Stack = __webpack_require__(98),
-    baseIsEqual = __webpack_require__(99);
+var Stack = __webpack_require__(97),
+    baseIsEqual = __webpack_require__(98);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1,
@@ -43483,14 +43503,14 @@ module.exports = mapCacheSet;
 /* 411 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Stack = __webpack_require__(98),
-    equalArrays = __webpack_require__(100),
+var Stack = __webpack_require__(97),
+    equalArrays = __webpack_require__(99),
     equalByTag = __webpack_require__(417),
     equalObjects = __webpack_require__(421),
-    getTag = __webpack_require__(105),
+    getTag = __webpack_require__(104),
     isArray = __webpack_require__(6),
-    isBuffer = __webpack_require__(71),
-    isTypedArray = __webpack_require__(72);
+    isBuffer = __webpack_require__(70),
+    isTypedArray = __webpack_require__(71);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1;
@@ -43701,7 +43721,7 @@ module.exports = cacheHas;
 var Symbol = __webpack_require__(29),
     Uint8Array = __webpack_require__(418),
     eq = __webpack_require__(30),
-    equalArrays = __webpack_require__(100),
+    equalArrays = __webpack_require__(99),
     mapToArray = __webpack_require__(419),
     setToArray = __webpack_require__(420);
 
@@ -43971,8 +43991,8 @@ module.exports = equalObjects;
 /* 422 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseGetAllKeys = __webpack_require__(101),
-    getSymbols = __webpack_require__(103),
+var baseGetAllKeys = __webpack_require__(100),
+    getSymbols = __webpack_require__(102),
     keys = __webpack_require__(19);
 
 /**
@@ -44063,7 +44083,7 @@ module.exports = Set;
 /* 427 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var isStrictComparable = __webpack_require__(106),
+var isStrictComparable = __webpack_require__(105),
     keys = __webpack_require__(19);
 
 /**
@@ -44093,12 +44113,12 @@ module.exports = getMatchData;
 /* 428 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseIsEqual = __webpack_require__(99),
+var baseIsEqual = __webpack_require__(98),
     get = __webpack_require__(429),
     hasIn = __webpack_require__(434),
     isKey = __webpack_require__(58),
-    isStrictComparable = __webpack_require__(106),
-    matchesStrictComparable = __webpack_require__(107),
+    isStrictComparable = __webpack_require__(105),
+    matchesStrictComparable = __webpack_require__(106),
     toKey = __webpack_require__(24);
 
 /** Used to compose bitmasks for value comparisons. */
@@ -44418,7 +44438,7 @@ module.exports = baseHasIn;
 /***/ (function(module, exports, __webpack_require__) {
 
 var castPath = __webpack_require__(37),
-    isArguments = __webpack_require__(70),
+    isArguments = __webpack_require__(69),
     isArray = __webpack_require__(6),
     isIndex = __webpack_require__(22),
     isLength = __webpack_require__(48),
@@ -44462,7 +44482,7 @@ module.exports = hasPath;
 /* 437 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseProperty = __webpack_require__(109),
+var baseProperty = __webpack_require__(108),
     basePropertyDeep = __webpack_require__(438),
     isKey = __webpack_require__(58),
     toKey = __webpack_require__(24);
@@ -44558,7 +44578,7 @@ module.exports = basePickBy;
 /* 440 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var assignValue = __webpack_require__(76),
+var assignValue = __webpack_require__(75),
     castPath = __webpack_require__(37),
     isIndex = __webpack_require__(22),
     isObject = __webpack_require__(9),
@@ -44611,9 +44631,9 @@ module.exports = baseSet;
 /* 441 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseGetAllKeys = __webpack_require__(101),
+var baseGetAllKeys = __webpack_require__(100),
     getSymbolsIn = __webpack_require__(442),
-    keysIn = __webpack_require__(83);
+    keysIn = __webpack_require__(82);
 
 /**
  * Creates an array of own and inherited enumerable property names and
@@ -44634,10 +44654,10 @@ module.exports = getAllKeysIn;
 /* 442 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var arrayPush = __webpack_require__(102),
+var arrayPush = __webpack_require__(101),
     getPrototype = __webpack_require__(443),
-    getSymbols = __webpack_require__(103),
-    stubArray = __webpack_require__(104);
+    getSymbols = __webpack_require__(102),
+    stubArray = __webpack_require__(103);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeGetSymbols = Object.getOwnPropertySymbols;
@@ -44665,7 +44685,7 @@ module.exports = getSymbolsIn;
 /* 443 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var overArg = __webpack_require__(75);
+var overArg = __webpack_require__(74);
 
 /** Built-in value references. */
 var getPrototype = overArg(Object.getPrototypeOf, Object);
@@ -44701,7 +44721,7 @@ module.exports = stringSize;
 /* 445 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var baseProperty = __webpack_require__(109);
+var baseProperty = __webpack_require__(108);
 
 /**
  * Gets the size of an ASCII `string`.
@@ -51923,7 +51943,7 @@ var lodash_noconflict = __webpack_require__(2);
 var lodash_noconflict_default = /*#__PURE__*/__webpack_require__.n(lodash_noconflict);
 
 // EXTERNAL MODULE: ./node_modules/dayjs/plugin/advancedFormat.js
-var advancedFormat = __webpack_require__(114);
+var advancedFormat = __webpack_require__(113);
 var advancedFormat_default = /*#__PURE__*/__webpack_require__.n(advancedFormat);
 
 // EXTERNAL MODULE: ./node_modules/dayjs/dayjs.min.js
@@ -52157,7 +52177,7 @@ const log = {
 };
 /* harmony default export */ var headless_log = (log);
 // EXTERNAL MODULE: ./node_modules/lodash/drop.js
-var drop = __webpack_require__(115);
+var drop = __webpack_require__(114);
 var drop_default = /*#__PURE__*/__webpack_require__.n(drop);
 
 // EXTERNAL MODULE: ./node_modules/lodash/each.js
@@ -52173,7 +52193,7 @@ var includes = __webpack_require__(21);
 var includes_default = /*#__PURE__*/__webpack_require__.n(includes);
 
 // EXTERNAL MODULE: ./node_modules/lodash/isBoolean.js
-var isBoolean = __webpack_require__(116);
+var isBoolean = __webpack_require__(115);
 var isBoolean_default = /*#__PURE__*/__webpack_require__.n(isBoolean);
 
 // EXTERNAL MODULE: ./node_modules/lodash/isFunction.js
@@ -52181,7 +52201,7 @@ var isFunction = __webpack_require__(40);
 var isFunction_default = /*#__PURE__*/__webpack_require__.n(isFunction);
 
 // EXTERNAL MODULE: ./node_modules/lodash/isNil.js
-var isNil = __webpack_require__(117);
+var isNil = __webpack_require__(116);
 var isNil_default = /*#__PURE__*/__webpack_require__.n(isNil);
 
 // EXTERNAL MODULE: ./node_modules/lodash/keys.js
@@ -52193,11 +52213,11 @@ var partial = __webpack_require__(60);
 var partial_default = /*#__PURE__*/__webpack_require__.n(partial);
 
 // EXTERNAL MODULE: ./node_modules/lodash/pickBy.js
-var pickBy = __webpack_require__(118);
+var pickBy = __webpack_require__(117);
 var pickBy_default = /*#__PURE__*/__webpack_require__.n(pickBy);
 
 // EXTERNAL MODULE: ./node_modules/lodash/size.js
-var size = __webpack_require__(119);
+var size = __webpack_require__(118);
 var size_default = /*#__PURE__*/__webpack_require__.n(size);
 
 // EXTERNAL MODULE: ./node_modules/lodash/values.js
@@ -52859,11 +52879,14 @@ u.createFragmentFromText = function (markup) {
 u.isPersistableModel = function (model) {
   return model.collection && model.collection.browserStorage;
 };
+/**
+ * Returns a promise object on which `resolve` or `reject` can be called.
+ * @private
+ * @method u#getResolveablePromise
+ */
+
 
 u.getResolveablePromise = function () {
-  /* Returns a promise object on which `resolve` or `reject` can be
-   * called.
-   */
   const wrapper = {
     isResolved: false,
     isPending: true,
@@ -52873,9 +52896,7 @@ u.getResolveablePromise = function () {
     wrapper.resolve = resolve;
     wrapper.reject = reject;
   });
-
-  lodash_noconflict_default.a.assign(promise, wrapper);
-
+  Object.assign(promise, wrapper);
   promise.then(function (v) {
     promise.isResolved = true;
     promise.isPending = false;
@@ -53413,8 +53434,14 @@ const stanza_utils = {
     } = _converse;
 
     if (is_muc) {
-      if (sizzle_default()("forbidden[xmlns=\"".concat(stanza_Strophe.NS.STANZAS, "\"]"), stanza).length) {
-        return __("Your message was not delivered because you're not allowed to send messages in this groupchat.");
+      const forbidden = sizzle_default()("error forbidden[xmlns=\"".concat(stanza_Strophe.NS.STANZAS, "\"]"), stanza).pop();
+
+      if (forbidden) {
+        const msg = __("Your message was not delivered because you weren't allowed to send it.");
+
+        const text = sizzle_default()("error text[xmlns=\"".concat(stanza_Strophe.NS.STANZAS, "\"]"), stanza).pop();
+        const server_msg = text ? __('The message from the server is: "%1$s"', text.textContent) : '';
+        return server_msg ? "".concat(msg, " ").concat(server_msg) : msg;
       } else if (sizzle_default()("not-acceptable[xmlns=\"".concat(stanza_Strophe.NS.STANZAS, "\"]"), stanza).length) {
         return __("Your message was not delivered because you're not present in the groupchat.");
       }
@@ -53508,6 +53535,7 @@ const stanza_utils = {
 
 
 
+
 const converse_core_Strophe = core.Strophe;
 const converse_core_$build = core.$build;
 const converse_core_$iq = core.$iq;
@@ -53576,7 +53604,7 @@ const converse_core_converse = {
   'templates': {},
   'promises': {}
 };
-converse_core_converse.VERSION_NAME = "v6.0.0";
+converse_core_converse.VERSION_NAME = "v6.0.1";
 Object.assign(converse_core_converse, Backbone.Events);
 converse_core_converse.Collection = Backbone.Collection.extend({
   async clearSession() {
@@ -53799,7 +53827,7 @@ converse_core_converse.isUniView = function () {
    * UniView means that only one chat is visible, even though there might be multiple ongoing chats.
    * MultiView means that multiple chats may be visible simultaneously.
    */
-  return lodash_noconflict_default.a.includes(['mobile', 'fullscreen', 'embedded'], converse_core_converse.view_mode);
+  return ['mobile', 'fullscreen', 'embedded'].includes(converse_core_converse.view_mode);
 };
 
 async function initSessionStorage() {
@@ -53939,7 +53967,7 @@ async function attemptNonPreboundSession(credentials, automatic) {
       connect((await getLoginCredentials()));
     } else if (converse_core_converse.jid && (converse_core_converse.password || converse_core_converse.connection.pass)) {
       connect();
-    } else if (!converse_core_converse.isTestEnv() && window.PasswordCredential) {
+    } else if (!converse_core_converse.isTestEnv() && 'credentials' in navigator) {
       connect((await getLoginCredentialsFromBrowser()));
     } else {
       headless_log.warn("attemptNonPreboundSession: Could not find any credentials to log in with");
@@ -53961,7 +53989,7 @@ function connect(credentials) {
 
     converse_core_converse.connection.connect(converse_core_converse.jid.toLowerCase(), null, converse_core_converse.onConnectStatusChanged, BOSH_WAIT);
   } else if (converse_core_converse.authentication === converse_core_converse.LOGIN) {
-    const password = credentials ? credentials.password : lodash_noconflict_default.a.get(converse_core_converse.connection, 'pass') || converse_core_converse.password;
+    const password = credentials ? credentials.password : Object(lodash["get"])(converse_core_converse.connection, 'pass') || converse_core_converse.password;
 
     if (!password) {
       if (converse_core_converse.auto_login) {
@@ -54002,7 +54030,7 @@ async function reconnect() {
   return converse_core_converse.api.user.login();
 }
 
-const debouncedReconnect = lodash_noconflict_default.a.debounce(reconnect, 2000);
+const debouncedReconnect = Object(lodash["debounce"])(reconnect, 2000);
 
 converse_core_converse.shouldClearCache = () => !converse_core_converse.config.get('trusted') || converse_core_converse.isTestEnv();
 
@@ -54313,7 +54341,7 @@ async function finishInitialization() {
     });
   }
 
-  if (converse_core_converse.auto_login || converse_core_converse.keepalive && lodash_noconflict_default.a.invoke(converse_core_converse.pluggable.plugins['converse-bosh'], 'enabled')) {
+  if (converse_core_converse.auto_login || converse_core_converse.keepalive && Object(lodash["invoke"])(converse_core_converse.pluggable.plugins['converse-bosh'], 'enabled')) {
     await converse_core_converse.api.user.login(null, null, true);
   }
 }
@@ -54346,7 +54374,7 @@ function finishDisconnection() {
 
 function fetchLoginCredentials() {
   let wait = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-  return new Promise(lodash_noconflict_default.a.debounce((resolve, reject) => {
+  return new Promise(Object(lodash["debounce"])((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', converse_core_converse.credentials_url, true);
     xhr.setRequestHeader('Accept', 'application/json, text/javascript');
@@ -54392,16 +54420,20 @@ async function getLoginCredentials() {
 }
 
 async function getLoginCredentialsFromBrowser() {
-  const creds = await navigator.credentials.get({
-    'password': true
-  });
+  try {
+    const creds = await navigator.credentials.get({
+      'password': true
+    });
 
-  if (creds && creds.type == 'password' && utils_core.isValidJID(creds.id)) {
-    await converse_core_converse.setUserJID(creds.id);
-    return {
-      'jid': creds.id,
-      'password': creds.password
-    };
+    if (creds && creds.type == 'password' && utils_core.isValidJID(creds.id)) {
+      await converse_core_converse.setUserJID(creds.id);
+      return {
+        'jid': creds.id,
+        'password': creds.password
+      };
+    }
+  } catch (e) {
+    headless_log.error(e);
   }
 }
 
@@ -54504,15 +54536,11 @@ converse_core_converse.initialize = async function (settings, callback) {
     converse_core_converse.unloadevent = 'unload';
   }
 
-  lodash_noconflict_default.a.assignIn(this, this.default_settings); // Allow only whitelisted configuration attributes to be overwritten
+  Object(lodash["assignIn"])(this, this.default_settings); // Allow only whitelisted configuration attributes to be overwritten
 
-
-  lodash_noconflict_default.a.assignIn(this, lodash_noconflict_default.a.pick(settings, Object.keys(this.default_settings)));
-
+  Object(lodash["assignIn"])(this, Object(lodash["pick"])(settings, Object.keys(this.default_settings)));
   this.settings = {};
-
-  lodash_noconflict_default.a.assignIn(this.settings, lodash_noconflict_default.a.pick(settings, Object.keys(this.default_settings)));
-
+  Object(lodash["assignIn"])(this.settings, Object(lodash["pick"])(settings, Object.keys(this.default_settings)));
   headless_log.setLogLevel(converse_core_converse.loglevel);
   converse_core_converse.log = headless_log.log;
 
@@ -54589,7 +54617,7 @@ converse_core_converse.initialize = async function (settings, callback) {
       } else {
         return finishDisconnection();
       }
-    } else if (converse_core_converse.disconnection_cause === converse_core_converse.LOGOUT || reason !== undefined && reason === lodash_noconflict_default.a.get(converse_core_Strophe, 'ErrorCondition.NO_AUTH_MECH') || reason === "host-unknown" || reason === "remote-connection-failed" || !converse_core_converse.auto_reconnect) {
+    } else if (converse_core_converse.disconnection_cause === converse_core_converse.LOGOUT || reason !== undefined && reason === Object(lodash["get"])(converse_core_Strophe, 'ErrorCondition.NO_AUTH_MECH') || reason === "host-unknown" || reason === "remote-connection-failed" || !converse_core_converse.auto_reconnect) {
       return finishDisconnection();
     }
 
@@ -54670,7 +54698,7 @@ converse_core_converse.initialize = async function (settings, callback) {
 
       if (message === "host-unknown" || message == "remote-connection-failed") {
         feedback = converse_core_("Sorry, we could not connect to the XMPP host with domain: %1$s", "\"".concat(converse_core_Strophe.getDomainFromJid(converse_core_converse.connection.jid), "\""));
-      } else if (message !== undefined && message === lodash_noconflict_default.a.get(converse_core_Strophe, 'ErrorCondition.NO_AUTH_MECH')) {
+      } else if (message !== undefined && message === Object(lodash["get"])(converse_core_Strophe, 'ErrorCondition.NO_AUTH_MECH')) {
         feedback = converse_core_("The XMPP server did not offer a supported authentication mechanism");
       }
 
@@ -54744,7 +54772,7 @@ converse_core_converse.api = {
      * @returns {boolean} Whether there is an established connection or not.
      */
     connected() {
-      return lodash_noconflict_default.a.get(converse_core_converse, 'connection', {}).connected && true;
+      return Object(lodash["get"])(converse_core_converse, 'connection', {}).connected && true;
     },
 
     /**
@@ -55004,7 +55032,7 @@ converse_core_converse.api = {
      * @example _converse.api.settings.get("play_sounds");
      */
     get(key) {
-      if (lodash_noconflict_default.a.includes(Object.keys(converse_core_converse.default_settings), key)) {
+      if (Object.keys(converse_core_converse.default_settings).includes(key)) {
         return converse_core_converse[key];
       }
     },
@@ -55030,12 +55058,11 @@ converse_core_converse.api = {
     set(key, val) {
       const o = {};
 
-      if (lodash_noconflict_default.a.isObject(key)) {
-        lodash_noconflict_default.a.assignIn(converse_core_converse, lodash_noconflict_default.a.pick(key, Object.keys(converse_core_converse.default_settings)));
-      } else if (lodash_noconflict_default.a.isString('string')) {
+      if (Object(lodash["isObject"])(key)) {
+        Object(lodash["assignIn"])(converse_core_converse, Object(lodash["pick"])(key, Object.keys(converse_core_converse.default_settings)));
+      } else if (Object(lodash["isString"])('string')) {
         o[key] = val;
-
-        lodash_noconflict_default.a.assignIn(converse_core_converse, lodash_noconflict_default.a.pick(o, Object.keys(converse_core_converse.default_settings)));
+        Object(lodash["assignIn"])(converse_core_converse, Object(lodash["pick"])(o, Object.keys(converse_core_converse.default_settings)));
       }
     }
 
@@ -55154,7 +55181,7 @@ converse_core_converse.api = {
      * @param {function} handler The callback method to be called when the stanza appears
      */
     stanza(name, options, handler) {
-      if (lodash_noconflict_default.a.isFunction(options)) {
+      if (Object(lodash["isFunction"])(options)) {
         handler = options;
         options = {};
       } else {
@@ -55175,7 +55202,7 @@ converse_core_converse.api = {
    * @returns {Promise}
    */
   waitUntil(condition) {
-    if (lodash_noconflict_default.a.isFunction(condition)) {
+    if (Object(lodash["isFunction"])(condition)) {
       return utils_core.waitUntil(condition);
     } else {
       const promise = converse_core_converse.promises[condition];
@@ -55206,7 +55233,7 @@ converse_core_converse.api = {
       return;
     }
 
-    if (lodash_noconflict_default.a.isString(stanza)) {
+    if (Object(lodash["isString"])(stanza)) {
       stanza = utils_core.toStanza(stanza);
     }
 
@@ -57801,18 +57828,17 @@ converse_core.plugins.add('converse-disco', {
         },
 
         /**
-         * Refresh the features (and fields and identities) associated with a
+         * Refresh the features, fields and identities associated with a
          * disco entity by refetching them from the server
-         *
-         * @method _converse.api.disco.refreshFeatures
+         * @method _converse.api.disco.refresh
          * @param {string} jid The JID of the entity whose features are refreshed.
          * @returns {promise} A promise which resolves once the features have been refreshed
          * @example
-         * await _converse.api.disco.refreshFeatures('room@conference.example.org');
+         * await _converse.api.disco.refresh('room@conference.example.org');
          */
-        async refreshFeatures(jid) {
+        async refresh(jid) {
           if (!jid) {
-            throw new TypeError('api.disco.refreshFeatures: You need to provide an entity JID');
+            throw new TypeError('api.disco.refresh: You need to provide an entity JID');
           }
 
           await _converse.api.waitUntil('discoInitialized');
@@ -57836,6 +57862,14 @@ converse_core.plugins.add('converse-disco', {
           }
 
           return entity.waitUntilFeaturesDiscovered;
+        },
+
+        /**
+         * @deprecated Use {@link _converse.api.disco.refresh} instead.
+         * @method _converse.api.disco.refreshFeatures
+         */
+        refreshFeatures(jid) {
+          return _converse.api.refresh(jid);
         },
 
         /**
@@ -57931,7 +57965,7 @@ converse_core.plugins.add('converse-disco', {
 });
 // CONCATENATED MODULE: ./node_modules/twemoji/dist/twemoji.esm.js
 /*! Copyright Twitter Inc. and other contributors. Licensed under MIT */
-var twemoji=function(){"use strict";var twemoji={base:"https://twemoji.maxcdn.com/v/12.1.4/",ext:".png",size:"72x72",className:"emoji",convert:{fromCodePoint:fromCodePoint,toCodePoint:toCodePoint},onerror:function onerror(){if(this.parentNode){this.parentNode.replaceChild(createText(this.alt,false),this)}},parse:parse,replace:replace,test:test},escaper={"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"},re=/(?:\ud83d\udc68\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc68\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc68\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc68\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc68\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffe]|\ud83e\uddd1\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1|\ud83d\udc6b\ud83c[\udffb-\udfff]|\ud83d\udc6c\ud83c[\udffb-\udfff]|\ud83d\udc6d\ud83c[\udffb-\udfff]|\ud83d[\udc6b-\udc6d])|(?:\ud83d[\udc68\udc69])(?:\ud83c[\udffb-\udfff])?\u200d(?:\u2695\ufe0f|\u2696\ufe0f|\u2708\ufe0f|\ud83c[\udf3e\udf73\udf93\udfa4\udfa8\udfeb\udfed]|\ud83d[\udcbb\udcbc\udd27\udd2c\ude80\ude92]|\ud83e[\uddaf-\uddb3\uddbc\uddbd])|(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75]|\u26f9)((?:\ud83c[\udffb-\udfff]|\ufe0f)\u200d[\u2640\u2642]\ufe0f)|(?:\ud83c[\udfc3\udfc4\udfca]|\ud83d[\udc6e\udc71\udc73\udc77\udc81\udc82\udc86\udc87\ude45-\ude47\ude4b\ude4d\ude4e\udea3\udeb4-\udeb6]|\ud83e[\udd26\udd35\udd37-\udd39\udd3d\udd3e\uddb8\uddb9\uddcd-\uddcf\uddd6-\udddd])(?:\ud83c[\udffb-\udfff])?\u200d[\u2640\u2642]\ufe0f|(?:\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f|\ud83c\udff3\ufe0f\u200d\ud83c\udf08|\ud83c\udff4\u200d\u2620\ufe0f|\ud83d\udc15\u200d\ud83e\uddba|\ud83d\udc41\u200d\ud83d\udde8|\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc6f\u200d\u2640\ufe0f|\ud83d\udc6f\u200d\u2642\ufe0f|\ud83e\udd3c\u200d\u2640\ufe0f|\ud83e\udd3c\u200d\u2642\ufe0f|\ud83e\uddde\u200d\u2640\ufe0f|\ud83e\uddde\u200d\u2642\ufe0f|\ud83e\udddf\u200d\u2640\ufe0f|\ud83e\udddf\u200d\u2642\ufe0f)|[#*0-9]\ufe0f?\u20e3|(?:[©®\u2122\u265f]\ufe0f)|(?:\ud83c[\udc04\udd70\udd71\udd7e\udd7f\ude02\ude1a\ude2f\ude37\udf21\udf24-\udf2c\udf36\udf7d\udf96\udf97\udf99-\udf9b\udf9e\udf9f\udfcd\udfce\udfd4-\udfdf\udff3\udff5\udff7]|\ud83d[\udc3f\udc41\udcfd\udd49\udd4a\udd6f\udd70\udd73\udd76-\udd79\udd87\udd8a-\udd8d\udda5\udda8\uddb1\uddb2\uddbc\uddc2-\uddc4\uddd1-\uddd3\udddc-\uddde\udde1\udde3\udde8\uddef\uddf3\uddfa\udecb\udecd-\udecf\udee0-\udee5\udee9\udef0\udef3]|[\u203c\u2049\u2139\u2194-\u2199\u21a9\u21aa\u231a\u231b\u2328\u23cf\u23ed-\u23ef\u23f1\u23f2\u23f8-\u23fa\u24c2\u25aa\u25ab\u25b6\u25c0\u25fb-\u25fe\u2600-\u2604\u260e\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262a\u262e\u262f\u2638-\u263a\u2640\u2642\u2648-\u2653\u2660\u2663\u2665\u2666\u2668\u267b\u267f\u2692-\u2697\u2699\u269b\u269c\u26a0\u26a1\u26a7\u26aa\u26ab\u26b0\u26b1\u26bd\u26be\u26c4\u26c5\u26c8\u26cf\u26d1\u26d3\u26d4\u26e9\u26ea\u26f0-\u26f5\u26f8\u26fa\u26fd\u2702\u2708\u2709\u270f\u2712\u2714\u2716\u271d\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u2764\u27a1\u2934\u2935\u2b05-\u2b07\u2b1b\u2b1c\u2b50\u2b55\u3030\u303d\u3297\u3299])(?:\ufe0f|(?!\ufe0e))|(?:(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75\udd90]|[\u261d\u26f7\u26f9\u270c\u270d])(?:\ufe0f|(?!\ufe0e))|(?:\ud83c[\udf85\udfc2-\udfc4\udfc7\udfca]|\ud83d[\udc42\udc43\udc46-\udc50\udc66-\udc69\udc6e\udc70-\udc78\udc7c\udc81-\udc83\udc85-\udc87\udcaa\udd7a\udd95\udd96\ude45-\ude47\ude4b-\ude4f\udea3\udeb4-\udeb6\udec0\udecc]|\ud83e[\udd0f\udd18-\udd1c\udd1e\udd1f\udd26\udd30-\udd39\udd3d\udd3e\uddb5\uddb6\uddb8\uddb9\uddbb\uddcd-\uddcf\uddd1-\udddd]|[\u270a\u270b]))(?:\ud83c[\udffb-\udfff])?|(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc77\udb40\udc6c\udb40\udc73\udb40\udc7f|\ud83c\udde6\ud83c[\udde8-\uddec\uddee\uddf1\uddf2\uddf4\uddf6-\uddfa\uddfc\uddfd\uddff]|\ud83c\udde7\ud83c[\udde6\udde7\udde9-\uddef\uddf1-\uddf4\uddf6-\uddf9\uddfb\uddfc\uddfe\uddff]|\ud83c\udde8\ud83c[\udde6\udde8\udde9\uddeb-\uddee\uddf0-\uddf5\uddf7\uddfa-\uddff]|\ud83c\udde9\ud83c[\uddea\uddec\uddef\uddf0\uddf2\uddf4\uddff]|\ud83c\uddea\ud83c[\udde6\udde8\uddea\uddec\udded\uddf7-\uddfa]|\ud83c\uddeb\ud83c[\uddee-\uddf0\uddf2\uddf4\uddf7]|\ud83c\uddec\ud83c[\udde6\udde7\udde9-\uddee\uddf1-\uddf3\uddf5-\uddfa\uddfc\uddfe]|\ud83c\udded\ud83c[\uddf0\uddf2\uddf3\uddf7\uddf9\uddfa]|\ud83c\uddee\ud83c[\udde8-\uddea\uddf1-\uddf4\uddf6-\uddf9]|\ud83c\uddef\ud83c[\uddea\uddf2\uddf4\uddf5]|\ud83c\uddf0\ud83c[\uddea\uddec-\uddee\uddf2\uddf3\uddf5\uddf7\uddfc\uddfe\uddff]|\ud83c\uddf1\ud83c[\udde6-\udde8\uddee\uddf0\uddf7-\uddfb\uddfe]|\ud83c\uddf2\ud83c[\udde6\udde8-\udded\uddf0-\uddff]|\ud83c\uddf3\ud83c[\udde6\udde8\uddea-\uddec\uddee\uddf1\uddf4\uddf5\uddf7\uddfa\uddff]|\ud83c\uddf4\ud83c\uddf2|\ud83c\uddf5\ud83c[\udde6\uddea-\udded\uddf0-\uddf3\uddf7-\uddf9\uddfc\uddfe]|\ud83c\uddf6\ud83c\udde6|\ud83c\uddf7\ud83c[\uddea\uddf4\uddf8\uddfa\uddfc]|\ud83c\uddf8\ud83c[\udde6-\uddea\uddec-\uddf4\uddf7-\uddf9\uddfb\uddfd-\uddff]|\ud83c\uddf9\ud83c[\udde6\udde8\udde9\uddeb-\udded\uddef-\uddf4\uddf7\uddf9\uddfb\uddfc\uddff]|\ud83c\uddfa\ud83c[\udde6\uddec\uddf2\uddf3\uddf8\uddfe\uddff]|\ud83c\uddfb\ud83c[\udde6\udde8\uddea\uddec\uddee\uddf3\uddfa]|\ud83c\uddfc\ud83c[\uddeb\uddf8]|\ud83c\uddfd\ud83c\uddf0|\ud83c\uddfe\ud83c[\uddea\uddf9]|\ud83c\uddff\ud83c[\udde6\uddf2\uddfc]|\ud83c[\udccf\udd8e\udd91-\udd9a\udde6-\uddff\ude01\ude32-\ude36\ude38-\ude3a\ude50\ude51\udf00-\udf20\udf2d-\udf35\udf37-\udf7c\udf7e-\udf84\udf86-\udf93\udfa0-\udfc1\udfc5\udfc6\udfc8\udfc9\udfcf-\udfd3\udfe0-\udff0\udff4\udff8-\udfff]|\ud83d[\udc00-\udc3e\udc40\udc44\udc45\udc51-\udc65\udc6a\udc6f\udc79-\udc7b\udc7d-\udc80\udc84\udc88-\udca9\udcab-\udcfc\udcff-\udd3d\udd4b-\udd4e\udd50-\udd67\udda4\uddfb-\ude44\ude48-\ude4a\ude80-\udea2\udea4-\udeb3\udeb7-\udebf\udec1-\udec5\uded0-\uded2\uded5\udeeb\udeec\udef4-\udefa\udfe0-\udfeb]|\ud83e[\udd0d\udd0e\udd10-\udd17\udd1d\udd20-\udd25\udd27-\udd2f\udd3a\udd3c\udd3f-\udd45\udd47-\udd71\udd73-\udd76\udd7a-\udda2\udda5-\uddaa\uddae-\uddb4\uddb7\uddba\uddbc-\uddca\uddd0\uddde-\uddff\ude70-\ude73\ude78-\ude7a\ude80-\ude82\ude90-\ude95]|[\u23e9-\u23ec\u23f0\u23f3\u267e\u26ce\u2705\u2728\u274c\u274e\u2753-\u2755\u2795-\u2797\u27b0\u27bf\ue50a])|\ufe0f/g,UFE0Fg=/\uFE0F/g,U200D=String.fromCharCode(8205),rescaper=/[&<>'"]/g,shouldntBeParsed=/^(?:iframe|noframes|noscript|script|select|style|textarea)$/,fromCharCode=String.fromCharCode;return twemoji;function createText(text,clean){return document.createTextNode(clean?text.replace(UFE0Fg,""):text)}function escapeHTML(s){return s.replace(rescaper,replacer)}function defaultImageSrcGenerator(icon,options){return"".concat(options.base,options.size,"/",icon,options.ext)}function grabAllTextNodes(node,allText){var childNodes=node.childNodes,length=childNodes.length,subnode,nodeType;while(length--){subnode=childNodes[length];nodeType=subnode.nodeType;if(nodeType===3){allText.push(subnode)}else if(nodeType===1&&!("ownerSVGElement"in subnode)&&!shouldntBeParsed.test(subnode.nodeName.toLowerCase())){grabAllTextNodes(subnode,allText)}}return allText}function grabTheRightIcon(rawText){return toCodePoint(rawText.indexOf(U200D)<0?rawText.replace(UFE0Fg,""):rawText)}function parseNode(node,options){var allText=grabAllTextNodes(node,[]),length=allText.length,attrib,attrname,modified,fragment,subnode,text,match,i,index,img,rawText,iconId,src;while(length--){modified=false;fragment=document.createDocumentFragment();subnode=allText[length];text=subnode.nodeValue;i=0;while(match=re.exec(text)){index=match.index;if(index!==i){fragment.appendChild(createText(text.slice(i,index),true))}rawText=match[0];iconId=grabTheRightIcon(rawText);i=index+rawText.length;src=options.callback(iconId,options);if(iconId&&src){img=new Image;img.onerror=options.onerror;img.setAttribute("draggable","false");attrib=options.attributes(rawText,iconId);for(attrname in attrib){if(attrib.hasOwnProperty(attrname)&&attrname.indexOf("on")!==0&&!img.hasAttribute(attrname)){img.setAttribute(attrname,attrib[attrname])}}img.className=options.className;img.alt=rawText;img.src=src;modified=true;fragment.appendChild(img)}if(!img)fragment.appendChild(createText(rawText,false));img=null}if(modified){if(i<text.length){fragment.appendChild(createText(text.slice(i),true))}subnode.parentNode.replaceChild(fragment,subnode)}}return node}function parseString(str,options){return replace(str,function(rawText){var ret=rawText,iconId=grabTheRightIcon(rawText),src=options.callback(iconId,options),attrib,attrname;if(iconId&&src){ret="<img ".concat('class="',options.className,'" ','draggable="false" ','alt="',rawText,'"',' src="',src,'"');attrib=options.attributes(rawText,iconId);for(attrname in attrib){if(attrib.hasOwnProperty(attrname)&&attrname.indexOf("on")!==0&&ret.indexOf(" "+attrname+"=")===-1){ret=ret.concat(" ",attrname,'="',escapeHTML(attrib[attrname]),'"')}}ret=ret.concat("/>")}return ret})}function replacer(m){return escaper[m]}function returnNull(){return null}function toSizeSquaredAsset(value){return typeof value==="number"?value+"x"+value:value}function fromCodePoint(codepoint){var code=typeof codepoint==="string"?parseInt(codepoint,16):codepoint;if(code<65536){return fromCharCode(code)}code-=65536;return fromCharCode(55296+(code>>10),56320+(code&1023))}function parse(what,how){if(!how||typeof how==="function"){how={callback:how}}return(typeof what==="string"?parseString:parseNode)(what,{callback:how.callback||defaultImageSrcGenerator,attributes:typeof how.attributes==="function"?how.attributes:returnNull,base:typeof how.base==="string"?how.base:twemoji.base,ext:how.ext||twemoji.ext,size:how.folder||toSizeSquaredAsset(how.size||twemoji.size),className:how.className||twemoji.className,onerror:how.onerror||twemoji.onerror})}function replace(text,callback){return String(text).replace(re,callback)}function test(text){re.lastIndex=0;var result=re.test(text);re.lastIndex=0;return result}function toCodePoint(unicodeSurrogates,sep){var r=[],c=0,p=0,i=0;while(i<unicodeSurrogates.length){c=unicodeSurrogates.charCodeAt(i++);if(p){r.push((65536+(p-55296<<10)+(c-56320)).toString(16));p=0}else if(55296<=c&&c<=56319){p=c}else{r.push(c.toString(16))}}return r.join(sep||"-")}}();
+var twemoji=function(){"use strict";var twemoji={base:"https://twemoji.maxcdn.com/v/12.1.5/",ext:".png",size:"72x72",className:"emoji",convert:{fromCodePoint:fromCodePoint,toCodePoint:toCodePoint},onerror:function onerror(){if(this.parentNode){this.parentNode.replaceChild(createText(this.alt,false),this)}},parse:parse,replace:replace,test:test},escaper={"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"},re=/(?:\ud83d\udc68\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc68\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc68\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc68\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc68\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffc-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffd-\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb\udffc\udffe\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffd\udfff]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc68\ud83c[\udffb-\udffe]|\ud83d\udc69\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83d\udc69\ud83c[\udffb-\udffe]|\ud83e\uddd1\ud83c\udffb\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffc\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffd\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udffe\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\ud83c\udfff\u200d\ud83e\udd1d\u200d\ud83e\uddd1\ud83c[\udffb-\udfff]|\ud83e\uddd1\u200d\ud83e\udd1d\u200d\ud83e\uddd1|\ud83d\udc6b\ud83c[\udffb-\udfff]|\ud83d\udc6c\ud83c[\udffb-\udfff]|\ud83d\udc6d\ud83c[\udffb-\udfff]|\ud83d[\udc6b-\udc6d])|(?:\ud83d[\udc68\udc69]|\ud83e\uddd1)(?:\ud83c[\udffb-\udfff])?\u200d(?:\u2695\ufe0f|\u2696\ufe0f|\u2708\ufe0f|\ud83c[\udf3e\udf73\udf93\udfa4\udfa8\udfeb\udfed]|\ud83d[\udcbb\udcbc\udd27\udd2c\ude80\ude92]|\ud83e[\uddaf-\uddb3\uddbc\uddbd])|(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75]|\u26f9)((?:\ud83c[\udffb-\udfff]|\ufe0f)\u200d[\u2640\u2642]\ufe0f)|(?:\ud83c[\udfc3\udfc4\udfca]|\ud83d[\udc6e\udc71\udc73\udc77\udc81\udc82\udc86\udc87\ude45-\ude47\ude4b\ude4d\ude4e\udea3\udeb4-\udeb6]|\ud83e[\udd26\udd35\udd37-\udd39\udd3d\udd3e\uddb8\uddb9\uddcd-\uddcf\uddd6-\udddd])(?:\ud83c[\udffb-\udfff])?\u200d[\u2640\u2642]\ufe0f|(?:\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc8b\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\u2764\ufe0f\u200d\ud83d\udc68|\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc68\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d[\udc68\udc69]|\ud83d\udc69\u200d\ud83d\udc66\u200d\ud83d\udc66|\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f|\ud83c\udff3\ufe0f\u200d\ud83c\udf08|\ud83c\udff4\u200d\u2620\ufe0f|\ud83d\udc15\u200d\ud83e\uddba|\ud83d\udc41\u200d\ud83d\udde8|\ud83d\udc68\u200d\ud83d[\udc66\udc67]|\ud83d\udc69\u200d\ud83d[\udc66\udc67]|\ud83d\udc6f\u200d\u2640\ufe0f|\ud83d\udc6f\u200d\u2642\ufe0f|\ud83e\udd3c\u200d\u2640\ufe0f|\ud83e\udd3c\u200d\u2642\ufe0f|\ud83e\uddde\u200d\u2640\ufe0f|\ud83e\uddde\u200d\u2642\ufe0f|\ud83e\udddf\u200d\u2640\ufe0f|\ud83e\udddf\u200d\u2642\ufe0f)|[#*0-9]\ufe0f?\u20e3|(?:[©®\u2122\u265f]\ufe0f)|(?:\ud83c[\udc04\udd70\udd71\udd7e\udd7f\ude02\ude1a\ude2f\ude37\udf21\udf24-\udf2c\udf36\udf7d\udf96\udf97\udf99-\udf9b\udf9e\udf9f\udfcd\udfce\udfd4-\udfdf\udff3\udff5\udff7]|\ud83d[\udc3f\udc41\udcfd\udd49\udd4a\udd6f\udd70\udd73\udd76-\udd79\udd87\udd8a-\udd8d\udda5\udda8\uddb1\uddb2\uddbc\uddc2-\uddc4\uddd1-\uddd3\udddc-\uddde\udde1\udde3\udde8\uddef\uddf3\uddfa\udecb\udecd-\udecf\udee0-\udee5\udee9\udef0\udef3]|[\u203c\u2049\u2139\u2194-\u2199\u21a9\u21aa\u231a\u231b\u2328\u23cf\u23ed-\u23ef\u23f1\u23f2\u23f8-\u23fa\u24c2\u25aa\u25ab\u25b6\u25c0\u25fb-\u25fe\u2600-\u2604\u260e\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262a\u262e\u262f\u2638-\u263a\u2640\u2642\u2648-\u2653\u2660\u2663\u2665\u2666\u2668\u267b\u267f\u2692-\u2697\u2699\u269b\u269c\u26a0\u26a1\u26a7\u26aa\u26ab\u26b0\u26b1\u26bd\u26be\u26c4\u26c5\u26c8\u26cf\u26d1\u26d3\u26d4\u26e9\u26ea\u26f0-\u26f5\u26f8\u26fa\u26fd\u2702\u2708\u2709\u270f\u2712\u2714\u2716\u271d\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u2764\u27a1\u2934\u2935\u2b05-\u2b07\u2b1b\u2b1c\u2b50\u2b55\u3030\u303d\u3297\u3299])(?:\ufe0f|(?!\ufe0e))|(?:(?:\ud83c[\udfcb\udfcc]|\ud83d[\udd74\udd75\udd90]|[\u261d\u26f7\u26f9\u270c\u270d])(?:\ufe0f|(?!\ufe0e))|(?:\ud83c[\udf85\udfc2-\udfc4\udfc7\udfca]|\ud83d[\udc42\udc43\udc46-\udc50\udc66-\udc69\udc6e\udc70-\udc78\udc7c\udc81-\udc83\udc85-\udc87\udcaa\udd7a\udd95\udd96\ude45-\ude47\ude4b-\ude4f\udea3\udeb4-\udeb6\udec0\udecc]|\ud83e[\udd0f\udd18-\udd1c\udd1e\udd1f\udd26\udd30-\udd39\udd3d\udd3e\uddb5\uddb6\uddb8\uddb9\uddbb\uddcd-\uddcf\uddd1-\udddd]|[\u270a\u270b]))(?:\ud83c[\udffb-\udfff])?|(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f|\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc77\udb40\udc6c\udb40\udc73\udb40\udc7f|\ud83c\udde6\ud83c[\udde8-\uddec\uddee\uddf1\uddf2\uddf4\uddf6-\uddfa\uddfc\uddfd\uddff]|\ud83c\udde7\ud83c[\udde6\udde7\udde9-\uddef\uddf1-\uddf4\uddf6-\uddf9\uddfb\uddfc\uddfe\uddff]|\ud83c\udde8\ud83c[\udde6\udde8\udde9\uddeb-\uddee\uddf0-\uddf5\uddf7\uddfa-\uddff]|\ud83c\udde9\ud83c[\uddea\uddec\uddef\uddf0\uddf2\uddf4\uddff]|\ud83c\uddea\ud83c[\udde6\udde8\uddea\uddec\udded\uddf7-\uddfa]|\ud83c\uddeb\ud83c[\uddee-\uddf0\uddf2\uddf4\uddf7]|\ud83c\uddec\ud83c[\udde6\udde7\udde9-\uddee\uddf1-\uddf3\uddf5-\uddfa\uddfc\uddfe]|\ud83c\udded\ud83c[\uddf0\uddf2\uddf3\uddf7\uddf9\uddfa]|\ud83c\uddee\ud83c[\udde8-\uddea\uddf1-\uddf4\uddf6-\uddf9]|\ud83c\uddef\ud83c[\uddea\uddf2\uddf4\uddf5]|\ud83c\uddf0\ud83c[\uddea\uddec-\uddee\uddf2\uddf3\uddf5\uddf7\uddfc\uddfe\uddff]|\ud83c\uddf1\ud83c[\udde6-\udde8\uddee\uddf0\uddf7-\uddfb\uddfe]|\ud83c\uddf2\ud83c[\udde6\udde8-\udded\uddf0-\uddff]|\ud83c\uddf3\ud83c[\udde6\udde8\uddea-\uddec\uddee\uddf1\uddf4\uddf5\uddf7\uddfa\uddff]|\ud83c\uddf4\ud83c\uddf2|\ud83c\uddf5\ud83c[\udde6\uddea-\udded\uddf0-\uddf3\uddf7-\uddf9\uddfc\uddfe]|\ud83c\uddf6\ud83c\udde6|\ud83c\uddf7\ud83c[\uddea\uddf4\uddf8\uddfa\uddfc]|\ud83c\uddf8\ud83c[\udde6-\uddea\uddec-\uddf4\uddf7-\uddf9\uddfb\uddfd-\uddff]|\ud83c\uddf9\ud83c[\udde6\udde8\udde9\uddeb-\udded\uddef-\uddf4\uddf7\uddf9\uddfb\uddfc\uddff]|\ud83c\uddfa\ud83c[\udde6\uddec\uddf2\uddf3\uddf8\uddfe\uddff]|\ud83c\uddfb\ud83c[\udde6\udde8\uddea\uddec\uddee\uddf3\uddfa]|\ud83c\uddfc\ud83c[\uddeb\uddf8]|\ud83c\uddfd\ud83c\uddf0|\ud83c\uddfe\ud83c[\uddea\uddf9]|\ud83c\uddff\ud83c[\udde6\uddf2\uddfc]|\ud83c[\udccf\udd8e\udd91-\udd9a\udde6-\uddff\ude01\ude32-\ude36\ude38-\ude3a\ude50\ude51\udf00-\udf20\udf2d-\udf35\udf37-\udf7c\udf7e-\udf84\udf86-\udf93\udfa0-\udfc1\udfc5\udfc6\udfc8\udfc9\udfcf-\udfd3\udfe0-\udff0\udff4\udff8-\udfff]|\ud83d[\udc00-\udc3e\udc40\udc44\udc45\udc51-\udc65\udc6a\udc6f\udc79-\udc7b\udc7d-\udc80\udc84\udc88-\udca9\udcab-\udcfc\udcff-\udd3d\udd4b-\udd4e\udd50-\udd67\udda4\uddfb-\ude44\ude48-\ude4a\ude80-\udea2\udea4-\udeb3\udeb7-\udebf\udec1-\udec5\uded0-\uded2\uded5\udeeb\udeec\udef4-\udefa\udfe0-\udfeb]|\ud83e[\udd0d\udd0e\udd10-\udd17\udd1d\udd20-\udd25\udd27-\udd2f\udd3a\udd3c\udd3f-\udd45\udd47-\udd71\udd73-\udd76\udd7a-\udda2\udda5-\uddaa\uddae-\uddb4\uddb7\uddba\uddbc-\uddca\uddd0\uddde-\uddff\ude70-\ude73\ude78-\ude7a\ude80-\ude82\ude90-\ude95]|[\u23e9-\u23ec\u23f0\u23f3\u267e\u26ce\u2705\u2728\u274c\u274e\u2753-\u2755\u2795-\u2797\u27b0\u27bf\ue50a])|\ufe0f/g,UFE0Fg=/\uFE0F/g,U200D=String.fromCharCode(8205),rescaper=/[&<>'"]/g,shouldntBeParsed=/^(?:iframe|noframes|noscript|script|select|style|textarea)$/,fromCharCode=String.fromCharCode;return twemoji;function createText(text,clean){return document.createTextNode(clean?text.replace(UFE0Fg,""):text)}function escapeHTML(s){return s.replace(rescaper,replacer)}function defaultImageSrcGenerator(icon,options){return"".concat(options.base,options.size,"/",icon,options.ext)}function grabAllTextNodes(node,allText){var childNodes=node.childNodes,length=childNodes.length,subnode,nodeType;while(length--){subnode=childNodes[length];nodeType=subnode.nodeType;if(nodeType===3){allText.push(subnode)}else if(nodeType===1&&!("ownerSVGElement"in subnode)&&!shouldntBeParsed.test(subnode.nodeName.toLowerCase())){grabAllTextNodes(subnode,allText)}}return allText}function grabTheRightIcon(rawText){return toCodePoint(rawText.indexOf(U200D)<0?rawText.replace(UFE0Fg,""):rawText)}function parseNode(node,options){var allText=grabAllTextNodes(node,[]),length=allText.length,attrib,attrname,modified,fragment,subnode,text,match,i,index,img,rawText,iconId,src;while(length--){modified=false;fragment=document.createDocumentFragment();subnode=allText[length];text=subnode.nodeValue;i=0;while(match=re.exec(text)){index=match.index;if(index!==i){fragment.appendChild(createText(text.slice(i,index),true))}rawText=match[0];iconId=grabTheRightIcon(rawText);i=index+rawText.length;src=options.callback(iconId,options);if(iconId&&src){img=new Image;img.onerror=options.onerror;img.setAttribute("draggable","false");attrib=options.attributes(rawText,iconId);for(attrname in attrib){if(attrib.hasOwnProperty(attrname)&&attrname.indexOf("on")!==0&&!img.hasAttribute(attrname)){img.setAttribute(attrname,attrib[attrname])}}img.className=options.className;img.alt=rawText;img.src=src;modified=true;fragment.appendChild(img)}if(!img)fragment.appendChild(createText(rawText,false));img=null}if(modified){if(i<text.length){fragment.appendChild(createText(text.slice(i),true))}subnode.parentNode.replaceChild(fragment,subnode)}}return node}function parseString(str,options){return replace(str,function(rawText){var ret=rawText,iconId=grabTheRightIcon(rawText),src=options.callback(iconId,options),attrib,attrname;if(iconId&&src){ret="<img ".concat('class="',options.className,'" ','draggable="false" ','alt="',rawText,'"',' src="',src,'"');attrib=options.attributes(rawText,iconId);for(attrname in attrib){if(attrib.hasOwnProperty(attrname)&&attrname.indexOf("on")!==0&&ret.indexOf(" "+attrname+"=")===-1){ret=ret.concat(" ",attrname,'="',escapeHTML(attrib[attrname]),'"')}}ret=ret.concat("/>")}return ret})}function replacer(m){return escaper[m]}function returnNull(){return null}function toSizeSquaredAsset(value){return typeof value==="number"?value+"x"+value:value}function fromCodePoint(codepoint){var code=typeof codepoint==="string"?parseInt(codepoint,16):codepoint;if(code<65536){return fromCharCode(code)}code-=65536;return fromCharCode(55296+(code>>10),56320+(code&1023))}function parse(what,how){if(!how||typeof how==="function"){how={callback:how}}return(typeof what==="string"?parseString:parseNode)(what,{callback:how.callback||defaultImageSrcGenerator,attributes:typeof how.attributes==="function"?how.attributes:returnNull,base:typeof how.base==="string"?how.base:twemoji.base,ext:how.ext||twemoji.ext,size:how.folder||toSizeSquaredAsset(how.size||twemoji.size),className:how.className||twemoji.className,onerror:how.onerror||twemoji.onerror})}function replace(text,callback){return String(text).replace(re,callback)}function test(text){re.lastIndex=0;var result=re.test(text);re.lastIndex=0;return result}function toCodePoint(unicodeSurrogates,sep){var r=[],c=0,p=0,i=0;while(i<unicodeSurrogates.length){c=unicodeSurrogates.charCodeAt(i++);if(p){r.push((65536+(p-55296<<10)+(c-56320)).toString(16));p=0}else if(55296<=c&&c<=56319){p=c}else{r.push(c.toString(16))}}return r.join(sep||"-")}}();
 /* harmony default export */ var twemoji_esm = (twemoji);
 // CONCATENATED MODULE: ./src/headless/converse-emoji.js
 // Converse.js
@@ -58098,7 +58132,7 @@ function convert(unicode) {
 }
 
 converse_core.plugins.add('converse-emoji', {
-  async initialize() {
+  initialize() {
     /* The initialize function gets called as soon as the plugin is
      * loaded by converse.js's plugin machinery.
      */
@@ -58143,6 +58177,8 @@ converse_core.plugins.add('converse-emoji', {
       }
     });
 
+    _converse.emojis = {};
+
     _converse.api.promises.add('emojisInitialized', false);
 
     twemoji_esm.base = _converse.emoji_image_path;
@@ -58160,7 +58196,6 @@ converse_core.plugins.add('converse-emoji', {
         'scroll_position': 0
       }
     });
-    _converse.emojis = {};
 
     function getTonedEmojis() {
       if (!_converse.toned_emojis) {
@@ -58310,41 +58345,59 @@ converse_core.plugins.add('converse-emoji', {
     });
     /************************ END Utils ************************/
 
-    const {
-      default: json
-    } = await __webpack_require__.e(/* import() | emojis */ 129).then(__webpack_require__.t.bind(null, 496, 3));
-    _converse.emojis.json = json;
-    _converse.emojis.categories = Object.keys(_converse.emojis.json);
-    _converse.emojis_map = _converse.emojis.categories.reduce((result, cat) => Object.assign(result, _converse.emojis.json[cat]), {});
-    _converse.emojis_list = Object.values(_converse.emojis_map);
+    /************************ BEGIN API ************************/
+    // We extend the default converse.js API to add methods specific to MUC groupchats.
 
-    _converse.emojis_list.sort((a, b) => a.sn < b.sn ? -1 : a.sn > b.sn ? 1 : 0);
+    Object.assign(_converse.api, {
+      /**
+       * The "rooms" namespace groups methods relevant to chatrooms
+       * (aka groupchats).
+       *
+       * @namespace _converse.api.rooms
+       * @memberOf _converse.api
+       */
+      emojis: {
+        /**
+         * Initializes Emoji support by downloading the emojis JSON (and any applicable images).
+         * @method _converse.api.emojis.initialize
+         * @returns {Promise}
+         */
+        async initialize() {
+          if (_converse.emojis.initialized) {
+            return _converse.emojis.initialized;
+          }
 
-    _converse.emoji_shortnames = _converse.emojis_list.map(m => m.sn);
+          _converse.emojis.initialized = converse_emoji_u.getResolveablePromise();
+          const {
+            default: json
+          } = await __webpack_require__.e(/* import() | emojis */ 129).then(__webpack_require__.t.bind(null, 496, 3));
+          _converse.emojis.json = json;
+          _converse.emojis.categories = Object.keys(_converse.emojis.json);
+          _converse.emojis_map = _converse.emojis.categories.reduce((result, cat) => Object.assign(result, _converse.emojis.json[cat]), {});
+          _converse.emojis_list = Object.values(_converse.emojis_map);
 
-    const getShortNames = () => _converse.emoji_shortnames.map(s => s.replace(/[+]/g, "\\$&")).join('|');
+          _converse.emojis_list.sort((a, b) => a.sn < b.sn ? -1 : a.sn > b.sn ? 1 : 0);
 
-    _converse.emojis.shortnames_regex = new RegExp("<object[^>]*>.*?<\/object>|<span[^>]*>.*?<\/span>|<(?:object|embed|svg|img|div|span|p|a)[^>]*>|(" + getShortNames() + ")", "gi");
-    _converse.emojis.toned = getTonedEmojis();
-    /**
-     * Triggered once the JSON file representing emoji data has been
-     * fetched and its save to start calling emoji utility methods.
-     * @event _converse#emojisInitialized
-     */
+          _converse.emoji_shortnames = _converse.emojis_list.map(m => m.sn);
 
-    _converse.api.trigger('emojisInitialized');
-    /************************ BEGIN Event Handlers ************************/
+          const getShortNames = () => _converse.emoji_shortnames.map(s => s.replace(/[+]/g, "\\$&")).join('|');
+
+          _converse.emojis.shortnames_regex = new RegExp("<object[^>]*>.*?<\/object>|<span[^>]*>.*?<\/span>|<(?:object|embed|svg|img|div|span|p|a)[^>]*>|(" + getShortNames() + ")", "gi");
+          _converse.emojis.toned = getTonedEmojis();
+
+          _converse.emojis.initialized.resolve();
+          /**
+           * Triggered once the JSON file representing emoji data has been
+           * fetched and its save to start calling emoji utility methods.
+           * @event _converse#emojisInitialized
+           */
 
 
-    _converse.api.listen.on('clearSession', () => {
-      if (_converse.emojipicker) {
-        _converse.emojipicker.destroy();
+          _converse.api.trigger('emojisInitialized');
+        }
 
-        delete _converse.emojipicker;
       }
     });
-    /************************ END Event Handlers ************************/
-
   }
 
 });
@@ -58472,7 +58525,7 @@ const muc_utils = {
 };
 /* harmony default export */ var utils_muc = (muc_utils);
 // EXTERNAL MODULE: ./src/headless/templates/field.html
-var templates_field = __webpack_require__(120);
+var templates_field = __webpack_require__(119);
 var field_default = /*#__PURE__*/__webpack_require__.n(templates_field);
 
 // CONCATENATED MODULE: ./src/headless/utils/form.js
@@ -58865,7 +58918,6 @@ converse_core.plugins.add('converse-muc', {
           'num_unread_general': 0,
           'bookmarked': false,
           'chat_state': undefined,
-          'description': '',
           'hidden': ['mobile', 'fullscreen'].includes(_converse.view_mode),
           'message_type': 'groupchat',
           'name': '',
@@ -58882,7 +58934,7 @@ converse_core.plugins.add('converse-muc', {
         this.set('box_id', "box-".concat(btoa(this.get('jid'))));
         this.initMessages();
         this.initOccupants();
-        this.initFeatures(); // sendChatState depends on this.features
+        this.initDiscoModels(); // sendChatState depends on this.features
 
         this.registerHandlers();
         this.on('change:chat_state', this.sendChatState, this);
@@ -58943,7 +58995,7 @@ converse_core.plugins.add('converse-muc', {
           return this;
         }
 
-        await this.refreshRoomFeatures();
+        await this.refreshDiscoInfo();
         nick = await this.getAndPersistNickname(nick);
 
         if (!nick) {
@@ -59044,12 +59096,15 @@ converse_core.plugins.add('converse-muc', {
         }));
       },
 
-      initFeatures() {
-        const id = "converse.muc-features-".concat(_converse.bare_jid, "-").concat(this.get('jid'));
+      initDiscoModels() {
+        let id = "converse.muc-features-".concat(_converse.bare_jid, "-").concat(this.get('jid'));
         this.features = new converse_muc_Backbone.Model(Object.assign({
           id
         }, Object(lodash["zipObject"])(converse_core.ROOM_FEATURES, converse_core.ROOM_FEATURES.map(() => false))));
         this.features.browserStorage = _converse.createStore(id, "session");
+        id = "converse.muc-config-{_converse.bare_jid}-".concat(this.get('jid'));
+        this.config = new converse_muc_Backbone.Model();
+        this.config.browserStorage = _converse.createStore(id, "session");
       },
 
       initOccupants() {
@@ -59548,10 +59603,10 @@ converse_core.plugins.add('converse-muc', {
          * After the user has sent out a direct invitation (as per XEP-0249),
          * to a roster contact, asking them to join a room.
          * @event _converse#chatBoxMaximized
-         * @type { object }
-         * @property { _converse.ChatRoom } room
-         * @property { string } recipient - The JID of the person being invited
-         * @property { string } reason - The original reason for the invitation
+         * @type {object}
+         * @property {_converse.ChatRoom} room
+         * @property {string} recipient - The JID of the person being invited
+         * @property {string} reason - The original reason for the invitation
          * @example _converse.api.listen.on('chatBoxMaximized', view => { ... });
          */
 
@@ -59563,28 +59618,61 @@ converse_core.plugins.add('converse-muc', {
         });
       },
 
-      async refreshRoomFeatures() {
-        await _converse.api.disco.refreshFeatures(this.get('jid'));
-        return this.getRoomFeatures();
+      /**
+       * Refresh the disco identity, features and fields for this {@link _converse.ChatRoom}.
+       * *features* are stored on the features {@link Model} attribute on this {@link _converse.ChatRoom}.
+       * *fields* are stored on the config {@link Model} attribute on this {@link _converse.ChatRoom}.
+       * @private
+       * @returns {Promise}
+       */
+      refreshDiscoInfo() {
+        return _converse.api.disco.refresh(this.get('jid')).then(() => this.getDiscoInfo()).catch(e => headless_log.error(e));
       },
 
-      async getRoomFeatures() {
-        let identity;
+      /**
+       * Fetch the *extended* MUC info from the server and cache it locally
+       * https://xmpp.org/extensions/xep-0045.html#disco-roominfo
+       * @private
+       * @method _converse.ChatRoom#getDiscoInfo
+       * @returns {Promise}
+       */
+      getDiscoInfo() {
+        return _converse.api.disco.getIdentity('conference', 'text', this.get('jid')).then(identity => this.save({
+          'name': identity && identity.get('name')
+        })).then(() => this.getDiscoInfoFields()).then(() => this.getDiscoInfoFeatures()).catch(e => headless_log.error(e));
+      },
 
-        try {
-          identity = await _converse.api.disco.getIdentity('conference', 'text', this.get('jid'));
-        } catch (e) {
-          // Getting the identity probably failed because this room doesn't exist yet.
-          return headless_log.error(e);
-        }
-
+      /**
+       * Fetch the *extended* MUC info fields from the server and store them locally
+       * in the `config` {@link Model} attribute.
+       * See: https://xmpp.org/extensions/xep-0045.html#disco-roominfo
+       * @private
+       * @method _converse.ChatRoom#getDiscoInfoFields
+       * @returns {Promise}
+       */
+      async getDiscoInfoFields() {
         const fields = await _converse.api.disco.getFields(this.get('jid'));
-        this.save({
-          'name': identity && identity.get('name'),
-          'description': Object(lodash["get"])(fields.findWhere({
-            'var': "muc#roominfo_description"
-          }), 'attributes.value')
-        });
+        const config = fields.reduce((config, f) => {
+          const name = f.get('var');
+
+          if (name && name.startsWith('muc#roominfo_')) {
+            config[name.replace('muc#roominfo_', '')] = f.get('value');
+          }
+
+          return config;
+        }, {});
+        this.config.save(config);
+      },
+
+      /**
+       * Use converse-disco to populate the features {@link Model} which
+       * is stored as an attibute on this {@link _converse.ChatRoom}.
+       * The results may be cached. If you want to force fetching the features from the
+       * server, call {@link _converse.ChatRoom#refreshDiscoInfo} instead.
+       * @private
+       * @returns {Promise}
+       */
+      async getDiscoInfoFeatures() {
         const features = await _converse.api.disco.getFeatures(this.get('jid'));
         const attrs = Object.assign(Object(lodash["zipObject"])(converse_core.ROOM_FEATURES, converse_core.ROOM_FEATURES.map(() => false)), {
           'fetched': new Date().toISOString()
@@ -59602,9 +59690,6 @@ converse_core.plugins.add('converse-muc', {
 
           attrs[fieldname.replace('muc_', '')] = true;
         });
-        attrs.description = Object(lodash["get"])(fields.findWhere({
-          'var': "muc#roominfo_description"
-        }), 'attributes.value');
         this.features.save(attrs);
       },
 
@@ -59629,24 +59714,6 @@ converse_core.plugins.add('converse-muc', {
       setAffiliation(affiliation, members) {
         members = members.filter(m => m.affiliation === undefined || m.affiliation === affiliation);
         return Promise.all(members.map(m => this.sendAffiliationIQ(affiliation, m)));
-      },
-
-      /**
-       * Submit the groupchat configuration form by sending an IQ
-       * stanza to the server.
-       * @private
-       * @method _converse.ChatRoom#saveConfiguration
-       * @param { HTMLElement } form - The configuration form DOM element.
-       *      If no form is provided, the default configuration
-       *      values will be used.
-       * @returns { Promise<XMLElement> }
-       * Returns a promise which resolves once the XMPP server
-       * has return a response IQ.
-       */
-      saveConfiguration(form) {
-        const inputs = form ? converse_muc_sizzle(':input:not([type=button]):not([type=submit])', form) : [];
-        const configArray = inputs.map(utils_form.webForm2xForm);
-        return this.sendConfiguration(configArray);
       },
 
       /**
@@ -60137,7 +60204,7 @@ converse_core.plugins.add('converse-muc', {
         const codes = ['104', '170', '171', '172', '173', '174'];
 
         if (converse_muc_sizzle('status', stanza).filter(e => codes.includes(e.getAttribute('status'))).length) {
-          this.refreshRoomFeatures();
+          this.refreshDiscoInfo();
         }
       },
 
@@ -60185,7 +60252,7 @@ converse_core.plugins.add('converse-muc', {
        * @param { object } attrs - The message attributes
        */
       subjectChangeHandled(attrs) {
-        if (attrs.subject && !attrs.thread && !attrs.message) {
+        if (Object(lodash["isString"])(attrs.subject) && !attrs.thread && !attrs.message) {
           // https://xmpp.org/extensions/xep-0045.html#subject-mod
           // -----------------------------------------------------
           // The subject is changed by sending a message of type "groupchat" to the <room@service>,
@@ -60755,10 +60822,10 @@ converse_core.plugins.add('converse-muc', {
 
           if (locked_room) {
             if (this.get('auto_configure')) {
-              this.autoConfigureChatRoom().then(() => this.refreshRoomFeatures());
+              this.autoConfigureChatRoom().then(() => this.refreshDiscoInfo());
             } else if (_converse.muc_instant_rooms) {
               // Accept default configuration
-              this.saveConfiguration().then(() => this.refreshRoomFeatures());
+              this.sendConfiguration().then(() => this.refreshDiscoInfo());
             } else {
               /**
                * Triggered when a new room has been created which first needs to be configured
@@ -60778,9 +60845,9 @@ converse_core.plugins.add('converse-muc', {
             // otherwise the features would have been fetched in
             // the "initialize" method already.
             if (this.getOwnAffiliation() === 'owner' && this.get('auto_configure')) {
-              this.autoConfigureChatRoom().then(() => this.refreshRoomFeatures());
+              this.autoConfigureChatRoom().then(() => this.refreshDiscoInfo());
             } else {
-              this.getRoomFeatures();
+              this.getDiscoInfo();
             }
           }
         }
@@ -61013,15 +61080,15 @@ converse_core.plugins.add('converse-muc', {
             from = converse_muc_Strophe.getBareJidFromJid(message.getAttribute('from')),
             room_jid = x_el.getAttribute('jid'),
             reason = x_el.getAttribute('reason');
-
-      let contact = _converse.roster.get(from),
-          result;
+      let result;
 
       if (_converse.auto_join_on_invite) {
         result = true;
       } else {
         // Invite request might come from someone not your roster list
-        contact = contact ? contact.getDisplayName() : converse_muc_Strophe.getNodeFromJid(from);
+        let contact = _converse.roster.get(from);
+
+        contact = contact ? contact.getDisplayName() : from;
 
         if (!reason) {
           result = confirm(__("%1$s has invited you to join a groupchat: %2$s", contact, room_jid));
@@ -61605,19 +61672,19 @@ converse_core.plugins.add('converse-bookmarks', {
           headless_log.error('Error: timeout while fetching bookmarks');
 
           _converse.api.alert('error', __('Timeout Error'), [__("The server did not return your bookmarks within the allowed time. " + "You can reload the page to request them again.")]);
-        } else {
-          headless_log.error('Error while fetching bookmarks');
-          headless_log.error(iq);
-        }
-
-        if (deferred) {
+        } else if (deferred) {
           if (iq.querySelector('error[type="cancel"] item-not-found')) {
             // Not an exception, the user simply doesn't have any bookmarks.
             window.sessionStorage.setItem(this.fetched_flag, true);
             return deferred.resolve();
           } else {
+            headless_log.error('Error while fetching bookmarks');
+            headless_log.error(iq);
             return deferred.reject(new Error("Could not fetch bookmarks"));
           }
+        } else {
+          headless_log.error('Error while fetching bookmarks');
+          headless_log.error(iq);
         }
       },
 
@@ -62905,7 +62972,7 @@ converse_core.plugins.add('converse-chatboxes', {
       if (title.search(/^Messages \(\d+\) /) === -1) {
         document.title = "Messages (".concat(msg_counter, ") ").concat(title);
       } else {
-        document.title = title.replace(/^Messages \(\d+\) /, "Messages (".concat(msg_counter, ")"));
+        document.title = title.replace(/^Messages \(\d+\) /, "Messages (".concat(msg_counter, ") "));
       }
     };
 
@@ -63966,11 +64033,11 @@ const OrderedListView = Backbone.OrderedListView = Backbone.Overview.extend({
 
 
 // EXTERNAL MODULE: ./src/templates/avatar.svg
-var avatar = __webpack_require__(121);
+var avatar = __webpack_require__(120);
 var avatar_default = /*#__PURE__*/__webpack_require__.n(avatar);
 
 // EXTERNAL MODULE: ./src/templates/background_logo.html
-var background_logo = __webpack_require__(122);
+var background_logo = __webpack_require__(121);
 var background_logo_default = /*#__PURE__*/__webpack_require__.n(background_logo);
 
 // EXTERNAL MODULE: ./src/templates/chatboxes.html
@@ -64160,19 +64227,19 @@ var URI = __webpack_require__(20);
 var URI_default = /*#__PURE__*/__webpack_require__.n(URI);
 
 // EXTERNAL MODULE: ./src/templates/audio.html
-var audio = __webpack_require__(123);
+var audio = __webpack_require__(122);
 var audio_default = /*#__PURE__*/__webpack_require__.n(audio);
 
 // EXTERNAL MODULE: ./src/templates/file.html
-var templates_file = __webpack_require__(124);
+var templates_file = __webpack_require__(123);
 var file_default = /*#__PURE__*/__webpack_require__.n(templates_file);
 
 // EXTERNAL MODULE: ./src/templates/form_captcha.html
-var form_captcha = __webpack_require__(125);
+var form_captcha = __webpack_require__(124);
 var form_captcha_default = /*#__PURE__*/__webpack_require__.n(form_captcha);
 
 // EXTERNAL MODULE: ./src/templates/form_checkbox.html
-var form_checkbox = __webpack_require__(126);
+var form_checkbox = __webpack_require__(125);
 var form_checkbox_default = /*#__PURE__*/__webpack_require__.n(form_checkbox);
 
 // EXTERNAL MODULE: ./src/templates/form_input.html
@@ -64180,15 +64247,15 @@ var form_input = __webpack_require__(42);
 var form_input_default = /*#__PURE__*/__webpack_require__.n(form_input);
 
 // EXTERNAL MODULE: ./src/templates/form_select.html
-var form_select = __webpack_require__(127);
+var form_select = __webpack_require__(126);
 var form_select_default = /*#__PURE__*/__webpack_require__.n(form_select);
 
 // EXTERNAL MODULE: ./src/templates/form_textarea.html
-var form_textarea = __webpack_require__(128);
+var form_textarea = __webpack_require__(127);
 var form_textarea_default = /*#__PURE__*/__webpack_require__.n(form_textarea);
 
 // EXTERNAL MODULE: ./src/templates/form_url.html
-var form_url = __webpack_require__(129);
+var form_url = __webpack_require__(128);
 var form_url_default = /*#__PURE__*/__webpack_require__.n(form_url);
 
 // EXTERNAL MODULE: ./src/templates/form_username.html
@@ -64196,7 +64263,7 @@ var form_username = __webpack_require__(43);
 var form_username_default = /*#__PURE__*/__webpack_require__.n(form_username);
 
 // EXTERNAL MODULE: ./src/templates/image.html
-var templates_image = __webpack_require__(62);
+var templates_image = __webpack_require__(129);
 var image_default = /*#__PURE__*/__webpack_require__.n(templates_image);
 
 // EXTERNAL MODULE: ./src/templates/select_option.html
@@ -64258,28 +64325,6 @@ function slideOutWrapup(el) {
   el.classList.remove('collapsed');
   el.style.overflow = "";
   el.style.height = "";
-}
-
-function isImage(url) {
-  return new Promise((resolve, reject) => {
-    var img = new Image();
-    var timer = window.setTimeout(function () {
-      reject(new Error("Could not determine whether it's an image"));
-      img = null;
-    }, 3000);
-
-    img.onerror = img.onabort = function () {
-      clearTimeout(timer);
-      reject(new Error("Could not determine whether it's an image"));
-    };
-
-    img.onload = function () {
-      clearTimeout(timer);
-      resolve(img);
-    };
-
-    img.src = url;
-  });
 }
 
 function getURI(url) {
@@ -64408,6 +64453,48 @@ utils_core.applyDragResistance = function (value, default_value) {
 
   return value;
 };
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const err_msg = "Could not determine whether it's an image: ".concat(url);
+    const img = new Image();
+    const timer = window.setTimeout(() => reject(new Error(err_msg)), 20000);
+
+    img.onerror = img.onabort = function () {
+      clearTimeout(timer);
+      reject(new Error(err_msg));
+    };
+
+    img.onload = function () {
+      clearTimeout(timer);
+      resolve(img);
+    };
+
+    img.src = url;
+  });
+}
+
+async function renderImage(img_url, link_url, el, callback) {
+  if (utils_core.isImageURL(img_url)) {
+    let img;
+
+    try {
+      img = await loadImage(img_url);
+    } catch (e) {
+      headless_log.error(e);
+      return callback();
+    }
+
+    sizzle_default()("a[href=\"".concat(link_url, "\"]"), el).forEach(a => {
+      a.innerHTML = "";
+      utils_core.addClass('chat-image', img);
+      utils_core.addClass('img-thumbnail', img);
+      a.insertAdjacentElement('afterBegin', img);
+    });
+  }
+
+  callback();
+}
 /**
  * Returns a Promise which resolves once all images have been loaded.
  * @method u#renderImageURLs
@@ -64424,24 +64511,11 @@ utils_core.renderImageURLs = function (_converse, el) {
 
   const list = el.textContent.match(URL_REGEX) || [];
   return Promise.all(list.map(url => new Promise(resolve => {
-    if (utils_core.isImageURL(url)) {
-      return isImage(url).then(img => {
-        const i = new Image();
-        i.src = img.src;
-        i.addEventListener('load', resolve); // We also resolve (instead of reject) for non-images,
-        // otherwise the Promise.all resolves prematurely.
-
-        i.addEventListener('error', resolve);
-        const {
-          __
-        } = _converse;
-        sizzle_default()("a[href=\"".concat(url, "\"]"), el).forEach(a => a.outerHTML = image_default()({
-          url,
-          'label_download': __('Download')
-        }));
-      }).catch(resolve);
+    if (url.startsWith('https://imgur.com') && !utils_core.isImageURL(url)) {
+      const imgur_url = url + '.png';
+      renderImage(imgur_url, url, el, resolve);
     } else {
-      return resolve();
+      renderImage(url, url, el, resolve);
     }
   })));
 };
@@ -64932,7 +65006,7 @@ var templates_spinner = __webpack_require__(8);
 var spinner_default = /*#__PURE__*/__webpack_require__.n(templates_spinner);
 
 // EXTERNAL MODULE: ./node_modules/xss/dist/xss.js
-var xss = __webpack_require__(13);
+var xss = __webpack_require__(11);
 var xss_default = /*#__PURE__*/__webpack_require__.n(xss);
 
 // CONCATENATED MODULE: ./src/converse-message-view.js
@@ -65228,7 +65302,10 @@ converse_core.plugins.add('converse-message-view', {
 
           if (text && text !== url) {
             msg_content.innerHTML = await this.transformBodyText(text);
-            await converse_message_view_u.renderImageURLs(_converse, msg_content);
+
+            if (_converse.show_images_inline) {
+              converse_message_view_u.renderImageURLs(_converse, msg_content).then(() => this.triggerRendered());
+            }
           }
         }
 
@@ -65237,7 +65314,10 @@ converse_core.plugins.add('converse-message-view', {
         }
 
         this.replaceElement(msg);
+        this.triggerRendered();
+      },
 
+      triggerRendered() {
         if (this.model.collection) {
           // If the model gets destroyed in the meantime, it no
           // longer has a collection.
@@ -65363,10 +65443,10 @@ converse_core.plugins.add('converse-message-view', {
 
 });
 // EXTERNAL MODULE: ./node_modules/backbone.vdomview/backbone.vdomview.js
-var backbone_vdomview = __webpack_require__(113);
+var backbone_vdomview = __webpack_require__(112);
 
 // EXTERNAL MODULE: ./node_modules/bootstrap.native/dist/bootstrap-native.js
-var bootstrap_native = __webpack_require__(12);
+var bootstrap_native = __webpack_require__(13);
 var bootstrap_native_default = /*#__PURE__*/__webpack_require__.n(bootstrap_native);
 
 // EXTERNAL MODULE: ./src/templates/alert.html
@@ -65378,7 +65458,7 @@ var alert_modal = __webpack_require__(137);
 var alert_modal_default = /*#__PURE__*/__webpack_require__.n(alert_modal);
 
 // EXTERNAL MODULE: ./src/templates/prompt.html
-var templates_prompt = __webpack_require__(63);
+var templates_prompt = __webpack_require__(62);
 var prompt_default = /*#__PURE__*/__webpack_require__.n(templates_prompt);
 
 // CONCATENATED MODULE: ./src/converse-modal.js
@@ -66035,19 +66115,18 @@ converse_core.plugins.add('converse-chatview', {
       renderMessageForm() {
         const form_container = this.el.querySelector('.message-form-container');
         form_container.innerHTML = chatbox_message_form_default()(Object.assign(this.model.toJSON(), {
+          '__': __,
           'message_limit': _converse.message_limit,
           'hint_value': Object(lodash["get"])(this.el.querySelector('.spoiler-hint'), 'value'),
           'label_message': this.model.get('composing_spoiler') ? __('Hidden message') : __('Message'),
-          'label_send': __('Send'),
           'label_spoiler_hint': __('Optional hint'),
           'message_value': Object(lodash["get"])(this.el.querySelector('.chat-textarea'), 'value'),
           'show_send_button': _converse.show_send_button,
           'show_toolbar': _converse.show_toolbar,
           'unread_msgs': __('You have unread messages')
         }));
-        const textarea = this.el.querySelector('.chat-textarea');
-        textarea.addEventListener('focus', ev => this.emitFocused(ev));
-        textarea.addEventListener('blur', ev => this.emitBlurred(ev));
+        this.el.addEventListener('focusin', ev => this.emitFocused(ev));
+        this.el.addEventListener('focusout', ev => this.emitBlurred(ev));
         this.renderToolbar();
       },
 
@@ -66559,7 +66638,8 @@ converse_core.plugins.add('converse-chatview', {
           hint_el.value = '';
           textarea.value = '';
           converse_chatview_u.removeClass('correcting', textarea);
-          textarea.style.height = 'auto'; // Fixes weirdness
+          textarea.style.height = 'auto';
+          this.updateCharCounter(textarea.value);
         }
 
         if (message) {
@@ -66572,14 +66652,26 @@ converse_core.plugins.add('converse-chatview', {
           _converse.api.trigger('messageSend', message);
         }
 
+        if (_converse.view_mode === 'overlayed') {
+          // XXX: Chrome flexbug workaround. The .chat-content area
+          // doesn't resize when the textarea is resized to its original size.
+          this.content.parentElement.style.display = 'none';
+        }
+
         textarea.removeAttribute('disabled');
         converse_chatview_u.removeClass('disabled', textarea);
-        textarea.focus(); // Suppress events, otherwise superfluous CSN gets set
+
+        if (_converse.view_mode === 'overlayed') {
+          // XXX: Chrome flexbug workaround.
+          this.content.parentElement.style.display = '';
+        } // Suppress events, otherwise superfluous CSN gets set
         // immediately after the message, causing rate-limiting issues.
+
 
         this.model.setChatState(_converse.ACTIVE, {
           'silent': true
         });
+        textarea.focus();
       },
 
       updateCharCounter(chars) {
@@ -66979,7 +67071,7 @@ converse_core.plugins.add('converse-chatview', {
       },
 
       emitBlurred(ev) {
-        if (this.el.contains(document.activeElement)) {
+        if (this.el.contains(document.activeElement) || this.el.contains(ev.relatedTarget)) {
           // Something else in this chatbox is still focused
           return;
         }
@@ -66995,12 +67087,18 @@ converse_core.plugins.add('converse-chatview', {
       },
 
       emitFocused(ev) {
+        if (this.el.contains(ev.relatedTarget)) {
+          // Something else in this chatbox was already focused
+          return;
+        }
         /**
          * Triggered when the focus has been moved to a particular chat.
          * @event _converse#chatBoxFocused
          * @type { _converse.ChatBoxView | _converse.ChatRoomView }
          * @example _converse.api.listen.on('chatBoxFocused', (view, event) => { ... });
          */
+
+
         _converse.api.trigger('chatBoxFocused', this, ev);
       },
 
@@ -67279,6 +67377,13 @@ converse_core.plugins.add('converse-headlines', {
     const {
       _converse
     } = this;
+    /**
+     * Shows headline messages
+     * @class
+     * @namespace _converse.HeadlinesBox
+     * @memberOf _converse
+     */
+
     _converse.HeadlinesBox = _converse.ChatBox.extend({
       defaults() {
         return {
@@ -67296,6 +67401,14 @@ converse_core.plugins.add('converse-headlines', {
         this.set({
           'box_id': "box-".concat(btoa(this.get('jid')))
         });
+        /**
+         * Triggered once a {@link _converse.HeadlinesBox} has been created and initialized.
+         * @event _converse#headlinesBoxInitialized
+         * @type { _converse.HeadlinesBox }
+         * @example _converse.api.listen.on('headlinesBoxInitialized', model => { ... });
+         */
+
+        _converse.api.trigger('headlinesBoxInitialized', this);
       }
 
     });
@@ -68542,14 +68655,12 @@ converse_core.plugins.add('converse-roster', {
        * @param { String } message - An optional message to explain the reason for the subscription request.
        * @param { Object } attributes - Any additional attributes to be stored on the user's model.
        */
-      addAndSubscribe(jid, name, groups, message, attributes) {
-        const handler = contact => {
-          if (contact instanceof _converse.RosterContact) {
-            contact.subscribe(message);
-          }
-        };
+      async addAndSubscribe(jid, name, groups, message, attributes) {
+        const contact = await this.addContactToRoster(jid, name, groups, attributes);
 
-        this.addContactToRoster(jid, name, groups, attributes).then(handler, handler);
+        if (contact instanceof _converse.RosterContact) {
+          contact.subscribe(message);
+        }
       },
 
       /**
@@ -68588,6 +68699,7 @@ converse_core.plugins.add('converse-roster', {
        * @param { Object } attributes - Any additional attributes to be stored on the user's model.
        */
       async addContactToRoster(jid, name, groups, attributes) {
+        await _converse.api.waitUntil('rosterContactsFetched');
         groups = groups || [];
 
         try {
@@ -68610,23 +68722,21 @@ converse_core.plugins.add('converse-roster', {
         });
       },
 
-      subscribeBack(bare_jid, presence) {
+      async subscribeBack(bare_jid, presence) {
         const contact = this.get(bare_jid);
 
         if (contact instanceof _converse.RosterContact) {
           contact.authorize().subscribe();
         } else {
           // Can happen when a subscription is retried or roster was deleted
-          const handler = contact => {
-            if (contact instanceof _converse.RosterContact) {
-              contact.authorize().subscribe();
-            }
-          };
-
           const nickname = Object(lodash["get"])(converse_roster_sizzle("nick[xmlns=\"".concat(converse_roster_Strophe.NS.NICK, "\"]"), presence).pop(), 'textContent', null);
-          this.addContactToRoster(bare_jid, nickname, [], {
+          const contact = await this.addContactToRoster(bare_jid, nickname, [], {
             'subscription': 'from'
-          }).then(handler, handler);
+          });
+
+          if (contact instanceof _converse.RosterContact) {
+            contact.authorize().subscribe();
+          }
         }
       },
 
@@ -68754,11 +68864,6 @@ converse_core.plugins.add('converse-roster', {
        */
       updateContact(item) {
         const jid = item.getAttribute('jid');
-
-        if (this.isSelf(jid)) {
-          return;
-        }
-
         const contact = this.get(jid);
         const subscription = item.getAttribute("subscription");
         const ask = item.getAttribute("ask");
@@ -69229,7 +69334,7 @@ converse_core.plugins.add('converse-roster', {
             throw new TypeError('contacts.add: invalid jid');
           }
 
-          _converse.roster.addAndSubscribe(jid, Object(lodash["isEmpty"])(name) ? jid : name);
+          return _converse.roster.addAndSubscribe(jid, Object(lodash["isEmpty"])(name) ? jid : name);
         }
 
       }
@@ -70594,7 +70699,7 @@ converse_core.plugins.add('converse-bookmark-views', {
           'info_toggle_bookmark': this.model.get('bookmarked') ? __('Unbookmark this groupchat') : __('Bookmark this groupchat'),
           'bookmarked': this.model.get('bookmarked')
         }));
-        const buttons_row = this.el.querySelector('.chatbox-buttons');
+        const buttons_row = this.el.querySelector('.chatbox-title__buttons');
         const close_button = buttons_row.querySelector('.close-chatbox-button');
 
         if (close_button) {
@@ -71115,6 +71220,11 @@ converse_core.plugins.add('converse-controlbox', {
         }
 
         this.loginpanel.initPopovers();
+
+        if (_converse.auto_focus) {
+          this.loginpanel.el.querySelector('#converse-login-jid').focus();
+        }
+
         return this;
       },
 
@@ -72051,7 +72161,7 @@ class dom_navigator_DOMNavigator {
   /**
    * The default options for the DOM navigator.
    * @returns {{
-   *     down: number
+   *     down: number,
    *     getSelector: null,
    *     jump_to_picked: null,
    *     jump_to_picked_direction: null,
@@ -72060,7 +72170,7 @@ class dom_navigator_DOMNavigator {
    *     onSelected: null,
    *     right: number,
    *     selected: string,
-   *     up: number,
+   *     up: number
    * }}
    */
 
@@ -72541,32 +72651,29 @@ converse.plugins.add('converse-emoji-views', {
         this.emoji_dropdown.toggle();
       },
 
-      createEmojiPicker() {
-        if (this.emoji_picker_view) {
-          this.insertEmojiPicker();
-          return;
-        }
-
-        if (!_converse.emojipicker) {
-          const id = "converse.emoji-".concat(_converse.bare_jid);
-          _converse.emojipicker = new _converse.EmojiPicker({
-            'id': id
-          });
-          _converse.emojipicker.browserStorage = _converse.createStore(id);
-
-          _converse.emojipicker.fetch();
-        }
-
-        this.emoji_picker_view = new _converse.EmojiPickerView({
-          'model': _converse.emojipicker
+      async createEmojiPicker() {
+        await _converse.api.emojis.initialize();
+        const id = "converse.emoji-".concat(_converse.bare_jid, "-").concat(this.model.get('jid'));
+        const emojipicker = new _converse.EmojiPicker({
+          'id': id
         });
-        this.emoji_picker_view.chatview = this;
-        this.insertEmojiPicker();
+        emojipicker.browserStorage = _converse.createStore(id);
+        await new Promise(resolve => emojipicker.fetch({
+          'success': resolve,
+          'error': resolve
+        }));
+        this.emoji_picker_view = new _converse.EmojiPickerView({
+          'model': emojipicker,
+          'chatview': this
+        });
+        const el = this.el.querySelector('.emoji-picker__container');
+        el.innerHTML = '';
+        el.appendChild(this.emoji_picker_view.el);
       },
 
       async createEmojiDropdown() {
         if (!this.emoji_dropdown) {
-          await _converse.api.waitUntil('emojisInitialized');
+          await this.createEmojiPicker();
           const el = this.el.querySelector('.emoji-picker');
           this.emoji_dropdown = new bootstrap_native_default.a.Dropdown(el, true);
           this.emoji_dropdown.el = el;
@@ -72578,12 +72685,6 @@ converse.plugins.add('converse-emoji-views', {
         await this.createEmojiDropdown();
         this.emoji_dropdown.toggle();
         this.emoji_picker_view.setScrollPosition();
-      },
-
-      insertEmojiPicker() {
-        const el = this.el.querySelector('.emoji-picker__container');
-        el.innerHTML = '';
-        el.appendChild(this.emoji_picker_view.el);
       }
 
     };
@@ -72598,7 +72699,9 @@ converse.plugins.add('converse-emoji-views', {
         'keydown .emoji-search': 'onKeyDown'
       },
 
-      async initialize() {
+      initialize(config) {
+        this.chatview = config.chatview;
+
         this.onGlobalKeyDown = ev => this._onGlobalKeyDown(ev);
 
         const body = document.querySelector('body');
@@ -72614,7 +72717,6 @@ converse.plugins.add('converse-emoji-views', {
           this.navigator.select(el);
           !this.navigator.enabled && this.navigator.enable();
         });
-        await _converse.api.waitUntil('emojisInitialized');
         this.render();
       },
 
@@ -72641,9 +72743,6 @@ converse.plugins.add('converse-emoji-views', {
 
       afterRender() {
         this.initIntersectionObserver();
-        const textarea = this.el.querySelector('.emoji-search');
-        textarea.addEventListener('focus', ev => this.chatview.emitFocused(ev));
-        textarea.addEventListener('blur', ev => this.chatview.emitBlurred(ev));
         this.initArrowNavigation();
       },
 
@@ -72720,8 +72819,7 @@ converse.plugins.add('converse-emoji-views', {
         const old_category = this.model.get('current_category');
 
         if (old_category !== category) {
-          // XXX: Manually set the classes, it's quicker than using the VDOM
-          this.model.set({
+          this.model.save({
             'current_category': category
           }, {
             'silent': true
@@ -72816,13 +72914,7 @@ converse.plugins.add('converse-emoji-views', {
       },
 
       onKeyDown(ev) {
-        if (ev.keyCode === converse.keycodes.RIGHT_ARROW) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          ev.target.blur();
-          const first_el = this.el.querySelector('.pick-category');
-          this.navigator.select(first_el, 'right');
-        } else if (ev.keyCode === converse.keycodes.TAB) {
+        if (ev.keyCode === converse.keycodes.TAB) {
           if (ev.target.value) {
             ev.preventDefault();
             const match = Object(lodash["find"])(_converse.emoji_shortnames, sn => _converse.FILTER_CONTAINS(sn, ev.target.value));
@@ -72937,9 +73029,16 @@ converse.plugins.add('converse-emoji-views', {
           'tooltip_insert_smiley': __('Insert emojis')
         });
         view.el.querySelector('.chat-toolbar').insertAdjacentHTML('afterBegin', html);
-        view.createEmojiPicker();
       }
     });
+
+    _converse.api.listen.on('headlinesBoxInitialized', () => _converse.api.emojis.initialize());
+
+    _converse.api.listen.on('chatRoomInitialized', () => _converse.api.emojis.initialize());
+
+    _converse.api.listen.on('chatBoxInitialized', () => _converse.api.emojis.initialize());
+    /************************ END Event Handlers ************************/
+
   }
 
 });
@@ -73123,7 +73222,7 @@ converse_core.plugins.add('converse-mam-views', {
   }
 });
 // EXTERNAL MODULE: ./src/templates/chatbox_minimize.html
-var chatbox_minimize = __webpack_require__(64);
+var chatbox_minimize = __webpack_require__(63);
 var chatbox_minimize_default = /*#__PURE__*/__webpack_require__.n(chatbox_minimize);
 
 // EXTERNAL MODULE: ./src/templates/chats_panel.html
@@ -73310,7 +73409,7 @@ converse_core.plugins.add('converse-minimize', {
 
         const div = document.createElement('div');
         div.innerHTML = html;
-        const buttons_row = div.querySelector('.chatbox-buttons');
+        const buttons_row = div.querySelector('.chatbox-title__buttons');
         const button = buttons_row.querySelector('.close-chatbox-button');
         const minimize_el = chatbox_minimize_default()({
           'info_minimize': __('Minimize this chat box')
@@ -73860,7 +73959,7 @@ var chatroom_head = __webpack_require__(172);
 var chatroom_head_default = /*#__PURE__*/__webpack_require__.n(chatroom_head);
 
 // EXTERNAL MODULE: ./src/templates/chatroom_invite.html
-var chatroom_invite = __webpack_require__(65);
+var chatroom_invite = __webpack_require__(64);
 var chatroom_invite_default = /*#__PURE__*/__webpack_require__.n(chatroom_invite);
 
 // EXTERNAL MODULE: ./src/templates/chatroom_nickname_form.html
@@ -73900,7 +73999,7 @@ var room_panel = __webpack_require__(181);
 var room_panel_default = /*#__PURE__*/__webpack_require__.n(room_panel);
 
 // EXTERNAL MODULE: ./src/templates/rooms_results.html
-var rooms_results = __webpack_require__(66);
+var rooms_results = __webpack_require__(65);
 var rooms_results_default = /*#__PURE__*/__webpack_require__.n(rooms_results);
 
 // CONCATENATED MODULE: ./src/converse-muc-views.js
@@ -73941,11 +74040,11 @@ var rooms_results_default = /*#__PURE__*/__webpack_require__.n(rooms_results);
 
 
 
+
 const {
   Backbone: converse_muc_views_Backbone,
   Strophe: converse_muc_views_Strophe,
   sizzle: converse_muc_views_sizzle,
-  _: converse_muc_views_,
   $iq: converse_muc_views_$iq,
   $pres: converse_muc_views_$pres
 } = converse_core.env;
@@ -74027,6 +74126,8 @@ converse_core.plugins.add('converse-muc-views', {
       'muc_mention_autocomplete_filter': 'contains',
       'muc_mention_autocomplete_show_avatar': true,
       'roomconfig_whitelist': [],
+      'muc_roomid_policy': null,
+      'muc_roomid_policy_hint': null,
       'visible_toolbar_buttons': {
         'toggle_occupants': true
       }
@@ -74085,8 +74186,8 @@ converse_core.plugins.add('converse-muc-views', {
       el.querySelector('a.room-info').classList.add('selected');
       el.insertAdjacentHTML('beforeEnd', room_description_default()({
         'jid': stanza.getAttribute('from'),
-        'desc': converse_muc_views_.get(converse_muc_views_.head(converse_muc_views_sizzle('field[var="muc#roominfo_description"] value', stanza)), 'textContent'),
-        'occ': converse_muc_views_.get(converse_muc_views_.head(converse_muc_views_sizzle('field[var="muc#roominfo_occupants"] value', stanza)), 'textContent'),
+        'desc': Object(lodash["get"])(Object(lodash["head"])(converse_muc_views_sizzle('field[var="muc#roominfo_description"] value', stanza)), 'textContent'),
+        'occ': Object(lodash["get"])(Object(lodash["head"])(converse_muc_views_sizzle('field[var="muc#roominfo_occupants"] value', stanza)), 'textContent'),
         'hidden': converse_muc_views_sizzle('feature[var="muc_hidden"]', stanza).length,
         'membersonly': converse_muc_views_sizzle('feature[var="muc_membersonly"]', stanza).length,
         'moderated': converse_muc_views_sizzle('feature[var="muc_moderated"]', stanza).length,
@@ -74175,16 +74276,14 @@ converse_core.plugins.add('converse-muc-views', {
       toHTML() {
         const allowed_commands = this.chatroomview.getAllowedCommands();
         const allowed_affiliations = allowed_commands.map(c => COMMAND_TO_AFFILIATION[c]).filter(c => c);
-
-        const allowed_roles = converse_muc_views_.uniq(allowed_commands.map(c => COMMAND_TO_ROLE[c]).filter(c => c));
-
+        const allowed_roles = allowed_commands.filter((value, i, list) => list.indexOf(value) == i).map(c => COMMAND_TO_ROLE[c]).filter(c => c);
         allowed_affiliations.sort();
         allowed_roles.sort();
         return moderator_tools_modal_default()(Object.assign(this.model.toJSON(), {
-          '__': __,
+          __,
+          allowed_affiliations,
+          allowed_roles,
           'affiliations': [...AFFILIATIONS, 'none'],
-          'allowed_affiliations': allowed_affiliations,
-          'allowed_roles': allowed_roles,
           'loading_users_with_affiliation': this.loading_users_with_affiliation,
           'roles': ROLES,
           'users_with_affiliation': this.users_with_affiliation,
@@ -74461,13 +74560,16 @@ converse_core.plugins.add('converse-muc-views', {
     });
     _converse.AddChatRoomModal = _converse.BootstrapModal.extend({
       events: {
-        'submit form.add-chatroom': 'openChatRoom'
+        'submit form.add-chatroom': 'openChatRoom',
+        'keyup .roomjid-input': 'checkRoomidPolicy',
+        'change .roomjid-input': 'checkRoomidPolicy'
       },
 
       initialize() {
         _converse.BootstrapModal.prototype.initialize.apply(this, arguments);
 
         this.listenTo(this.model, 'change:muc_domain', this.render);
+        this.muc_roomid_policy_error_msg = null;
       },
 
       toHTML() {
@@ -74483,7 +74585,15 @@ converse_core.plugins.add('converse-muc-views', {
           '__': _converse.__,
           '_converse': _converse,
           'label_room_address': _converse.muc_domain ? __('Groupchat name') : __('Groupchat address'),
-          'chatroom_placeholder': placeholder
+          'chatroom_placeholder': placeholder,
+          'muc_roomid_policy_error_msg': this.muc_roomid_policy_error_msg,
+          'muc_roomid_policy_hint': xss_default.a.filterXSS(_converse.muc_roomid_policy_hint, {
+            'whiteList': {
+              b: [],
+              br: [],
+              em: []
+            }
+          })
         }));
       },
 
@@ -74538,6 +74648,27 @@ converse_core.plugins.add('converse-muc-views', {
 
         this.modal.hide();
         ev.target.reset();
+      },
+
+      checkRoomidPolicy() {
+        if (_converse.muc_roomid_policy && _converse.muc_domain) {
+          let jid = this.el.querySelector('.roomjid-input').value;
+
+          if (converse_core.locked_muc_domain || !converse_muc_views_u.isValidJID(jid)) {
+            jid = "".concat(converse_muc_views_Strophe.escapeNode(jid), "@").concat(_converse.muc_domain);
+          }
+
+          const roomid = converse_muc_views_Strophe.getNodeFromJid(jid);
+          const roomdomain = converse_muc_views_Strophe.getDomainFromJid(jid);
+
+          if (_converse.muc_domain !== roomdomain || _converse.muc_roomid_policy.test(roomid)) {
+            this.muc_roomid_policy_error_msg = null;
+          } else {
+            this.muc_roomid_policy_error_msg = __('Groupchat id is invalid.');
+          }
+
+          this.render();
+        }
       }
 
     });
@@ -74552,12 +74683,12 @@ converse_core.plugins.add('converse-muc-views', {
 
       toHTML() {
         return chatroom_details_modal_default()(Object.assign(this.model.toJSON(), {
-          '_': converse_muc_views_,
           '__': __,
+          'config': this.model.config.toJSON(),
           'display_name': __('Groupchat info for %1$s', this.model.getDisplayName()),
           'features': this.model.features.toJSON(),
           'num_occupants': this.model.occupants.length,
-          'topic': converse_muc_views_u.addHyperlinks(xss_default.a.filterXSS(converse_muc_views_.get(this.model.get('subject'), 'text'), {
+          'topic': converse_muc_views_u.addHyperlinks(xss_default.a.filterXSS(Object(lodash["get"])(this.model.get('subject'), 'text'), {
             'whiteList': {}
           }))
         }));
@@ -74661,15 +74792,18 @@ converse_core.plugins.add('converse-muc-views', {
         return this;
       },
 
+      /**
+       * Renders the MUC heading if any relevant attributes have changed.
+       * @private
+       * @method _converse.ChatRoomView#renderHeading
+       * @param { _converse.ChatRoom } [item]
+       */
       renderHeading() {
         let item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
-
-        /* Render the heading UI of the groupchat. */
-        const changed = converse_muc_views_.get(item, 'changed', {});
-
+        const changed = item === null ? [] : Object.keys(item.changed);
         const keys = ['affiliation', 'bookmarked', 'jid', 'name', 'description', 'subject'];
 
-        if (item === null || converse_muc_views_.intersection(Object.keys(changed), keys).length) {
+        if (item === null || changed.filter(v => keys.includes(v)).length) {
           this.el.querySelector('.chat-head-chatroom').innerHTML = this.generateHeadingHTML();
         }
       },
@@ -74982,7 +75116,7 @@ converse_core.plugins.add('converse-muc-views', {
           return;
         }
 
-        if (converse_muc_views_.isUndefined(this.model.modtools_modal)) {
+        if (Object(lodash["isUndefined"])(this.model.modtools_modal)) {
           const model = new converse_muc_views_Backbone.Model({
             'affiliation': affiliation
           });
@@ -75103,7 +75237,7 @@ converse_core.plugins.add('converse-muc-views', {
           'info_close': __('Close and leave this groupchat'),
           'info_configure': __('Configure this groupchat'),
           'info_details': __('Show more details about this groupchat'),
-          'description': converse_muc_views_u.addHyperlinks(xss_default.a.filterXSS(converse_muc_views_.get(this.model.get('subject'), 'text'), {
+          'subject': converse_muc_views_u.addHyperlinks(xss_default.a.filterXSS(Object(lodash["get"])(this.model.get('subject'), 'text'), {
             'whiteList': {}
           }))
         }));
@@ -75392,15 +75526,16 @@ converse_core.plugins.add('converse-muc-views', {
 
       onCommandError(err) {
         headless_log.fatal(err);
-        this.showErrorMessage(__("Sorry, an error happened while running the command. Check your browser's developer console for details."));
+        this.showErrorMessage(__("Sorry, an error happened while running the command.") + " " + __("Check your browser's developer console for details."));
       },
 
       getAllowedCommands() {
-        // FIXME: The availability of some of these commands
-        // depend on the MUCs configuration (e.g. whether it's
-        // moderated or not). We need to take that into
-        // consideration.
-        let allowed_commands = ['clear', 'help', 'me', 'nick', 'subject', 'topic', 'register'];
+        let allowed_commands = ['clear', 'help', 'me', 'nick', 'register'];
+
+        if (this.model.config.get('changesubject') || ['owner', 'admin'].includes(this.model.getOwnAffiliation())) {
+          allowed_commands = [...allowed_commands, ...['subject', 'topic']];
+        }
+
         const occupant = this.model.occupants.findWhere({
           'jid': _converse.bare_jid
         });
@@ -75417,6 +75552,7 @@ converse_core.plugins.add('converse-muc-views', {
           allowed_commands = allowed_commands.concat(VISITOR_COMMANDS);
         }
 
+        allowed_commands.sort();
         return allowed_commands;
       },
 
@@ -75441,6 +75577,12 @@ converse_core.plugins.add('converse-muc-views', {
           if (disabled_commands.includes(command)) {
             return false;
           }
+        }
+
+        const allowed_commands = this.getAllowedCommands();
+
+        if (!allowed_commands.includes(command)) {
+          return false;
         }
 
         switch (command) {
@@ -75486,7 +75628,6 @@ converse_core.plugins.add('converse-muc-views', {
 
           case 'help':
             {
-              const allowed_commands = this.getAllowedCommands();
               this.showHelpMessages(["<strong>".concat(__("You can run the following commands"), "</strong>")]);
               this.showHelpMessages(["<strong>/admin</strong>: ".concat(__("Change user's affiliation to admin")), "<strong>/ban</strong>: ".concat(__('Ban user by changing their affiliation to outcast')), "<strong>/clear</strong>: ".concat(__('Clear the chat area')), "<strong>/close</strong>: ".concat(__('Close this groupchat')), "<strong>/deop</strong>: ".concat(__('Change user role to participant')), "<strong>/destroy</strong>: ".concat(__('Remove this groupchat')), "<strong>/help</strong>: ".concat(__('Show this menu')), "<strong>/kick</strong>: ".concat(__('Kick user from groupchat')), "<strong>/me</strong>: ".concat(__('Write in 3rd person')), "<strong>/member</strong>: ".concat(__('Grant membership to a user')), "<strong>/modtools</strong>: ".concat(__('Opens up the moderator tools GUI')), "<strong>/mute</strong>: ".concat(__("Remove user's ability to post messages")), "<strong>/nick</strong>: ".concat(__('Change your nickname')), "<strong>/op</strong>: ".concat(__('Grant moderator role to user')), "<strong>/owner</strong>: ".concat(__('Grant ownership of this groupchat')), "<strong>/register</strong>: ".concat(__("Register your nickname")), "<strong>/revoke</strong>: ".concat(__("Revoke the user's current affiliation")), "<strong>/subject</strong>: ".concat(__('Set groupchat subject')), "<strong>/topic</strong>: ".concat(__('Set groupchat subject (alias for /subject)')), "<strong>/voice</strong>: ".concat(__('Allow muted user to post messages'))].filter(line => disabled_commands.every(c => !line.startsWith(c + '<', 9))).filter(line => allowed_commands.some(c => line.startsWith(c + '<', 9))));
               break;
@@ -75706,7 +75847,6 @@ converse_core.plugins.add('converse-muc-views', {
         });
         const container = this.el.querySelector('.disconnect-container');
         container.innerHTML = chatroom_destroyed_default()({
-          '_': converse_muc_views_,
           '__': __,
           'jid': moved_jid,
           'reason': reason ? "\"".concat(reason, "\"") : null
@@ -75755,8 +75895,7 @@ converse_core.plugins.add('converse-muc-views', {
         });
         const container = this.el.querySelector('.disconnect-container');
         container.innerHTML = chatroom_disconnect_default()({
-          '_': converse_muc_views_,
-          'disconnect_messages': messages
+          messages
         });
         converse_muc_views_u.showElement(container);
       },
@@ -75765,7 +75904,7 @@ converse_core.plugins.add('converse-muc-views', {
         let el = this.content.lastElementChild;
 
         while (el) {
-          if (!converse_muc_views_.includes(converse_muc_views_.get(el, 'classList', []), 'chat-info')) {
+          if (!converse_muc_views_u.hasClass(el, 'chat-info')) {
             return;
           }
 
@@ -75820,7 +75959,7 @@ converse_core.plugins.add('converse-muc-views', {
       },
 
       showJoinOrLeaveNotification(occupant) {
-        if (converse_muc_views_.includes(occupant.get('states'), '303')) {
+        if (occupant.get('states').includes('303')) {
           return;
         }
 
@@ -75855,7 +75994,7 @@ converse_core.plugins.add('converse-muc-views', {
             return;
           }
 
-          const data = converse_muc_views_.get(el, 'dataset', {});
+          const data = Object(lodash["get"])(el, 'dataset', {});
 
           if (data.join === nick || data.leave === nick || data.leavejoin === nick || data.joinleave === nick) {
             return el;
@@ -75873,7 +76012,7 @@ converse_core.plugins.add('converse-muc-views', {
         const nick = occupant.get('nick'),
               stat = _converse.muc_show_join_leave_status ? occupant.get('status') : null,
               prev_info_el = this.getPreviousJoinOrLeaveNotification(this.content.lastElementChild, nick),
-              data = converse_muc_views_.get(prev_info_el, 'dataset', {});
+              data = Object(lodash["get"])(prev_info_el, 'dataset', {});
 
         if (data.leave === nick) {
           let message;
@@ -75926,14 +76065,14 @@ converse_core.plugins.add('converse-muc-views', {
       },
 
       showLeaveNotification(occupant) {
-        if (!_converse.muc_show_join_leave || converse_muc_views_.includes(occupant.get('states'), '303') || converse_muc_views_.includes(occupant.get('states'), '307')) {
+        if (!_converse.muc_show_join_leave || occupant.get('states').includes('303') || occupant.get('states').includes('307')) {
           return;
         }
 
         const nick = occupant.get('nick'),
               stat = _converse.muc_show_join_leave_status ? occupant.get('status') : null,
               prev_info_el = this.getPreviousJoinOrLeaveNotification(this.content.lastElementChild, nick),
-              dataset = converse_muc_views_.get(prev_info_el, 'dataset', {});
+              dataset = Object(lodash["get"])(prev_info_el, 'dataset', {});
 
         if (dataset.join === nick) {
           let message;
@@ -76033,12 +76172,18 @@ converse_core.plugins.add('converse-muc-views', {
       },
 
       setChatRoomSubject() {
-        // For translators: the %1$s and %2$s parts will get
-        // replaced by the user and topic text respectively
-        // Example: Topic set by JC Brand to: Hello World!
-        const subject = this.model.get('subject'),
-              message = subject.text ? __('Topic set by %1$s', subject.author) : __('Topic cleared by %1$s', subject.author),
-              date = new Date().toISOString();
+        const subject = this.model.get('subject');
+
+        if (!subject.text && !subject.author) {
+          return; // Probably a new MUC
+        }
+
+        const author = subject.author; // For translators: the %1$s part will get
+        // replaced by the user's name.
+        // Example: Topic set by JC Brand
+
+        const message = subject.text ? __('Topic set by %1$s', author) : __('Topic cleared by %1$s', author);
+        const date = new Date().toISOString();
         this.content.insertAdjacentHTML('beforeend', info_default()({
           'isodate': date,
           'extra_classes': 'chat-event',
@@ -76049,7 +76194,7 @@ converse_core.plugins.add('converse-muc-views', {
           this.content.insertAdjacentHTML('beforeend', info_default()({
             'isodate': date,
             'extra_classes': 'chat-topic',
-            'message': converse_muc_views_u.addHyperlinks(xss_default.a.filterXSS(converse_muc_views_.get(this.model.get('subject'), 'text'), {
+            'message': converse_muc_views_u.addHyperlinks(xss_default.a.filterXSS(Object(lodash["get"])(this.model.get('subject'), 'text'), {
               'whiteList': {}
             })),
             'render_message': true
@@ -76126,7 +76271,7 @@ converse_core.plugins.add('converse-muc-views', {
         let fields = converse_muc_views_sizzle('field', stanza);
 
         if (whitelist.length) {
-          fields = fields.filter(f => converse_muc_views_.includes(whitelist, f.getAttribute('var')));
+          fields = fields.filter(f => whitelist.includes(f.getAttribute('var')));
         }
 
         const password_protected = this.model.features.get('passwordprotected');
@@ -76136,15 +76281,25 @@ converse_core.plugins.add('converse-muc-views', {
         };
         return chatroom_form_default()({
           '__': __,
-          'title': converse_muc_views_.get(stanza.querySelector('title'), 'textContent'),
-          'instructions': converse_muc_views_.get(stanza.querySelector('instructions'), 'textContent'),
+          'title': Object(lodash["get"])(stanza.querySelector('title'), 'textContent'),
+          'instructions': Object(lodash["get"])(stanza.querySelector('instructions'), 'textContent'),
           'fields': fields.map(f => converse_muc_views_u.xForm2webForm(f, stanza, options))
         });
       },
 
-      submitConfigForm(ev) {
+      async submitConfigForm(ev) {
         ev.preventDefault();
-        this.model.saveConfiguration(ev.target).then(() => this.model.refreshRoomFeatures());
+        const inputs = converse_muc_views_sizzle(':input:not([type=button]):not([type=submit])', ev.target);
+        const configArray = inputs.map(converse_muc_views_u.webForm2xForm);
+
+        try {
+          await this.model.sendConfiguration(configArray);
+        } catch (e) {
+          headless_log.error(e);
+          this.showErrorMessage(__("Sorry, an error occurred while trying to submit the config form.") + " " + __("Check your browser's developer console for details."));
+        }
+
+        await this.model.refreshDiscoInfo();
         this.chatroomview.closeForm();
       },
 
@@ -76196,19 +76351,11 @@ converse_core.plugins.add('converse-muc-views', {
       toHTML() {
         const show = this.model.get('show');
         return occupant_default()(Object.assign({
-          '_': converse_muc_views_,
+          __,
+          show,
           'jid': '',
-          'show': show,
           'hint_show': _converse.PRETTY_CHAT_STATUS[show],
-          'hint_occupant': __('Click to mention %1$s in your message.', this.model.get('nick')),
-          'desc_moderator': __('This user is a moderator.'),
-          'desc_participant': __('This user can send messages in this groupchat.'),
-          'desc_visitor': __('This user can NOT send messages in this groupchat.'),
-          'label_moderator': __('Moderator'),
-          'label_visitor': __('Visitor'),
-          'label_owner': __('Owner'),
-          'label_member': __('Member'),
-          'label_admin': __('Admin')
+          'hint_occupant': __('Click to mention %1$s in your message.', this.model.get('nick'))
         }, this.model.toJSON()));
       },
 
@@ -76288,10 +76435,10 @@ converse_core.plugins.add('converse-muc-views', {
 
       renderRoomFeatures() {
         const features = this.chatroomview.model.features,
-              picks = converse_muc_views_.pick(features.attributes, converse_core.ROOM_FEATURES),
+              picks = Object(lodash["pick"])(features.attributes, converse_core.ROOM_FEATURES),
               iteratee = (a, v) => a || v;
 
-        if (converse_muc_views_.reduce(Object.values(picks), iteratee)) {
+        if (Object.values(picks).reduce(iteratee)) {
           const el = this.el.querySelector('.chatroom-features');
           el.innerHTML = chatroom_features_default()(Object.assign(features.toJSON(), {
             __
@@ -76331,25 +76478,24 @@ converse_core.plugins.add('converse-muc-views', {
 
       inviteFormSubmitted(evt) {
         evt.preventDefault();
-        const el = evt.target.querySelector('input.invited-contact'),
-              jid = el.value;
+        const el = evt.target.querySelector('input.invited-contact');
+        const jid = el.value;
 
-        if (!jid || converse_muc_views_.compact(jid.split('@')).length < 2) {
+        if (converse_muc_views_u.isValid(jid)) {
+          this.promptForInvite({
+            'target': el,
+            'text': {
+              'label': jid,
+              'value': jid
+            }
+          });
+        } else {
           evt.target.outerHTML = chatroom_invite_default()({
             'error_message': __('Please enter a valid XMPP address'),
             'label_invitation': __('Invite')
           });
           this.initInviteWidget();
-          return;
         }
-
-        this.promptForInvite({
-          'target': el,
-          'text': {
-            'label': jid,
-            'value': jid
-          }
-        });
       },
 
       shouldInviteWidgetBeShown() {
@@ -76544,7 +76690,7 @@ converse_core.plugins.add('converse-muc-views', {
 
           if (jids === undefined) {
             views = _converse.chatboxviews;
-          } else if (converse_muc_views_.isString(jids)) {
+          } else if (Object(lodash["isString"])(jids)) {
             views = [_converse.chatboxviews.get(jids)].filter(v => v);
           } else if (Array.isArray(jids)) {
             views = jids.map(jid => _converse.chatboxviews.get(jid));
@@ -76858,6 +77004,17 @@ converse_core.plugins.add('converse-notification', {
       if (_converse.notification_delay) {
         setTimeout(n.close.bind(n), _converse.notification_delay);
       }
+
+      n.onclick = function (event) {
+        event.preventDefault();
+        window.focus();
+
+        const chat = _converse.chatboxes.get(from_jid);
+
+        chat.maybeShow(true);
+      };
+
+      n.onclick.bind(_converse);
     };
 
     _converse.showChatStateNotification = function (contact) {
@@ -80403,7 +80560,8 @@ converse_core.plugins.add('converse-rosterview', {
         const ask = this.model.get('ask'),
               show = this.model.presence.get('show'),
               requesting = this.model.get('requesting'),
-              subscription = this.model.get('subscription');
+              subscription = this.model.get('subscription'),
+              jid = this.model.get('jid');
         const classes_to_remove = ['current-xmpp-contact', 'pending-xmpp-contact', 'requesting-xmpp-contact'].concat(Object.keys(STATUSES));
         classes_to_remove.forEach(c => converse_rosterview_u.removeClass(c, this.el));
         this.el.classList.add(show);
@@ -80450,7 +80608,7 @@ converse_core.plugins.add('converse-rosterview', {
             'desc_decline': __("Click to decline the contact request from %1$s", display_name),
             'allow_chat_pending_contacts': _converse.allow_chat_pending_contacts
           }));
-        } else if (subscription === 'both' || subscription === 'to') {
+        } else if (subscription === 'both' || subscription === 'to' || _converse.rosterview.isSelf(jid)) {
           this.el.classList.add('current-xmpp-contact');
           this.el.classList.remove(Object(lodash["without"])(['both', 'to'], subscription)[0]);
           this.el.classList.add(subscription);
@@ -81043,12 +81201,18 @@ converse_core.plugins.add('converse-rosterview', {
         groups.forEach(g => this.addContactToGroup(contact, g, options));
       },
 
+      isSelf(jid) {
+        return converse_rosterview_u.isSameBareJID(jid, _converse.connection.jid);
+      },
+
       addRosterContact(contact, options) {
-        if (contact.get('subscription') === 'both' || contact.get('subscription') === 'to') {
+        const jid = contact.get('jid');
+
+        if (contact.get('subscription') === 'both' || contact.get('subscription') === 'to' || this.isSelf(jid)) {
           this.addExistingContact(contact, options);
         } else {
           if (!_converse.allow_contact_requests) {
-            headless_log.debug("Not adding requesting or pending contact ".concat(contact.get('jid'), " ") + "because allow_contact_requests is false");
+            headless_log.debug("Not adding requesting or pending contact ".concat(jid, " ") + "because allow_contact_requests is false");
             return;
           }
 
