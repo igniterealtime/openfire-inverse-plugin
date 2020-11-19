@@ -43,9 +43,15 @@
     inVerse Plugin Changelog
 </h1>
 
-<p><b>7.0.0 Release 1</b> -- March 13, 2020</p>
+<p><b>7.0.1 Release 1</b> -- November 19, 2020</p>
 <ul>
     <li>Most <a href="https://conversejs.org/docs/html/configuration.html">Converse configuration properties</a> can now be specified, by setting them as a Openfire system property, prepended with <tt>inverse.config.</tt> (eg: <tt>inverse.config.ping_interval</tt>).</li>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/29">#29: upgrade to converse.js 7.0.0</a>, which includes these changes:
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2328">#2328</a> Honor use_system_emojis in emoji-picker</li>
+            <li>Not all *.js files were included in the 7.0.0 package, causing: Module not found: Error: Can't resolve 'templates/*.js'</li>
+        </ul>
+    </li>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/29">#29: upgrade to converse.js 7.0.0</a>, which includes these changes:
         <ul>
             <li><a href="https://github.com/conversejs/converse.js/issues/2231">#2231</a> add sort_by_query and remove sort_by_length</li>
