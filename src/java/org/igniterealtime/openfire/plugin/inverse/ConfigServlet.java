@@ -15,6 +15,7 @@
  */
 package org.igniterealtime.openfire.plugin.inverse;
 
+import org.directwebremoting.json.types.JsonObject;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.util.JiveGlobals;
 import org.json.JSONArray;
@@ -28,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collections;
 
 /**
  * Generates a JSON object that contains configuration for the inVerse web application.
@@ -45,20 +47,8 @@ public class ConfigServlet extends HttpServlet
         final boolean inbandRegEnabled = XMPPServer.getInstance().getIQRegisterHandler().isInbandRegEnabled();
         final String defaultDomain = JiveGlobals.getProperty( "inverse.config.default_domain", XMPPServer.getInstance().getServerInfo().getXMPPDomain() );
         final boolean lockedDomain = JiveGlobals.getBooleanProperty( "inverse.config.locked_domain", false );
-        final String endpoint = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + "/http-bind/";
+        final String defaultEndpoint = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + "/http-bind/";
         final String loglevel = JiveGlobals.getProperty( "inverse.config.loglevel", "info" );
-        final boolean playSounds = JiveGlobals.getBooleanProperty( "inverse.config.play_sounds", false );
-        //final String viewMode = JiveGlobals.getProperty( "inverse.config.view_mode" );
-
-        final boolean auto_focus = JiveGlobals.getBooleanProperty( "inverse.config.auto_config", true );
-        final boolean clear_messages_on_reconnection = JiveGlobals.getBooleanProperty( "inverse.config.clear_messages_on_reconnection", false );
-        final boolean enable_smacks = JiveGlobals.getBooleanProperty( "inverse.config.enable_smacks", false );
-        final int message_limit = JiveGlobals.getIntProperty( "inverse.config.message_limit", 0 );
-        final boolean muc_fetch_members = JiveGlobals.getBooleanProperty( "inverse.config.muc_fetch_members", true );
-        final int muc_mention_autocomplete_min_chars = JiveGlobals.getIntProperty( "inverse.config.muc_mention_autocomplete_min_chars", 0 );
-        final boolean muc_show_join_leave_status = JiveGlobals.getBooleanProperty( "inverse.config.muc_show_join_leave_status", true );
-        final boolean singleton = JiveGlobals.getBooleanProperty( "inverse.config.singleton", false );
-        final String allow_message_corrections = JiveGlobals.getProperty( "inverse.config.allow_message_corrections", "all" );
         final String assets_path = JiveGlobals.getProperty( "inverse.config.assets_path", "/"+InversePlugin.CONTEXT_ROOT+"/dist/" );
 
         // The language of the inVerse UI.
@@ -66,10 +56,7 @@ public class ConfigServlet extends HttpServlet
 
         final JSONObject config = new JSONObject();
         config.put( "sounds_path", "/" + InversePlugin.CONTEXT_ROOT + "/dist/sounds/" );
-        config.put( "play_sounds", playSounds );
         config.put( "notification_icon", "/" + InversePlugin.CONTEXT_ROOT + "/css/images/logo/conversejs-filled.svg" );
-        config.put( "auto_away", 300); // TODO make configurable.
-        config.put( "notify_all_room_messages", new JSONArray() ); // TODO make configurable.
         config.put( "i18n", language.getCode() );
         config.put( lockedDomain ? "locked_domain" : "default_domain", defaultDomain );
 
@@ -86,53 +73,237 @@ public class ConfigServlet extends HttpServlet
         }
 
         config.put( "domain_placeholder", defaultDomain );
-        config.put( "bosh_service_url", endpoint );
         config.put( "loglevel", loglevel );
         config.put( "view_mode", "fullscreen" );
-//        if ( viewMode != null && !viewMode.isEmpty() )
-//        {
-//            config.put( "view_mode", viewMode );
-//        }
-
-        final JSONArray whitelistedPlugins = new JSONArray(); // TODO make configurable.
-        whitelistedPlugins.put( "converse-singleton" );
-        whitelistedPlugins.put( "converse-inverse" );
-        config.put( "whitelisted_plugins", whitelistedPlugins );
-
-        final JSONArray blacklistedPlugins = new JSONArray(); // TODO make configurable.
-        blacklistedPlugins.put( "converse-minimize" );
-        blacklistedPlugins.put( "converse-dragresize" );
-        config.put( "blacklisted_plugins", blacklistedPlugins );
-
-        config.put( "auto_reconnect", true ); // TODO make configurable.
-        config.put( "message_carbons", true ); // TODO make configurable.
-        config.put( "message_archiving", "always" ); // TODO make configurable.
-        config.put( "roster_groups", true ); // TODO make configurable.
-        config.put( "show_message_load_animation", false ); // TODO make configurable
-
-        config.put( "auto_focus", auto_focus );
-        config.put( "clear_messages_on_reconnection", clear_messages_on_reconnection );
-        config.put( "enable_smacks", enable_smacks );
-        config.put( "message_limit", message_limit );
-        config.put( "muc_fetch_members", muc_fetch_members );
-        config.put( "muc_mention_autocomplete_min_chars", muc_mention_autocomplete_min_chars );
-        config.put( "muc_show_join_leave_status", muc_show_join_leave_status );
-        config.put( "singleton", singleton );
-        config.put( "allow_message_corrections", allow_message_corrections );
         config.put( "assets_path", assets_path );
 
-        // inVerse.js requires some hard-coded converse.js configuration options (look in the upstream source of
-        // src/converse-inverse.js at the settings in passed into `updateSettings`). We should not allow overrides of
-        // these configu options (if only, because inVerse will override them anyways):
-        // chatview_avatar_height: 44,
-        // chatview_avatar_width: 44,
-        // hide_open_bookmarks: true,
-        // show_controlbox_by_default: true,
-        // sticky_controlbox: true,
+        addBooleanConfigOption(config, "allow_adhoc_commands");
+        addBooleanConfigOption(config, "allow_bookmarks");
+        addBooleanConfigOption(config, "allow_chat_pending_contacts");
+        addBooleanConfigOption(config, "allow_contact_removal");
+        addBooleanConfigOption(config, "allow_contact_requests");
+        addBooleanConfigOption(config, "allow_dragresize");
+        addBooleanConfigOption(config, "allow_logout");
+        addBooleanConfigOption(config, "allow_message_corrections");
+        addBooleanConfigOption(config, "allow_message_retraction");
+        addBooleanConfigOption(config, "allow_muc");
+        addBooleanConfigOption(config, "allow_muc_invitations");
+        addBooleanConfigOption(config, "allow_non_roster_messaging");
+        addBooleanConfigOption(config, "allow_public_bookmarks");
+        // addBooleanConfigOption(config, "allow_registration"); // Already taken care of above.
+        addBooleanConfigOption(config, "allow_user_trust_override");
+        addIntegerConfigOption(config, "archived_messages_page_size");
+        addBooleanConfigOption(config, "autocomplete_add_contact");
+        addBooleanConfigOption(config, "auto_focus");
+        addBooleanConfigOption(config, "auto_list_rooms");
+        addBooleanConfigOption(config, "auto_login");
+        addIntegerConfigOption(config, "auto_away");
+        addIntegerConfigOption(config, "auto_xa");
+        addBooleanConfigOption(config, "auto_reconnect");
+        addBooleanConfigOption(config, "auto_register_muc_nickname");
+        addBooleanConfigOption(config, "auto_subscribe");
+        addBooleanConfigOption(config, "auto_join_on_invite");
+        addArrayOfTextConfigOption(config, "auto_join_private_chats");
+        addArrayOfTextConfigOption(config, "auto_join_rooms");
+        addArrayOfTextConfigOption(config, "blacklisted_plugins");
+        addTextConfigOption(config, "bosh_service_url");
+        addBooleanConfigOption(config, "clear_cache_on_logout");
+        addBooleanConfigOption(config, "clear_messages_on_reconnection");
+        addArrayOfTextConfigOption(config, "chatstate_notification_blacklist");
+        addJsonObjectConfigOption(config, "connection_options");
+        addTextConfigOption(config, "credentials_url");
+        addIntegerConfigOption(config, "csi_waiting_time");
+        //addTextConfigOption(config, "loglevel"); // Already taken care of above.
+        //addTextConfigOption(config, "default_domain"); // Already taken care of above.
+        //addTextConfigOption(config, "registration_domain"); // Already taken care of above.
+        addTextConfigOption(config, "default_state");
+        addBooleanConfigOption(config, "discover_connection_methods");
+        // addTextConfigOption(config, "domain_placeholder"); // Already taken care of above.
+        addJsonObjectConfigOption(config, "emoji_categories");
+        addJsonObjectConfigOption(config, "emoji_categories_label");
+        addTextConfigOption(config, "emoji_image_path");
+        addBooleanConfigOption(config, "enable_muc_push");
+        addBooleanConfigOption(config, "enable_smacks");
+        addBooleanConfigOption(config, "filter_by_resource");
+        addArrayOfTextConfigOption(config, "filter_url_query_params");
+        addTextConfigOption(config, "fullname");
+        addTextConfigOption(config, "geouri_regex");
+        addTextConfigOption(config, "geouri_replacement");
+        addBooleanConfigOption(config, "hide_muc_participants");
+        addBooleanConfigOption(config, "hide_offline_users");
+        addBooleanConfigOption(config, "hide_open_bookmarks");
+        // addTextConfigOption(config, "i18n"); // Already taken care of above.
+        addIntegerConfigOption(config, "idle_presence_timeout");
+        addTextConfigOption(config, "image_urls_regex");
+        addTextConfigOption(config, "jid");
+        addBooleanConfigOption(config, "keepalive");
+        addJsonObjectConfigOption(config, "locales");
+        //addTextConfigOption(config, "locked_domain"); // Already taken care of above.
+        addJsonObjectConfigOption(config, "locked_muc_domain");
+        addBooleanConfigOption(config, "locked_muc_nickname");
+        addArrayOfTextConfigOption(config, "muc_hats");
+        addIntegerConfigOption(config, "muc_mention_autocomplete_min_chars");
+        addTextConfigOption(config, "muc_mention_autocomplete_filter");
+        addBooleanConfigOption(config, "muc_mention_autocomplete_show_avatar");
+        addTextConfigOption(config, "message_archiving");
+        addIntegerConfigOption(config, "message_archiving_timeout");
+        addBooleanConfigOption(config, "message_carbons");
+        addIntegerConfigOption(config, "message_limit");
+        addJsonObjectConfigOption(config, "modtools_disable_assign");
+        addArrayOfTextConfigOption(config, "modtools_disable_query");
+        addBooleanConfigOption(config, "muc_disable_slash_commands");
+        addTextConfigOption(config, "muc_domain");
+        addArrayOfTextConfigOption(config, "muc_fetch_members");
+        addIntegerConfigOption(config, "muc_history_max_stanzas");
+        addBooleanConfigOption(config, "muc_instant_rooms");
+        addBooleanConfigOption(config, "muc_nickname_from_jid");
+        addBooleanConfigOption(config, "muc_send_probes");
+        addBooleanConfigOption(config, "muc_respect_autojoin");
+        addTextConfigOption(config, "muc_roomid_policy");
+        addTextConfigOption(config, "muc_roomid_policy_hint");
+        addBooleanConfigOption(config, "muc_show_join_leave");
+        addBooleanConfigOption(config, "muc_show_logs_before_join");
+        addTextConfigOption(config, "nickname");
+        addBooleanConfigOption(config, "notify_all_room_messages");
+        addIntegerConfigOption(config, "notification_delay");
+        // addTextConfigOption(config, "notification_icon"); // Already taken care of above.
+        addBooleanConfigOption(config, "notify_nicknames_without_references");
+        addArrayOfTextConfigOption(config, "oauth_providers");
+        addBooleanConfigOption(config, "omemo_default");
+        addIntegerConfigOption(config, "ping_interval");
+        addBooleanConfigOption(config, "play_sounds");
+        addTextConfigOption(config, "prebind_url");
+        addIntegerConfigOption(config, "priority");
+        addTextConfigOption(config, "providers_link");
+        // addTextConfigOption(config, "assets_path"); // Already taken care of above.
+        addTextConfigOption(config, "persistent_store");
+        addArrayOfJsonObjectConfigOption(config, "push_app_servers");
+        addArrayOfTextConfigOption(config, "roomconfig_whitelist");
+        addTextConfigOption(config, "root");
+        addBooleanConfigOption(config, "roster_groups");
+        addBooleanConfigOption(config, "send_chat_state_notifications");
+        addBooleanConfigOption(config, "show_chat_state_notifications");
+        addBooleanConfigOption(config, "show_client_info");
+        addBooleanConfigOption(config, "show_controlbox_by_default");
+        addBooleanConfigOption(config, "show_desktop_notifications");
+        addBooleanConfigOption(config, "show_message_avatar");
+        addBooleanConfigOption(config, "show_images_inline");
+        addBooleanConfigOption(config, "show_retraction_warning");
+        addBooleanConfigOption(config, "show_send_button");
+        addBooleanConfigOption(config, "singleton");
+        addIntegerConfigOption(config, "smacks_max_unacked_stanzas");
+        //addTextConfigOption(config, "sounds_path"); // Already taken care of above.
+        addBooleanConfigOption(config, "sticky_controlbox");
+        addBooleanConfigOption(config, "strict_plugin_dependencies");
+        addBooleanConfigOption(config, "synchronize_availability");
+        addTextConfigOption(config, "theme");
+        addTextConfigOption(config, "time_format");
+        addBooleanConfigOption(config, "use_system_emojis");
+        addBooleanConfigOption(config, "update_title");
+        addJsonObjectConfigOption(config, "visible_toolbar_buttons");
+        addTextConfigOption(config, "websocket_url");
+        // addTextConfigOption(config, "view_mode"); // Already taken care of above.
+        addArrayOfTextConfigOption(config, "whitelisted_plugins");
+        addTextConfigOption(config, "xhr_user_search_url");
+
+        // When no endpoint is configured, use this as a fallback.
+        if (!config.has("bosh_service_url") || config.isNull("bosh_service_url")) {
+            config.put( "bosh_service_url", defaultEndpoint );
+        }
+
         try ( final Writer writer = response.getWriter() )
         {
             writer.write( config.toString( 2 ) );
             writer.flush();
+        }
+    }
+
+    /**
+     * Verifies if there's an Openfire property that matches <tt>inverse.config.%option%</tt>, and if so, adds the
+     * value of that property (interpreted as a text) to the inverse configuration under <tt>%option%</tt> name.
+     *
+     * @param config The inverse configuration that possibly gets a new option value.
+     * @param option the name of the inverse configuration option
+     */
+    static void addTextConfigOption( final JSONObject config, final String option ) {
+        if (JiveGlobals.getProperty("inverse.config." + option) != null) {
+            config.put(option, JiveGlobals.getProperty("inverse.config." + option));
+        }
+    }
+
+    /**
+     * Verifies if there's an Openfire property that matches <tt>inverse.config.%option%</tt>, and if so, adds the
+     * value of that property (interpreted as a json object) to the inverse configuration under <tt>%option%</tt> name.
+     *
+     * @param config The inverse configuration that possibly gets a new option value.
+     * @param option the name of the inverse configuration option
+     */
+    static void addJsonObjectConfigOption( final JSONObject config, final String option ) {
+        if (JiveGlobals.getProperty("inverse.config." + option) != null) {
+            final JSONObject obj = new JSONObject(JiveGlobals.getProperty("inverse.config." + option));
+            config.put(option, obj);
+        }
+    }
+
+    /**
+     * Verifies if there's an Openfire property that matches <tt>inverse.config.%option%</tt>, and if so, adds the
+     * value of that property (interpreted as a boolean) to the inverse configuration under <tt>%option%</tt> name.
+     *
+     * @param config The inverse configuration that possibly gets a new option value.
+     * @param option the name of the inverse configuration option
+     */
+    static void addBooleanConfigOption( final JSONObject config, final String option ) {
+        if (JiveGlobals.getProperty("inverse.config." + option) != null) {
+            config.put(option, JiveGlobals.getBooleanProperty("inverse.config." + option));
+        }
+    }
+
+    /**
+     * Verifies if there's an Openfire property that matches <tt>inverse.config.%option%</tt>, and if so, adds the
+     * value of that property (interpreted as an integer) to the inverse configuration under <tt>%option%</tt> name.
+     *
+     * @param config The inverse configuration that possibly gets a new option value.
+     * @param option the name of the inverse configuration option
+     */
+    static void addIntegerConfigOption( final JSONObject config, final String option ) {
+        if (JiveGlobals.getProperty("inverse.config." + option) != null) {
+            config.put(option, JiveGlobals.getIntProperty("inverse.config." + option, -1) );
+        }
+    }
+
+    /**
+     * Verifies if there's an Openfire property that matches <tt>inverse.config.%option%</tt>, and if so, adds the
+     * value of that property (interpreted as an array of text elements) to the inverse configuration under <tt>%option%</tt> name.
+     *
+     * @param config The inverse configuration that possibly gets a new option value.
+     * @param option the name of the inverse configuration option
+     */
+    static void addArrayOfTextConfigOption( final JSONObject config, final String option ) {
+        if (JiveGlobals.getProperty("inverse.config." + option) != null) {
+            final JSONArray result = new JSONArray();
+            for (String value : JiveGlobals.getListProperty("inverse.config." + option, Collections.emptyList())) {
+                if (value != null && !value.isEmpty()) {
+                    result.put(value);
+                }
+            }
+            config.put(option, result);
+        }
+    }
+
+    /**
+     * Verifies if there's an Openfire property that matches <tt>inverse.config.%option%</tt>, and if so, adds the
+     * value of that property (interpreted as an array of json objects) to the inverse configuration under <tt>%option%</tt> name.
+     *
+     * @param config The inverse configuration that possibly gets a new option value.
+     * @param option the name of the inverse configuration option
+     */
+    static void addArrayOfJsonObjectConfigOption( final JSONObject config, final String option ) {
+        if (JiveGlobals.getProperty("inverse.config." + option) != null) {
+            final JSONArray result = new JSONArray();
+            for (String value : JiveGlobals.getListProperty("inverse.config." + option, Collections.emptyList())) {
+                result.put(new JSONObject(value));
+            }
+            config.put(option, result);
         }
     }
 }
