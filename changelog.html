@@ -42,6 +42,82 @@
 <h1>
     inVerse Plugin Changelog
 </h1>
+
+<p><b>7.0.1 Release 1</b> -- November 22, 2020</p>
+<ul>
+    <li>Most <a href="https://conversejs.org/docs/html/configuration.html">Converse configuration properties</a> can now be specified, by setting them as a Openfire system property, prepended with <tt>inverse.config.</tt> (eg: <tt>inverse.config.ping_interval</tt>).</li>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/29">#29: upgrade to converse.js 7.0.0</a>, which includes these changes:
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2328">#2328</a> Honor use_system_emojis in emoji-picker</li>
+            <li>Not all *.js files were included in the 7.0.0 package, causing: Module not found: Error: Can't resolve 'templates/*.js'</li>
+        </ul>
+    </li>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/29">#29: upgrade to converse.js 7.0.0</a>, which includes these changes:
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2231">#2231</a> add sort_by_query and remove sort_by_length</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1313">#1313</a> Stylistic improvements to the send button</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1481">#1481</a> MUC OMEMO: Error No record for device</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1490">#1490</a> Busy-loop when fetching registration form fails</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1535">#1535</a> Add option to destroy a MUC</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1715">#1715</a> Update chat state notification after receiving a message correction.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1793">#1793</a> Send button doesn't appear in Firefox in 1:1 chats</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1820">#1820</a> Set focus on jid field after controlbox is loaded</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1822">#1822</a> Don't log error if user has no bookmarks</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/515">#515</a> Add support for XEP-0050 Ad-Hoc commands</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1823">#1823</a> New config options <a href="https://conversejs.org/docs/html/configuration.html#muc-roomid-policy">muc_roomid_policy</a> and <a href="https://conversejs.org/docs/html/configuration.html#muc-roomid-policy-hint">muc_roomid_policy_hint</a></li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1826">#1826</a> A user can now add himself as a contact</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1839">#1839</a> Headline messages are shown in controlbox</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1924">#1924</a> Configuring an ejabberd room fails</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1896">#1896</a> Don't send receipts for messages fetched from the archive</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1937">#1937</a> Editing a message removes the mentions highlight</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1963">#1963</a> Mentions are visually incorrect when used in message replies</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1999">#1999</a> Demarcate first unread message</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2002">#2002</a> fix rendering of muc_roomid_policy_hint</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2006">#2006</a> fix rendering of emojis in case use_system_emojis == false</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2028">#2028</a> Implement XEP-0333 displayed chat marker</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2101">#2101</a> Improve contrast of text in control box</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2187">#2187</a> Avoid merging initial settings with themselves every time settings are extended.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2199">#2199</a> Fix BOSH session restore.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2201">#2201</a> added html to converse.env</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2213">#2213</a> added CustomElement to converse.env</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2220">#2220</a> fix rendering of emojis in case use_system_emojis == false (again).</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2092">#2092</a> fixes room list update loop when having the locked_muc_domain truthy or 'hidden'</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2285">#2285</a> Rename config option muc_hats_from_vcard to <a href="https://conversejs.org/docs/html/configuration.html#muc-hats">muc_hats</a>. Now accepts a list instead of a boolean and allows for more flexible choices regarding user badges.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2300">#2300</a> Fix message reorder issue after message correction.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2304">#2304</a> Custom emojis (stickers) images not shown</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2307">#2307</a> BootstrapModal is not accessible to plugins</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2308">#2308</a> Allow getHats method to be overriden in the overrides object in plugins.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2321">#2321</a> When Converse runs inside a browser extension, enable browser sync and local storage for persistent storage</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1250">#1250</a> Change favicon color when unread messages</li>
+            <li>The trusted configuration setting has been removed in favor of two new settings: <ul><li><a href="https://conversejs.org/docs/html/configuration.html#allow-user-trust-override">allow_user_trust_override</a></li><li><a href="https://conversejs.org/docs/html/configuration.html#clear-cache-on-logout">clear_cache_on_logout</a></li></ul></li>
+            <li>The persistent_store setting can now also be set to sessionStorage</li>
+            <li>The api.archive.query method no longer accepts an RSM instance as argument.</li>
+            <li>The plugin converse-uniview has been removed and its functionality merged into converse-chatboxviews</li>
+            <li>Removed the mockups from the project. Recommended to use tests instead.</li>
+            <li>The API method api.settings.update has been deprecated in favor of api.settings.extend.</li>
+            <li>The API methods under the api.user.status namespace are now asynchronous and need to be awaited.</li>
+            <li>Filter roster contacts via all available information (JID, nickname and VCard full name).</li>
+            <li>Allow ignoring of bootstrap modules at build using environment variable. For xample: export BOOTSTRAP_IGNORE_MODULES="Modal,Dropdown" && make dist</li>
+            <li>Bugfix. Handle stanza that clears the MUC subject</li>
+            <li>Replace Backbone with <a href="https://github.com/skeletorjs/skeletor">Skeletor</a></li>
+            <li>Start using <a href="https://lit-html.polymer-project.org/">lit-html</a> instead of lodash for templating.</li>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#muc-fetch-members">muc_fetch_members</a> now also accepts an array of affiliations to fetch.</li>
+            <li>Remove the configuration setting muc_show_join_leave_status. The optional status message is no longer shown at all.</li>
+            <li>Support for XEP-0156 is now enabled by default (which means that <a href="https://conversejs.org/docs/html/configuration.html#discover-connection-methods">discover_connection_methods</a> now has a default value of true).</li>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#show-send-button">show_send_button</a> now has a default value of true.</li>
+            <li>The <a href="https://conversejs.org/docs/html/api/-_converse.api.html#.confirm">api.confirm</a> method now accepts a list of fields and returns the filled in list upon confirmation.</li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#allow-adhoc-commands">allow_adhoc_commands</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#modtools-disable-assign">modtools_disable_assign</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#modtools-disable-query">modtools_disable_query</a></li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-hats-from-vcard">muc_hats_from_vcard</a>.</li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#muc-send-probes">muc_send_probes</a>.</li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#notify-nicknames-without-references">notify_nicknames_without_references</a>.</li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#show-message-avatar">show_message_avatar</a>.</li>
+            <li>New public API <a href="https://conversejs.org/docs/html/api/converse.html#.insertInto">converse.insertInto</a></li>
+        </ul>
+    </li>
+</ul>
+
 <p><b>6.0.1 Release 1</b> -- March 13, 2020</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/24">#24: upgrade to converse.js 6.0.1</a>, which includes these changes:
