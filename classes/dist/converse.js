@@ -13777,7 +13777,7 @@ exports["filterCSS"] = (filterCSS);
 /***/ (function(module, exports) {
 
 var core = module.exports = {
-  version: '2.6.11'
+  version: '2.6.12'
 };
 if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 
@@ -38066,7 +38066,7 @@ var store = global[SHARED] || (global[SHARED] = {});
 })('versions', []).push({
   version: core.version,
   mode: __webpack_require__(88) ? 'pure' : 'global',
-  copyright: '© 2019 Denis Pushkarev (zloirock.ru)'
+  copyright: '© 2020 Denis Pushkarev (zloirock.ru)'
 });
 
 /***/ }),
@@ -69551,7 +69551,7 @@ const converse_core_converse = {
    */
   '___': str => str
 };
-converse_core_converse.VERSION_NAME = "v7.0.1";
+converse_core_converse.VERSION_NAME = "v7.0.3";
 Object.assign(converse_core_converse, Events); // Make converse pluggable
 
 pluggable.enable(converse_core_converse, '_converse', 'pluggable');
@@ -73842,7 +73842,7 @@ function _templateObject3() {
 }
 
 function _templateObject2() {
-  const data = _taggedTemplateLiteral(["<img class=\"emoji\"\n                    draggable=\"false\"\n                    alt=\"", "\"\n                    src=\"", "/72x72/", ".png\"/>"]);
+  const data = _taggedTemplateLiteral(["<img class=\"emoji\"\n                draggable=\"false\"\n                title=\"", "\"\n                alt=\"", "\"\n                src=\"", "/72x72/", ".png\"/>"]);
 
   _templateObject2 = function _templateObject2() {
     return data;
@@ -74086,15 +74086,17 @@ function getEmojiMarkup(data, options = {
   const shortname = data.shortname;
 
   if (emoji) {
-    if (options.add_title_wrapper) {
-      if (converse_core_api.settings.get('use_system_emojis')) {
+    if (options.unicode_only) {
+      return emoji;
+    } else if (converse_core_api.settings.get('use_system_emojis')) {
+      if (options.add_title_wrapper) {
         return shortname ? lit_html_html(_templateObject(), shortname, emoji) : emoji;
       } else {
-        const path = converse_core_api.settings.get('emoji_image_path');
-        return lit_html_html(_templateObject2(), emoji, path, data.cp);
+        return emoji;
       }
     } else {
-      return emoji;
+      const path = converse_core_api.settings.get('emoji_image_path');
+      return lit_html_html(_templateObject2(), shortname, emoji, path, data.cp);
     }
   } else if (options.unicode_only) {
     return shortname;
@@ -77865,7 +77867,7 @@ converse.plugins.add('converse-muc', {
          *     }
          * );
          */
-        async open(jids, attrs, force = false) {
+        async open(jids, attrs = {}, force = false) {
           await converse_core_api.waitUntil('chatBoxesFetched');
 
           if (jids === undefined) {
@@ -87728,9 +87730,7 @@ const emoji_picker_header = o => {
 };
 
 const emoji_item = o => {
-  return lit_html_html(emoji_picker_templateObject3(), o.shouldBeHidden(o.emoji.sn) ? 'hidden' : '', o.emoji.sn, o.emoji.sn, o.insertEmoji, o.emoji.sn, emoji_picker_u.shortnamesToEmojis(o.emoji.sn, {
-    'add_title_wrapper': true
-  }));
+  return lit_html_html(emoji_picker_templateObject3(), o.shouldBeHidden(o.emoji.sn) ? 'hidden' : '', o.emoji.sn, o.emoji.sn, o.insertEmoji, o.emoji.sn, emoji_picker_u.shortnamesToEmojis(o.emoji.sn));
 };
 
 const tpl_search_results = o => {
@@ -87755,9 +87755,7 @@ const tpl_all_emojis = o => {
 };
 
 const skintone_emoji = o => {
-  return lit_html_html(emoji_picker_templateObject7(), o.skintone, o.current_skintone === o.skintone ? 'picked' : '', o.skintone, o.onSkintonePicked, emoji_picker_u.shortnamesToEmojis(':' + o.skintone + ':', {
-    'add_title_wrapper': true
-  }));
+  return lit_html_html(emoji_picker_templateObject7(), o.skintone, o.current_skintone === o.skintone ? 'picked' : '', o.skintone, o.onSkintonePicked, emoji_picker_u.shortnamesToEmojis(':' + o.skintone + ':'));
 };
 
 const tpl_emoji_picker = o => {
@@ -87996,9 +87994,7 @@ class emoji_picker_EmojiPicker extends element_CustomElement {
       'query': this.query,
       'search_results': this.search_results,
       'render_emojis': this.render_emojis,
-      'sn2Emoji': shortname => components_emoji_picker_u.shortnamesToEmojis(this.getTonedShortname(shortname), {
-        'add_title_wrapper': true
-      })
+      'sn2Emoji': shortname => components_emoji_picker_u.shortnamesToEmojis(this.getTonedShortname(shortname))
     });
   }
 
@@ -98810,7 +98806,7 @@ function headline_panel_taggedTemplateLiteral(strings, raw) { if (!raw) { raw = 
 
 const converse_headlines_view_u = converse.env.utils;
 const HeadlinesBoxView = ChatBoxView.extend({
-  className: 'chatbox headlines',
+  className: 'chatbox headlines hidden',
   events: {
     'click .close-chatbox-button': 'close',
     'click .toggle-chatbox-button': 'minimize',
