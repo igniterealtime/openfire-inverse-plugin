@@ -1,6 +1,6 @@
 # Openfire Inverse Plugin
 
-The inVerse plugin adds the web client to Openfire. inVerse is a third party web client implementation. It's project home page is [converse/converse.js](https://github.com/converse/converse.js).
+The inVerse plugin adds a web client to Openfire. Converse is a third party web client implementation. It's project home page is [conversejs/converse.js](https://github.com/conversejs/converse.js).
 
 ## CI Build Status
 
