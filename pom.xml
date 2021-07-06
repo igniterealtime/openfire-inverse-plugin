@@ -8,7 +8,7 @@
     </parent>
     <groupId>org.igniterealtime.openfire.plugins</groupId>
     <artifactId>inverse</artifactId>
-    <version>7.0.4.2-SNAPSHOT</version>
+    <version>7.0.6.1</version>
     <name>inVerse</name>
     <description>Adds the (third-party, Converse-based) inVerse web client to Openfire.</description>
     <build>
