@@ -43,6 +43,101 @@
     inVerse Plugin Changelog
 </h1>
 
+<p><b>8.0.1 Release 1</b> -- (tbd)</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/40">#40: Update to Converse 8.0.1</a>, which includes these changes:
+        <h4>For Converse 8.0.1:</h4>
+        <ul>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2326">#2326</a>: 404 for asset /logo/conversejs-filled.svg</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2628">#2628</a>: Open groupchats toggle emits an error</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2629">#2629</a>: OMEMO button tooltip is wrong in private chat</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2633">#2633</a>: Excessive logging of warning</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2634">#2634</a>: Image previews not loading when not serving Converse locally</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2636">#2636</a>: Don't fail when setting up a new XEP-0198 managed stream and <tt>_converse.session</tt> is undefined</li>
+            <li>Bugfix: Don't show minimized chats when logged out</li>
+        </ul>
+        <p>
+            Note: Singleton mode is not working correctly in version 8 of Converse. See here: <a href="https://github.com/conversejs/converse.js/issues/2647">#2647</a><br/>
+            This will be fixed in the upcoming version 9 release.
+        </p>
+        <h4>For Converse 8.0.0:</h4>
+        <h4>Issues and features</h4>
+        <ul>
+            <li><a href="http://github.com/conversejs/converse.js/issues/1083">#1083</a>: Add support for XEP-0393 Message Styling</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/1182">#1182</a>: Add support for XEP-0454 OMEMO Media sharing</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/1823">#1823</a>: New config options <a href="https://conversejs.org/docs/html/configuration.html#mam-request-all-pages">mam_request_all_pages</a></li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2275">#2275</a>: Allow punctuation to immediately precede a mention</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2348">#2348</a>: <tt>auto_join_room</tt> not showing the room in <tt>fullscreen</tt> <tt>view_mode</tt>.</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2400">#2400</a>: Fixes infinite loop bug when appending .png to allowed image urls</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2409">#2409</a>: Integrate App Badging API for unread messages</li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2464">#2464</a>: New configuration setting <a href="https://conversejs.org/docs/html/configuration.html#allow-url-history-change">allow-url-history-change</a></li>
+            <li><a href="http://github.com/conversejs/converse.js/issues/2497">#2497</a>: Bugfix /nick command is not working</li>
+            <li>Add a Description Of A Project (DOAP) file</li>
+            <li>Add ability to deregister nickname when closing a MUC by setting <tt>auto_register_muc_nickname</tt> to <tt>'unregister'</tt>.</li>
+            <li>Add support for XEP-0437 Room Activity Indicators see <a href="https://conversejs.org/docs/html/configuration.html#muc-subscribe-to-rai">muc-subscribe-to-rai</a></li>
+            <li>Add support for rendering unfurls via <a href="https://modules.prosody.im/mod_ogp.html">mod_ogp</a></li>
+            <li>Bugfix: Connection protocol not updated based on XEP-0156 connection methods</li>
+            <li>Bugfix: Use real JID in XEP-0372 references only when the MUC is non-anonymous</li>
+            <li>Bugfix: <tt>null</tt> inserted by emoji picker and can't switch between skintones</li>
+            <li>File structure reordering: All plugins are now in <tt>./plugins</tt> folders.</li>
+            <li>Show a gap placeholder when there are gaps in the chat history. The user can click these to fill the gaps.</li>
+            <li>Use the MUC stanza id when sending XEP-0333 markers</li>
+            <li>Add support for pausing Gif images</li>
+            <li>Add limited support for XEP-0316 MUC notifications</li>
+        </ul>
+
+        <h4>New configuration setings</h4>
+        <ul>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#show-tab-notifications">show_tab_notifications</a></li>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#muc-clear-messages-on-leave">muc_clear_messages_on_leave</a></li>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#send-chat-markers">send_chat_markers</a></li>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#muc-show-ogp-unfurls">muc_show_ogp_unfurls</a></li>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#prune-messages-above">prune-messages-above</a></li>
+            <li><a href="https://conversejs.org/docs/html/configuration.html#pruning-behavior">pruning_behavior</a></li>
+        </ul>
+
+        <h4>New hooks and events</h4>
+        <ul>
+            <li>New hook: <a href="https://conversejs.org/docs/html/api/-_converse.html#event:getMessageActionButtons">getMessageActionButtons</a></li>
+            <li>New hook: <a href="https://conversejs.org/docs/html/api/-_converse.html#event:shouldNotifyOfGroupMessage">shouldNotifyOfGroupMessage</a></li>
+            <li>New hook: <a href="https://conversejs.org/docs/html/api/-_converse.html#event:presenceConstructed">presenceConstructed</a></li>
+            <li>New event: <a href="https://conversejs.org/docs/html/api/-_converse.html#event:historyPruned">historyPruned</a></li>
+        </ul>
+
+        <h4>Breaking Changes</h4>
+        <p>
+            The default persistent store, set via the <a href="https://conversejs.org/docs/html/configuration.html#persistent-store">persistent_store</a>,
+            is now IndexedDB. This main advantage of using IndexedDB is that it doesn't
+            have a fixed size limit. We don't provide a tool to migrate data from
+            localStorage to IndexedDB. For almost all data this is not a problem since
+            the data can be fetched again from the XMPP server. However,
+            decrypted OMEMO messages cannot be fetched again from the server, since the
+            double ratchet makes it impossible to again decrypt them. This means your
+            decrypted OMEMO history will be lost in the transition.</p>
+        <p>
+            The <a href="https://conversejs.org/docs/html/api/-_converse.html#event:afterMessageBodyTransformed">afterMessageBodyTransformed</a> and <a href="https://conversejs.org/docs/html/api/-_converse.html#event:beforeMessageBodyTransformed">beforeMessageBodyTransformed</a> events now has a different signatures.
+            When leaving a MUC, the message history is deleted. This means that decrypted
+            OMEMO messages are gone and cannot be recovered on that device. See <a href="https://conversejs.org/docs/html/configuration.html#muc-clear-messages-on-leave">muc_clear_messages_on_leave</a>.</p>
+
+        <p>Removed events:</p>
+
+        <ul>
+            <li><tt>bookmarkViewsInitialized</tt></li>
+            <li><tt>chatBoxInsertedIntoDOM</tt></li>
+            <li><tt>contactStatusMessageChanged</tt></li>
+            <li><tt>messageSend</tt> (use <tt>sendMessage</tt> instead)</li>
+            <li><tt>rosterGroupsFetched</tt></li>
+        </ul>
+
+        <p>The <tt>chatBoxClosed</tt>, <tt>chatBoxMaximized</tt> and <tt>chatBoxMinimized</tt> events now have the <tt>model</tt> as
+            payload and not the view.</p>
+
+        <p>The <tt>api.chatviews</tt> and <tt>api.roomviews</tt> API groupings and methods have been
+            removed. The original "views" don't really exist anymore, the UI is now composed web
+            components which should update reactively based on changes made on the models.</p>
+    </li>
+</ul>
+
 <p><b>7.0.6 Release 2</b> -- July 6, 2021</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/38">#38: Fix governance issues in 7.0.6 release</a></li>
