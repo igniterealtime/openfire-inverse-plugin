@@ -91,6 +91,7 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "allow_non_roster_messaging");
         addBooleanConfigOption(config, "allow_public_bookmarks");
         // addBooleanConfigOption(config, "allow_registration"); // Already taken care of above.
+        addBooleanConfigOption(config, "allow_url_history_change");
         addBooleanConfigOption(config, "allow_user_trust_override");
         addIntegerConfigOption(config, "archived_messages_page_size");
         addBooleanConfigOption(config, "autocomplete_add_contact");
@@ -141,6 +142,7 @@ public class ConfigServlet extends HttpServlet
         //addTextConfigOption(config, "locked_domain"); // Already taken care of above.
         addJsonObjectConfigOption(config, "locked_muc_domain");
         addBooleanConfigOption(config, "locked_muc_nickname");
+        addBooleanConfigOption(config, "mam_request_all_pages");
         addArrayOfTextConfigOption(config, "muc_hats");
         addIntegerConfigOption(config, "muc_mention_autocomplete_min_chars");
         addTextConfigOption(config, "muc_mention_autocomplete_filter");
@@ -151,6 +153,7 @@ public class ConfigServlet extends HttpServlet
         addIntegerConfigOption(config, "message_limit");
         addJsonObjectConfigOption(config, "modtools_disable_assign");
         addArrayOfTextConfigOption(config, "modtools_disable_query");
+        addBooleanConfigOption(config, "muc_clear_messages_on_leave");
         addBooleanConfigOption(config, "muc_disable_slash_commands");
         addTextConfigOption(config, "muc_domain");
         addArrayOfTextConfigOption(config, "muc_fetch_members");
@@ -163,6 +166,8 @@ public class ConfigServlet extends HttpServlet
         addTextConfigOption(config, "muc_roomid_policy_hint");
         addBooleanConfigOption(config, "muc_show_join_leave");
         addBooleanConfigOption(config, "muc_show_logs_before_join");
+        addBooleanConfigOption(config, "muc_show_ogp_unfurls");
+        addBooleanConfigOption(config, "muc_subscribe_to_rai");
         addTextConfigOption(config, "nickname");
         addBooleanConfigOption(config, "notify_all_room_messages");
         addIntegerConfigOption(config, "notification_delay");
@@ -177,11 +182,14 @@ public class ConfigServlet extends HttpServlet
         addTextConfigOption(config, "providers_link");
         // addTextConfigOption(config, "assets_path"); // Already taken care of above.
         addTextConfigOption(config, "persistent_store");
+        addIntegerConfigOption(config, "prune_messages_above");
+        addTextConfigOption(config, "pruning_behavior");
         addArrayOfJsonObjectConfigOption(config, "push_app_servers");
         addArrayOfTextConfigOption(config, "roomconfig_whitelist");
         addTextConfigOption(config, "root");
         addBooleanConfigOption(config, "roster_groups");
         addBooleanConfigOption(config, "send_chat_state_notifications");
+        addArrayOfTextConfigOption(config, "send_chat_markers");
         addBooleanConfigOption(config, "show_chat_state_notifications");
         addBooleanConfigOption(config, "show_client_info");
         addBooleanConfigOption(config, "show_controlbox_by_default");
@@ -190,6 +198,7 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "show_images_inline");
         addBooleanConfigOption(config, "show_retraction_warning");
         addBooleanConfigOption(config, "show_send_button");
+        addBooleanConfigOption(config, "show_tab_notifications");
         addBooleanConfigOption(config, "singleton");
         addIntegerConfigOption(config, "smacks_max_unacked_stanzas");
         //addTextConfigOption(config, "sounds_path"); // Already taken care of above.
