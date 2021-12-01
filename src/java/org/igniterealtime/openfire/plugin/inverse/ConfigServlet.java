@@ -77,6 +77,9 @@ public class ConfigServlet extends HttpServlet
         config.put( "view_mode", "fullscreen" );
         config.put( "assets_path", assets_path );
 
+        addArrayOfTextConfigOption(config, "allowed_audio_domains");
+        addArrayOfTextConfigOption(config, "allowed_image_domains");
+        addArrayOfTextConfigOption(config, "allowed_video_domains");
         addBooleanConfigOption(config, "allow_adhoc_commands");
         addBooleanConfigOption(config, "allow_bookmarks");
         addBooleanConfigOption(config, "allow_chat_pending_contacts");
@@ -166,7 +169,7 @@ public class ConfigServlet extends HttpServlet
         addTextConfigOption(config, "muc_roomid_policy_hint");
         addBooleanConfigOption(config, "muc_show_join_leave");
         addBooleanConfigOption(config, "muc_show_logs_before_join");
-        addBooleanConfigOption(config, "muc_show_ogp_unfurls");
+        addBooleanConfigOption(config, "muc_show_ogp_unfurls"); // Obsoleted in 9.0.0
         addBooleanConfigOption(config, "muc_subscribe_to_rai");
         addTextConfigOption(config, "nickname");
         addBooleanConfigOption(config, "notify_all_room_messages");
@@ -185,6 +188,7 @@ public class ConfigServlet extends HttpServlet
         addIntegerConfigOption(config, "prune_messages_above");
         addTextConfigOption(config, "pruning_behavior");
         addArrayOfJsonObjectConfigOption(config, "push_app_servers");
+        addBooleanConfigOption(config, "render_media");
         addArrayOfTextConfigOption(config, "roomconfig_whitelist");
         addTextConfigOption(config, "root");
         addBooleanConfigOption(config, "roster_groups");
@@ -195,7 +199,7 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "show_controlbox_by_default");
         addBooleanConfigOption(config, "show_desktop_notifications");
         addBooleanConfigOption(config, "show_message_avatar");
-        addBooleanConfigOption(config, "show_images_inline");
+        addBooleanConfigOption(config, "show_images_inline"); // Obsoleted in 9.0.0
         addBooleanConfigOption(config, "show_retraction_warning");
         addBooleanConfigOption(config, "show_send_button");
         addBooleanConfigOption(config, "show_tab_notifications");

@@ -10,7 +10,7 @@
     <script src="dist/converse.min.js"></script>
 </head>
 <body class="reset">
-<div class="converse-content" style="display:none">
+<div class="converse-content">
     <div class="inner-content converse-brand row">
         <div class="converse-brand__padding"></div>
         <div class="converse-brand__heading">
@@ -40,15 +40,7 @@
             if ( request.status >= 200 && request.status < 400 )
             {
                 var config = JSON.parse( request.responseText );
-                converse.initialize( config )
-                        .then( function ()
-                        {
-                            setTimeout( function ()
-                            {
-                                document.querySelector('.converse-content').style = '';
-                            }
-                            , 1000 );
-                        });
+                converse.initialize( config );
             }
             else
             {
