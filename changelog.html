@@ -12,9 +12,9 @@
             font-size : 0.8em;
         }
         H2 {
-             font-size : 10pt;
-             font-weight : bold;
-             padding-left : 1em;
+            font-size : 10pt;
+            font-weight : bold;
+            padding-left : 1em;
         }
         A:hover {
             text-decoration : none;
@@ -42,6 +42,57 @@
 <h1>
     inVerse Plugin Changelog
 </h1>
+
+<p><b>9.0.0 Release 1</b> -- (tbd)</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/42">#42: Update to Converse 9.0.0</a>, which includes these changes:
+        <h4>For Converse 9.0.0:</h4>
+        <h4>Issues and features</h4>
+        <ul>
+            <li>Compress new avatar images before uploading them</li>
+            <li>Add initial support for XEP-0421 occupant Ids.</li>
+            <li>Use more specific types for form fields based on XEP-0122</li>
+            <li>Fix trimming of chats in overlayed view mode</li>
+            <li>OMEMO bugfix: Always create device session based on real JID.</li>
+            <li>If <tt>auto_register_muc_nickname</tt> is set, make sure to register when the user changes current nick.</li>
+            <li>Emit a <tt>change</tt> event when a configuration setting changes</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1322">#1322</a>: Display occupants’ avatars in the occupants list</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1419">#1419</a>: Clicking on avatar should show bigger version</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1426">#1426</a>: Don't fetch member list if not affiliated</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2423">#2423</a>: Could not find dependency "converse-controlbox" for plugin "converse-muc"</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2640">#2640</a>: Add <tt>beforeFetchLoginCredentials</tt> hook</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2647">#2647</a>: Singleton mode doesn't work</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2650">#2650</a>: Clicking on occupant in sidebar should add nickname to textarea</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2683">#2683</a>: Show error messages that don't refer to specific chat messages</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2704">#2704</a>: Send button doesn't work in a multi-user chat</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2715">#2715</a>: Singleton + fullscreen mode styling issue</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2718">#2718</a>: Message is not displayed if it contains an invalid URL</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2725">#2725</a>: Send new presence status to all connected MUCs</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2728">#2728</a>: Not sending headers with upload request</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2733">#2733</a>: OMEMO Messages received while client closed not decrypted</li>
+        </ul>
+        <h4>Configuration settings</h4>
+        <ul>
+            <li>3 New configuration settings:
+                <ul>
+                    <li><a href="https://conversejs.org/docs/html/configuration.html#render-media">render_media</a></li>
+                    <li><a href="https://conversejs.org/docs/html/configuration.html#allowed-audio-domains">allowed_audio_domains</a></li>
+                    <li><a href="https://conversejs.org/docs/html/configuration.html#allowed-video-domains">allowed_video_domains</a></li>
+                    <li><a href="https://conversejs.org/docs/html/configuration.html#allowed-image-domains">allowed_image_domains</a></li>
+                </ul>
+            </li>
+        </ul>
+        <p>Three config settings have been obsoleted:</p>
+        <ul>
+            <li>embed_audio</li>
+            <li>embed_video</li>
+            <li>show_images_inline</li>
+            <li>muc_show_ogp_unfurls</li>
+        </ul>
+        <h4>Breaking Changes</h4>
+        <p>Configuration settings are no longer available on the <tt>_converse</tt> object. Instead, use <tt>api.settings.get</tt> and <tt>api.settings.set</tt>.</p>
+    </li>
+</ul>
 
 <p><b>8.0.1 Release 1</b> -- November 4, 2021</p>
 <ul>
@@ -270,12 +321,12 @@
             <li><a href="https://github.com/conversejs/converse.js/issues/1793">#1793</a>: Send button doesn't appear in Firefox in 1:1 chats</li>
             <li><a href="https://github.com/conversejs/converse.js/issues/1822">#1822</a>: Don't log error if user has no bookmarks</li>
             <li><a href="https://github.com/conversejs/converse.js/issues/1820">#1820</a>: Set focus on jid field after controlbox is loaded</li>
-            <li><a href="https://github.com/conversejs/converse.js/issues/1823">#1823</a>: New config options 
-                <a href="https://conversejs.org/docs/html/configuration.html#muc-roomid-policy">muc_roomid_policy</a> and 
+            <li><a href="https://github.com/conversejs/converse.js/issues/1823">#1823</a>: New config options
+                <a href="https://conversejs.org/docs/html/configuration.html#muc-roomid-policy">muc_roomid_policy</a> and
                 <a href="https://conversejs.org/docs/html/configuration.html#muc-roomid-policy-hint">muc_roomid_policy_hint</a>
             </li>
             <li><a href="https://github.com/conversejs/converse.js/issues/1826">#1826</a>: A user can now add himself as a contact</li>
-            <li>Note: due to a bug in the webpack config, the webfonts directory isn't copied over from ./sass to ./dist when you build 
+            <li>Note: due to a bug in the webpack config, the webfonts directory isn't copied over from ./sass to ./dist when you build
                 your own distribution files. As a workaround, you can just copy it over manually.
             </li>
         </ul>
@@ -650,29 +701,29 @@
 <ul>
     <li><a href="https://issues.igniterealtime.org/browse/OF-1620">OF-1620: inVerse plugin: translations are not working.</a>
     <li><a href="https://issues.igniterealtime.org/browse/OF-1619">OF-1619: upgrade to converse.js 4.0.2</a>, which includes these changes:
-    <ul>
-        <li>M4A and WEBM files, when sent as XEP-0066 Out of Band Data, are now playable directly in chat</li>
-        <li>Updated French and Spanish translations</li>
-        <li>Two new languages supported, <a href="https://hosted.weblate.org/languages/hi/conversejs/">Hindi</a> and <a href="https://hosted.weblate.org/languages/ro/conversejs/">Romanian</a></li>
-        <li><a href="https://github.com/conversejs/converse.js/issues/1187">#1187</a> UTF-8 characters have the wrong encoding when using OMEMO</li>
-        <li><a href="https://github.com/conversejs/converse.js/issues/1189">#1189</a> Video playback failure</li>
-        <li><a href="https://github.com/conversejs/converse.js/issues/1220">#1220</a> Converse not working in Edge</li>
-        <li><a href="https://github.com/conversejs/converse.js/issues/1225">#1225</a> User profile sometimes not displayed when libsignal-protocol.js is used</li>
-    </ul>
+        <ul>
+            <li>M4A and WEBM files, when sent as XEP-0066 Out of Band Data, are now playable directly in chat</li>
+            <li>Updated French and Spanish translations</li>
+            <li>Two new languages supported, <a href="https://hosted.weblate.org/languages/hi/conversejs/">Hindi</a> and <a href="https://hosted.weblate.org/languages/ro/conversejs/">Romanian</a></li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1187">#1187</a> UTF-8 characters have the wrong encoding when using OMEMO</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1189">#1189</a> Video playback failure</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1220">#1220</a> Converse not working in Edge</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1225">#1225</a> User profile sometimes not displayed when libsignal-protocol.js is used</li>
+        </ul>
     </li>
 </ul>
 
 <p><b>4.0.1 Release 1</b> -- September 20th, 2018</p>
 <ul>
     <li><a href="https://issues.igniterealtime.org/browse/OF-1612">OF-1612: upgrade to converse.js 4.0.1</a>, which includes these changes:
-    <ul>
-        <li>Use <a href="https://compliance.conversations.im/">https://compliance.conversations.im</a> instead of (dead) <a href="https://xmpp.net/">https://xmpp.net</a></li>
-        <li>New config setting <a href="https://conversejs.org/docs/html/configuration.html#auto-register-muc-nickname">auto_register_muc_nickname</a></li>
-        <li>New config setting <a href="https://conversejs.org/docs/html/configuration.html#enable-muc-push">enable_muc_push</a></li>
-        <li><a href="https://github.com/conversejs/converse.js/issues/1182">#1182</a> MUC occupants without nick or JID created</li>
-        <li><a href="https://github.com/conversejs/converse.js/issues/1184">#1184</a> Notification error when message has no body</li>
-        <li><a href="https://github.com/conversejs/converse.js/issues/1201">#1201</a> Emoji picker appears when pressing enter</li>
-    </ul></li>
+        <ul>
+            <li>Use <a href="https://compliance.conversations.im/">https://compliance.conversations.im</a> instead of (dead) <a href="https://xmpp.net/">https://xmpp.net</a></li>
+            <li>New config setting <a href="https://conversejs.org/docs/html/configuration.html#auto-register-muc-nickname">auto_register_muc_nickname</a></li>
+            <li>New config setting <a href="https://conversejs.org/docs/html/configuration.html#enable-muc-push">enable_muc_push</a></li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1182">#1182</a> MUC occupants without nick or JID created</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1184">#1184</a> Notification error when message has no body</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1201">#1201</a> Emoji picker appears when pressing enter</li>
+        </ul></li>
 </ul>
 
 <p><b>4.0.0 Release 1</b> -- September 8th, 2018</p>
