@@ -24,6 +24,8 @@
 <%@ page import="org.jivesoftware.util.ParamUtils" %>
 <%@ page import="org.jivesoftware.util.StringUtils" %>
 <%@ page import="java.net.URLEncoder" %>
+<%@ page import="org.jivesoftware.openfire.spi.ConnectionManagerImpl" %>
+<%@ page import="org.jivesoftware.openfire.spi.ConnectionType" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <jsp:useBean id="webManager" class="org.jivesoftware.util.WebManager"  />
@@ -173,14 +175,14 @@
         <fmt:param value=""/>
     </fmt:message>
     <% if ( httpBindManager.isHttpBindActive() ) {
-        final String unsecuredAddress = "http://" + XMPPServer.getInstance().getServerInfo().getHostname() + ":" + httpBindManager.getHttpBindUnsecurePort() + "/inverse/";
+        final String unsecuredAddress = "http://" + XMPPServer.getInstance().getServerInfo().getHostname() + ":" + ((ConnectionManagerImpl)XMPPServer.getInstance().getConnectionManager()).getPort(ConnectionType.BOSH_C2S, false) + "/inverse/";
     %>
         <fmt:message key="config.page.link.unsecure">
             <fmt:param value="<%=unsecuredAddress%>"/>
         </fmt:message>
     <% } %>
     <% if ( httpBindManager.isHttpsBindActive() ) {
-        final String securedAddress = "https://" + XMPPServer.getInstance().getServerInfo().getHostname() + ":" + httpBindManager.getHttpBindSecurePort() + "/inverse/";
+        final String securedAddress = "https://" + XMPPServer.getInstance().getServerInfo().getHostname() + ":" + ((ConnectionManagerImpl)XMPPServer.getInstance().getConnectionManager()).getPort(ConnectionType.BOSH_C2S, true) + "/inverse/";
     %>
         <fmt:message key="config.page.link.secure">
             <fmt:param value="<%=securedAddress%>"/>
