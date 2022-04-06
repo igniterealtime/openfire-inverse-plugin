@@ -43,15 +43,37 @@
     inVerse Plugin Changelog
 </h1>
 
-<p><b>9.0.0 Release 2</b> -- (tbd)</p>
+<p><b>9.1.0 Release 1</b> -- (tbd)</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/44">#44</a>: Replace usage of deprecated Openfire API.
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/46">#46: Update to Converse 9.1.0</a>, which includes these changes:
+        <ul>
+            <li>Updated translations: af, ar, el, es, eu, fi, fr, gl, he, lt, ro, tr</li>
+            <li>Increased stanza timeout from 10 to 20 seconds</li>
+            <li>Replace various font icons with SVG icons</li>
+            <li>Fix bug where MUC config wasn't persisted across page loads</li>
+            <li>Add support for calling the IndexedDB <tt>getAll</tt> method to speed up fetching models from storage.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1761">#1761</a>: Add a new dark theme based on the <a href="https://draculatheme.com/">Dracula theme</a></li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2557">#2557</a>: Allow OMEMO encrypted messages to be edited</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2627">#2627</a>: Spoiler toggles only after switching to another tab and back</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2733">#2733</a>: Fix OMEMO race condition related to automatic reconnection and SMACKS</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2733">#2733</a>: Wait for decrypted/parsed message before queuing to UI</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2751">#2751</a>: Media not rendered when Converse runs in a browser extension</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2754">#2754</a>: Navigation keys doesn't work anymore into chat input message</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2781">#2781</a>: Flashing error when connecting to a room</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2786">#2786</a>: Fix webpack configuration not working on Windows OS</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2788">#2788</a>: <tt>TypeError</tt> when trying to use <tt>@converse/headless</tt></li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2789">#2789</a>: Implement new hook <tt>parseMessageForCommands</tt> for plugins to add custom commands</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2814">#2814</a>: Links are mangled on open/copy</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2822">#2822</a>: Singleton doesn't work in overlayed view mode</li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#show-connection-url-input">show_connection_url_input</a></li>
+        </ul>
+    </li>
 </ul>
 
 <p><b>9.0.0 Release 1</b> -- December 1, 2021</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/42">#42: Update to Converse 9.0.0</a>, which includes these changes:
-        <h4>For Converse 9.0.0:</h4>
         <h4>Issues and features</h4>
         <ul>
             <li>Compress new avatar images before uploading them</li>
