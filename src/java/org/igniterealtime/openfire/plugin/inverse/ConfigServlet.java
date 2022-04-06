@@ -196,6 +196,7 @@ public class ConfigServlet extends HttpServlet
         addArrayOfTextConfigOption(config, "send_chat_markers");
         addBooleanConfigOption(config, "show_chat_state_notifications");
         addBooleanConfigOption(config, "show_client_info");
+        addTextConfigOption(config, "show_connection_url_input");
         addBooleanConfigOption(config, "show_controlbox_by_default");
         addBooleanConfigOption(config, "show_desktop_notifications");
         addBooleanConfigOption(config, "show_message_avatar");
