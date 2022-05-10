@@ -89,7 +89,6 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "allow_logout");
         addBooleanConfigOption(config, "allow_message_corrections");
         addBooleanConfigOption(config, "allow_message_retraction");
-        addBooleanConfigOption(config, "allow_muc");
         addBooleanConfigOption(config, "allow_muc_invitations");
         addBooleanConfigOption(config, "allow_non_roster_messaging");
         addBooleanConfigOption(config, "allow_public_bookmarks");
