@@ -43,6 +43,23 @@
     inVerse Plugin Changelog
 </h1>
 
+<p><b>9.1.1 Release 1</b> -- May 10, 2022</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/49">#49: Update to Converse 9.1.1</a>, which includes these changes:
+        <ul>
+            <li>GIFs don't render inside unfurls and cause a TypeError</li>
+            <li>Improve how the <tt>muc_domain</tt> setting is populated via service discovery</li>
+            <li>Remove local (non-requesting) contacts not returned from a full roster response</li>
+            <li>Improve performance by looking up VCards via map instead of traversing an array</li>
+            <li>Fix infinite loop when receiving service discovery entities with a circular dependency</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1130">#1130</a>: Display the room’s vCard-temp avatar</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2746">#2746</a>: Always reply to all iqs, even those not understood</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2794">#2794</a>: Some display problems with mobile view mode</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2868">#2868</a>: Selected emoji is inserted into all open chat boxes</li>
+        </ul>
+        <p>Remove the very old and largely unused config option <tt>allow_muc</tt>. If you don't want MUC support, you can add <tt>'converse-muc'</tt> to the <tt>blacklisted_plugins</tt> setting.</p>
+    </li>
+</ul>
 <p><b>9.1.0 Release 1</b> -- April 6, 2022</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/44">#44</a>: Replace usage of deprecated Openfire API.
