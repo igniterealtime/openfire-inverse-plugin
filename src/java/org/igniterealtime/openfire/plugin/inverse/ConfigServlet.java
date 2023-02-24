@@ -82,7 +82,6 @@ public class ConfigServlet extends HttpServlet
         addArrayOfTextConfigOption(config, "allowed_video_domains");
         addBooleanConfigOption(config, "allow_adhoc_commands");
         addBooleanConfigOption(config, "allow_bookmarks");
-        addBooleanConfigOption(config, "allow_chat_pending_contacts");
         addBooleanConfigOption(config, "allow_contact_removal");
         addBooleanConfigOption(config, "allow_contact_requests");
         addBooleanConfigOption(config, "allow_dragresize");
@@ -134,7 +133,6 @@ public class ConfigServlet extends HttpServlet
         addTextConfigOption(config, "geouri_replacement");
         addBooleanConfigOption(config, "hide_muc_participants");
         addBooleanConfigOption(config, "hide_offline_users");
-        addBooleanConfigOption(config, "hide_open_bookmarks");
         // addTextConfigOption(config, "i18n"); // Already taken care of above.
         addIntegerConfigOption(config, "idle_presence_timeout");
         addTextConfigOption(config, "image_urls_regex");
@@ -151,7 +149,6 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "muc_mention_autocomplete_show_avatar");
         addTextConfigOption(config, "message_archiving");
         addIntegerConfigOption(config, "message_archiving_timeout");
-        addBooleanConfigOption(config, "message_carbons");
         addIntegerConfigOption(config, "message_limit");
         addJsonObjectConfigOption(config, "modtools_disable_assign");
         addArrayOfTextConfigOption(config, "modtools_disable_query");
@@ -188,6 +185,7 @@ public class ConfigServlet extends HttpServlet
         addTextConfigOption(config, "pruning_behavior");
         addArrayOfJsonObjectConfigOption(config, "push_app_servers");
         addBooleanConfigOption(config, "render_media");
+        addBooleanConfigOption(config, "reuse_scram_keys");
         addArrayOfTextConfigOption(config, "roomconfig_whitelist");
         addTextConfigOption(config, "root");
         addBooleanConfigOption(config, "roster_groups");
