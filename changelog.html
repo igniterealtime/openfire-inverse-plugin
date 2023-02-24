@@ -43,6 +43,63 @@
     inVerse Plugin Changelog
 </h1>
 
+<p><b>10.1.2 Release 1</b> -- (tbd)</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/51">#51: Update to Converse 10.1.2</a>, which includes these changes:
+        <h4>For Converse 10.1.2:</h4>
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1490">#1490</a>: Busy-loop when fetching registration form fails</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1556">#1556</a>: Can't switch to registration form after logout</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3137">#3137</a>: Various UI/UX bugfixes regarding the registration form</li>
+            <li>XEP-0437: Room Activity Indicators (RAI) optimizations</li>
+        </ul>
+        <h4>For Converse 10.1.1:</h4>
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1851">#1851</a>: Sort open groupchats alphabetically</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2240">#2240</a>: Ad-Hoc command result form not shown</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3128">#3128</a>: Second bookmarked room shows info of the first one</li>
+            <li>Bugfix. Uyghur translations weren't loading</li>
+        </ul>
+        <h4>For Converse 10.1.0:</h4>
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/326">#326</a>: Add the ability to reset your password</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2759">#2759</a>: Don't automatically log in again if the user manually logged out</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2816">#2816</a>: Chat highlight behaves odd</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2925">#2925</a>: File upload is not always enabled</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3001">#3001</a>: Add option to save SCRAM details and to use them to stay logged in upon reload</li>
+            <li>Add a "Add to Contacts" button in MUC occupant modals</li>
+            <li>Updated tranlsations and new language Uyghur</li>
+            <li>New config option <a href="https://conversejs.org/docs/html/configuration.html#reuse-scram-keys">reuse_scram_keys</a></li>
+        </ul>
+        <h4>For Converse 10.0.0:</h4>
+        <ul>
+            <li>Update to Strophe.js 1.6.0 which adds support for SCRAM-SHA-256 and SCRAM-SHA-512</li>
+            <li>Don't automatically convert OpenStreetMap URLs into <tt>geo:</tt> URIs in sent messages</li>
+            <li>Remove the <tt>allow_chat_pending_contacts</tt> config option.</li>
+            <li>Show roster contacts with <tt>subscription</tt> set to <tt>none</tt></li>
+            <li>Remove the <tt>converse-carbons</tt> plugin and make carbons part of the <tt>converse-chat</tt> plugin.</li>
+            <li>Remove the <tt>message_carbons</tt> configuration setting. Carbons are now always enabled.</li>
+            <li>Move the <tt>converse-oauth</tt> plugin to the <a href="https://github.com/conversejs/community-plugins">community-plugins</a></li>
+            <li>Don't apply message corrections when the MUC occupant-id doesn't match.</li>
+            <li>Update <tt>nick</tt> attribute on ChatRoom when user nickname changes</li>
+            <li>Restrict editing of MUC messages to ones with the same XEP-0421 occupant ID</li>
+            <li>Remove unfurls for links removed in a subsequent message correction</li>
+            <li>Bookmarks now appear in a modal and the <tt>hide_open_bookmarks</tt> config setting has been removed.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1004">#1004</a>: Stop using fonts to render icons and use SVG instead</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2797">#2797</a>: Weird unicode characters rendering outside of line-height</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2870">#2870</a>: Fix for multiple URLs to be linkified when sent together in chat and adds a test for this.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2879">#2879</a>: Quotes, lines not aligned to the first line</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2925">#2925</a>: Fix missing disco-items in browser storage.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2936">#2936</a>: Fix documentation about enable_smacks option, which is true by default.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2939">#2939</a>: Data forms with a field named "username" are not displayed</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3005">#3005</a>: Fix MUC messages with a fallback body not rendering.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3007">#3007</a>: Fix links becoming text when a message is edited</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3018">#3018</a>: Fix MUC icons not functioning.</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3028">#3028</a>: Fix encrypted media from Conversations/Quicksy not properly decrypting</li>
+        </ul>
+    </li>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/52">#52</a>: Upgrade dependency org.json:json from version 20180813 to 20220320</li>
+</ul>
 <p><b>9.1.1 Release 1</b> -- May 10, 2022</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/49">#49: Update to Converse 9.1.1</a>, which includes these changes:
