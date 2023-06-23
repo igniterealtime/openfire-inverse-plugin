@@ -204,6 +204,7 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "singleton");
         addIntegerConfigOption(config, "smacks_max_unacked_stanzas");
         //addTextConfigOption(config, "sounds_path"); // Already taken care of above.
+        addIntegerConfigOption(config, "stanza_timeout");
         addBooleanConfigOption(config, "sticky_controlbox");
         addBooleanConfigOption(config, "strict_plugin_dependencies");
         addBooleanConfigOption(config, "synchronize_availability");
