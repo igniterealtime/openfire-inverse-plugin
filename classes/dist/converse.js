@@ -27852,7 +27852,7 @@ __webpack_require__.g.Strophe.shims = strophe_shims_namespaceObject;
 ;// CONCATENATED MODULE: ./src/headless/shared/constants.js
 
 const BOSH_WAIT = 59;
-const VERSION_NAME = "v10.1.3";
+const VERSION_NAME = "v10.1.4";
 const STATUS_WEIGHTS = {
   offline: 6,
   unavailable: 5,
