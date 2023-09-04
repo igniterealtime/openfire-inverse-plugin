@@ -5423,6 +5423,250 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
 
 /***/ }),
 
+/***/ 2598:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.deinterlace = void 0;
+
+/**
+ * Deinterlace function from https://github.com/shachaf/jsgif
+ */
+var deinterlace = function deinterlace(pixels, width) {
+  var newPixels = new Array(pixels.length);
+  var rows = pixels.length / width;
+  var cpRow = function cpRow(toRow, fromRow) {
+    var fromPixels = pixels.slice(fromRow * width, (fromRow + 1) * width);
+    newPixels.splice.apply(newPixels, [toRow * width, width].concat(fromPixels));
+  }; // See appendix E.
+
+  var offsets = [0, 4, 2, 1];
+  var steps = [8, 8, 4, 2];
+  var fromRow = 0;
+  for (var pass = 0; pass < 4; pass++) {
+    for (var toRow = offsets[pass]; toRow < rows; toRow += steps[pass]) {
+      cpRow(toRow, fromRow);
+      fromRow++;
+    }
+  }
+  return newPixels;
+};
+exports.deinterlace = deinterlace;
+
+/***/ }),
+
+/***/ 5481:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+var __webpack_unused_export__;
+
+
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.zw = __webpack_unused_export__ = exports.vq = void 0;
+var _gif = _interopRequireDefault(__webpack_require__(4609));
+var _jsBinarySchemaParser = __webpack_require__(9588);
+var _uint = __webpack_require__(7656);
+var _deinterlace = __webpack_require__(2598);
+var _lzw = __webpack_require__(9826);
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : {
+    "default": obj
+  };
+}
+var parseGIF = function parseGIF(arrayBuffer) {
+  var byteData = new Uint8Array(arrayBuffer);
+  return (0, _jsBinarySchemaParser.parse)((0, _uint.buildStream)(byteData), _gif["default"]);
+};
+exports.vq = parseGIF;
+var generatePatch = function generatePatch(image) {
+  var totalPixels = image.pixels.length;
+  var patchData = new Uint8ClampedArray(totalPixels * 4);
+  for (var i = 0; i < totalPixels; i++) {
+    var pos = i * 4;
+    var colorIndex = image.pixels[i];
+    var color = image.colorTable[colorIndex] || [0, 0, 0];
+    patchData[pos] = color[0];
+    patchData[pos + 1] = color[1];
+    patchData[pos + 2] = color[2];
+    patchData[pos + 3] = colorIndex !== image.transparentIndex ? 255 : 0;
+  }
+  return patchData;
+};
+var decompressFrame = function decompressFrame(frame, gct, buildImagePatch) {
+  if (!frame.image) {
+    console.warn('gif frame does not have associated image.');
+    return;
+  }
+  var image = frame.image; // get the number of pixels
+
+  var totalPixels = image.descriptor.width * image.descriptor.height; // do lzw decompression
+
+  var pixels = (0, _lzw.lzw)(image.data.minCodeSize, image.data.blocks, totalPixels); // deal with interlacing if necessary
+
+  if (image.descriptor.lct.interlaced) {
+    pixels = (0, _deinterlace.deinterlace)(pixels, image.descriptor.width);
+  }
+  var resultImage = {
+    pixels: pixels,
+    dims: {
+      top: frame.image.descriptor.top,
+      left: frame.image.descriptor.left,
+      width: frame.image.descriptor.width,
+      height: frame.image.descriptor.height
+    }
+  }; // color table
+
+  if (image.descriptor.lct && image.descriptor.lct.exists) {
+    resultImage.colorTable = image.lct;
+  } else {
+    resultImage.colorTable = gct;
+  } // add per frame relevant gce information
+
+  if (frame.gce) {
+    resultImage.delay = (frame.gce.delay || 10) * 10; // convert to ms
+
+    resultImage.disposalType = frame.gce.extras.disposal; // transparency
+
+    if (frame.gce.extras.transparentColorGiven) {
+      resultImage.transparentIndex = frame.gce.transparentColorIndex;
+    }
+  } // create canvas usable imagedata if desired
+
+  if (buildImagePatch) {
+    resultImage.patch = generatePatch(resultImage);
+  }
+  return resultImage;
+};
+__webpack_unused_export__ = decompressFrame;
+var decompressFrames = function decompressFrames(parsedGif, buildImagePatches) {
+  return parsedGif.frames.filter(function (f) {
+    return f.image;
+  }).map(function (f) {
+    return decompressFrame(f, parsedGif.gct, buildImagePatches);
+  });
+};
+exports.zw = decompressFrames;
+
+/***/ }),
+
+/***/ 9826:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.lzw = void 0;
+
+/**
+ * javascript port of java LZW decompression
+ * Original java author url: https://gist.github.com/devunwired/4479231
+ */
+var lzw = function lzw(minCodeSize, data, pixelCount) {
+  var MAX_STACK_SIZE = 4096;
+  var nullCode = -1;
+  var npix = pixelCount;
+  var available, clear, code_mask, code_size, end_of_information, in_code, old_code, bits, code, i, datum, data_size, first, top, bi, pi;
+  var dstPixels = new Array(pixelCount);
+  var prefix = new Array(MAX_STACK_SIZE);
+  var suffix = new Array(MAX_STACK_SIZE);
+  var pixelStack = new Array(MAX_STACK_SIZE + 1); // Initialize GIF data stream decoder.
+
+  data_size = minCodeSize;
+  clear = 1 << data_size;
+  end_of_information = clear + 1;
+  available = clear + 2;
+  old_code = nullCode;
+  code_size = data_size + 1;
+  code_mask = (1 << code_size) - 1;
+  for (code = 0; code < clear; code++) {
+    prefix[code] = 0;
+    suffix[code] = code;
+  } // Decode GIF pixel stream.
+
+  var datum, bits, count, first, top, pi, bi;
+  datum = bits = count = first = top = pi = bi = 0;
+  for (i = 0; i < npix;) {
+    if (top === 0) {
+      if (bits < code_size) {
+        // get the next byte
+        datum += data[bi] << bits;
+        bits += 8;
+        bi++;
+        continue;
+      } // Get the next code.
+
+      code = datum & code_mask;
+      datum >>= code_size;
+      bits -= code_size; // Interpret the code
+
+      if (code > available || code == end_of_information) {
+        break;
+      }
+      if (code == clear) {
+        // Reset decoder.
+        code_size = data_size + 1;
+        code_mask = (1 << code_size) - 1;
+        available = clear + 2;
+        old_code = nullCode;
+        continue;
+      }
+      if (old_code == nullCode) {
+        pixelStack[top++] = suffix[code];
+        old_code = code;
+        first = code;
+        continue;
+      }
+      in_code = code;
+      if (code == available) {
+        pixelStack[top++] = first;
+        code = old_code;
+      }
+      while (code > clear) {
+        pixelStack[top++] = suffix[code];
+        code = prefix[code];
+      }
+      first = suffix[code] & 0xff;
+      pixelStack[top++] = first; // add a new string to the table, but only if space is available
+      // if not, just continue with current table until a clear code is found
+      // (deferred clear code implementation as per GIF spec)
+
+      if (available < MAX_STACK_SIZE) {
+        prefix[available] = old_code;
+        suffix[available] = first;
+        available++;
+        if ((available & code_mask) === 0 && available < MAX_STACK_SIZE) {
+          code_size++;
+          code_mask += available;
+        }
+      }
+      old_code = in_code;
+    } // Pop a pixel off the pixel stack.
+
+    top--;
+    dstPixels[pi++] = pixelStack[top];
+    i++;
+  }
+  for (i = pi; i < npix; i++) {
+    dstPixels[i] = 0; // clear missing pixels
+  }
+
+  return dstPixels;
+};
+exports.lzw = lzw;
+
+/***/ }),
+
 /***/ 2579:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
@@ -6916,6 +7160,389 @@ in order to offer easy upgrades -- jsgettext.berlios.de
     exports.Jed = Jed;
   } else {}
 })(this);
+
+/***/ }),
+
+/***/ 9588:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.loop = exports.conditional = exports.parse = void 0;
+var parse = function parse(stream, schema) {
+  var result = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  var parent = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : result;
+  if (Array.isArray(schema)) {
+    schema.forEach(function (partSchema) {
+      return parse(stream, partSchema, result, parent);
+    });
+  } else if (typeof schema === 'function') {
+    schema(stream, result, parent, parse);
+  } else {
+    var key = Object.keys(schema)[0];
+    if (Array.isArray(schema[key])) {
+      parent[key] = {};
+      parse(stream, schema[key], result, parent[key]);
+    } else {
+      parent[key] = schema[key](stream, result, parent, parse);
+    }
+  }
+  return result;
+};
+exports.parse = parse;
+var conditional = function conditional(schema, conditionFunc) {
+  return function (stream, result, parent, parse) {
+    if (conditionFunc(stream, result, parent)) {
+      parse(stream, schema, result, parent);
+    }
+  };
+};
+exports.conditional = conditional;
+var loop = function loop(schema, continueFunc) {
+  return function (stream, result, parent, parse) {
+    var arr = [];
+    var lastStreamPos = stream.pos;
+    while (continueFunc(stream, result, parent)) {
+      var newParent = {};
+      parse(stream, schema, result, newParent); // cases when whole file is parsed but no termination is there and stream position is not getting updated as well
+      // it falls into infinite recursion, null check to avoid the same
+
+      if (stream.pos === lastStreamPos) {
+        break;
+      }
+      lastStreamPos = stream.pos;
+      arr.push(newParent);
+    }
+    return arr;
+  };
+};
+exports.loop = loop;
+
+/***/ }),
+
+/***/ 7656:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports.readBits = exports.readArray = exports.readUnsigned = exports.readString = exports.peekBytes = exports.readBytes = exports.peekByte = exports.readByte = exports.buildStream = void 0;
+
+// Default stream and parsers for Uint8TypedArray data type
+var buildStream = function buildStream(uint8Data) {
+  return {
+    data: uint8Data,
+    pos: 0
+  };
+};
+exports.buildStream = buildStream;
+var readByte = function readByte() {
+  return function (stream) {
+    return stream.data[stream.pos++];
+  };
+};
+exports.readByte = readByte;
+var peekByte = function peekByte() {
+  var offset = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+  return function (stream) {
+    return stream.data[stream.pos + offset];
+  };
+};
+exports.peekByte = peekByte;
+var readBytes = function readBytes(length) {
+  return function (stream) {
+    return stream.data.subarray(stream.pos, stream.pos += length);
+  };
+};
+exports.readBytes = readBytes;
+var peekBytes = function peekBytes(length) {
+  return function (stream) {
+    return stream.data.subarray(stream.pos, stream.pos + length);
+  };
+};
+exports.peekBytes = peekBytes;
+var readString = function readString(length) {
+  return function (stream) {
+    return Array.from(readBytes(length)(stream)).map(function (value) {
+      return String.fromCharCode(value);
+    }).join('');
+  };
+};
+exports.readString = readString;
+var readUnsigned = function readUnsigned(littleEndian) {
+  return function (stream) {
+    var bytes = readBytes(2)(stream);
+    return littleEndian ? (bytes[1] << 8) + bytes[0] : (bytes[0] << 8) + bytes[1];
+  };
+};
+exports.readUnsigned = readUnsigned;
+var readArray = function readArray(byteSize, totalOrFunc) {
+  return function (stream, result, parent) {
+    var total = typeof totalOrFunc === 'function' ? totalOrFunc(stream, result, parent) : totalOrFunc;
+    var parser = readBytes(byteSize);
+    var arr = new Array(total);
+    for (var i = 0; i < total; i++) {
+      arr[i] = parser(stream);
+    }
+    return arr;
+  };
+};
+exports.readArray = readArray;
+var subBitsTotal = function subBitsTotal(bits, startIndex, length) {
+  var result = 0;
+  for (var i = 0; i < length; i++) {
+    result += bits[startIndex + i] && Math.pow(2, length - i - 1);
+  }
+  return result;
+};
+var readBits = function readBits(schema) {
+  return function (stream) {
+    var _byte = readByte()(stream); // convert the byte to bit array
+
+    var bits = new Array(8);
+    for (var i = 0; i < 8; i++) {
+      bits[7 - i] = !!(_byte & 1 << i);
+    } // convert the bit array to values based on the schema
+
+    return Object.keys(schema).reduce(function (res, key) {
+      var def = schema[key];
+      if (def.length) {
+        res[key] = subBitsTotal(bits, def.index, def.length);
+      } else {
+        res[key] = bits[def.index];
+      }
+      return res;
+    }, {});
+  };
+};
+exports.readBits = readBits;
+
+/***/ }),
+
+/***/ 4609:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+exports["default"] = void 0;
+var _ = __webpack_require__(9588);
+var _uint = __webpack_require__(7656);
+
+// a set of 0x00 terminated subblocks
+var subBlocksSchema = {
+  blocks: function blocks(stream) {
+    var terminator = 0x00;
+    var chunks = [];
+    var streamSize = stream.data.length;
+    var total = 0;
+    for (var size = (0, _uint.readByte)()(stream); size !== terminator; size = (0, _uint.readByte)()(stream)) {
+      // size becomes undefined for some case when file is corrupted and  terminator is not proper 
+      // null check to avoid recursion
+      if (!size) break; // catch corrupted files with no terminator
+
+      if (stream.pos + size >= streamSize) {
+        var availableSize = streamSize - stream.pos;
+        chunks.push((0, _uint.readBytes)(availableSize)(stream));
+        total += availableSize;
+        break;
+      }
+      chunks.push((0, _uint.readBytes)(size)(stream));
+      total += size;
+    }
+    var result = new Uint8Array(total);
+    var offset = 0;
+    for (var i = 0; i < chunks.length; i++) {
+      result.set(chunks[i], offset);
+      offset += chunks[i].length;
+    }
+    return result;
+  }
+}; // global control extension
+
+var gceSchema = (0, _.conditional)({
+  gce: [{
+    codes: (0, _uint.readBytes)(2)
+  }, {
+    byteSize: (0, _uint.readByte)()
+  }, {
+    extras: (0, _uint.readBits)({
+      future: {
+        index: 0,
+        length: 3
+      },
+      disposal: {
+        index: 3,
+        length: 3
+      },
+      userInput: {
+        index: 6
+      },
+      transparentColorGiven: {
+        index: 7
+      }
+    })
+  }, {
+    delay: (0, _uint.readUnsigned)(true)
+  }, {
+    transparentColorIndex: (0, _uint.readByte)()
+  }, {
+    terminator: (0, _uint.readByte)()
+  }]
+}, function (stream) {
+  var codes = (0, _uint.peekBytes)(2)(stream);
+  return codes[0] === 0x21 && codes[1] === 0xf9;
+}); // image pipeline block
+
+var imageSchema = (0, _.conditional)({
+  image: [{
+    code: (0, _uint.readByte)()
+  }, {
+    descriptor: [{
+      left: (0, _uint.readUnsigned)(true)
+    }, {
+      top: (0, _uint.readUnsigned)(true)
+    }, {
+      width: (0, _uint.readUnsigned)(true)
+    }, {
+      height: (0, _uint.readUnsigned)(true)
+    }, {
+      lct: (0, _uint.readBits)({
+        exists: {
+          index: 0
+        },
+        interlaced: {
+          index: 1
+        },
+        sort: {
+          index: 2
+        },
+        future: {
+          index: 3,
+          length: 2
+        },
+        size: {
+          index: 5,
+          length: 3
+        }
+      })
+    }]
+  }, (0, _.conditional)({
+    lct: (0, _uint.readArray)(3, function (stream, result, parent) {
+      return Math.pow(2, parent.descriptor.lct.size + 1);
+    })
+  }, function (stream, result, parent) {
+    return parent.descriptor.lct.exists;
+  }), {
+    data: [{
+      minCodeSize: (0, _uint.readByte)()
+    }, subBlocksSchema]
+  }]
+}, function (stream) {
+  return (0, _uint.peekByte)()(stream) === 0x2c;
+}); // plain text block
+
+var textSchema = (0, _.conditional)({
+  text: [{
+    codes: (0, _uint.readBytes)(2)
+  }, {
+    blockSize: (0, _uint.readByte)()
+  }, {
+    preData: function preData(stream, result, parent) {
+      return (0, _uint.readBytes)(parent.text.blockSize)(stream);
+    }
+  }, subBlocksSchema]
+}, function (stream) {
+  var codes = (0, _uint.peekBytes)(2)(stream);
+  return codes[0] === 0x21 && codes[1] === 0x01;
+}); // application block
+
+var applicationSchema = (0, _.conditional)({
+  application: [{
+    codes: (0, _uint.readBytes)(2)
+  }, {
+    blockSize: (0, _uint.readByte)()
+  }, {
+    id: function id(stream, result, parent) {
+      return (0, _uint.readString)(parent.blockSize)(stream);
+    }
+  }, subBlocksSchema]
+}, function (stream) {
+  var codes = (0, _uint.peekBytes)(2)(stream);
+  return codes[0] === 0x21 && codes[1] === 0xff;
+}); // comment block
+
+var commentSchema = (0, _.conditional)({
+  comment: [{
+    codes: (0, _uint.readBytes)(2)
+  }, subBlocksSchema]
+}, function (stream) {
+  var codes = (0, _uint.peekBytes)(2)(stream);
+  return codes[0] === 0x21 && codes[1] === 0xfe;
+});
+var schema = [{
+  header: [{
+    signature: (0, _uint.readString)(3)
+  }, {
+    version: (0, _uint.readString)(3)
+  }]
+}, {
+  lsd: [{
+    width: (0, _uint.readUnsigned)(true)
+  }, {
+    height: (0, _uint.readUnsigned)(true)
+  }, {
+    gct: (0, _uint.readBits)({
+      exists: {
+        index: 0
+      },
+      resolution: {
+        index: 1,
+        length: 3
+      },
+      sort: {
+        index: 4
+      },
+      size: {
+        index: 5,
+        length: 3
+      }
+    })
+  }, {
+    backgroundColorIndex: (0, _uint.readByte)()
+  }, {
+    pixelAspectRatio: (0, _uint.readByte)()
+  }]
+}, (0, _.conditional)({
+  gct: (0, _uint.readArray)(3, function (stream, result) {
+    return Math.pow(2, result.lsd.gct.size + 1);
+  })
+}, function (stream, result) {
+  return result.lsd.gct.exists;
+}),
+// content frames
+{
+  frames: (0, _.loop)([gceSchema, applicationSchema, commentSchema, imageSchema, textSchema], function (stream) {
+    var nextCode = (0, _uint.peekByte)()(stream); // rather than check for a terminator, we should check for the existence
+    // of an ext or image block to avoid infinite loops
+    //var terminator = 0x3B;
+    //return nextCode !== terminator;
+
+    return nextCode === 0x21 || nextCode === 0x2c;
+  })
+}];
+var _default = schema;
+exports["default"] = _default;
 
 /***/ }),
 
@@ -16108,7 +16735,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/punycode v1.4.0 by @mathia
 
 /***/ }),
 
-/***/ 7806:
+/***/ 3263:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -27852,7 +28479,7 @@ __webpack_require__.g.Strophe.shims = strophe_shims_namespaceObject;
 ;// CONCATENATED MODULE: ./src/headless/shared/constants.js
 
 const BOSH_WAIT = 59;
-const VERSION_NAME = "v10.1.4";
+const VERSION_NAME = "v10.1.6";
 const STATUS_WEIGHTS = {
   offline: 6,
   unavailable: 5,
@@ -31839,7 +32466,7 @@ function stx(strings) {
  * The utils object
  * @namespace u
  */
-const core_u = {};
+const u = {};
 function isElement(el) {
   return el instanceof Element || el instanceof HTMLDocument;
 }
@@ -31913,19 +32540,19 @@ function prefixMentions(message) {
   });
   return text;
 }
-core_u.isTagEqual = function (stanza, name) {
+u.isTagEqual = function (stanza, name) {
   if (stanza.tree?.()) {
-    return core_u.isTagEqual(stanza.tree(), name);
+    return u.isTagEqual(stanza.tree(), name);
   } else if (!(stanza instanceof Element)) {
     throw Error("isTagEqual called with value which isn't " + "an element or Strophe.Builder instance");
   } else {
     return Strophe.isTagEqual(stanza, name);
   }
 };
-core_u.getJIDFromURI = function (jid) {
+u.getJIDFromURI = function (jid) {
   return jid.startsWith('xmpp:') && jid.endsWith('?join') ? jid.replace(/^xmpp:/, '').replace(/\?join$/, '') : jid;
 };
-core_u.getLongestSubstring = function (string, candidates) {
+u.getLongestSubstring = function (string, candidates) {
   function reducer(accumulator, current_value) {
     if (string.startsWith(current_value)) {
       if (current_value.length > accumulator.length) {
@@ -31945,22 +32572,22 @@ function isValidJID(jid) {
   }
   return false;
 }
-core_u.isValidMUCJID = function (jid) {
+u.isValidMUCJID = function (jid) {
   return !jid.startsWith('@') && !jid.endsWith('@');
 };
-core_u.isSameBareJID = function (jid1, jid2) {
+u.isSameBareJID = function (jid1, jid2) {
   if (typeof jid1 !== 'string' || typeof jid2 !== 'string') {
     return false;
   }
   return Strophe.getBareJidFromJid(jid1).toLowerCase() === Strophe.getBareJidFromJid(jid2).toLowerCase();
 };
-core_u.isSameDomain = function (jid1, jid2) {
+u.isSameDomain = function (jid1, jid2) {
   if (typeof jid1 !== 'string' || typeof jid2 !== 'string') {
     return false;
   }
   return Strophe.getDomainFromJid(jid1).toLowerCase() === Strophe.getDomainFromJid(jid2).toLowerCase();
 };
-core_u.isNewMessage = function (message) {
+u.isNewMessage = function (message) {
   /* Given a stanza, determine whether it's a new
    * message, i.e. not a MAM archived one.
    */
@@ -31971,33 +32598,33 @@ core_u.isNewMessage = function (message) {
   }
   return !(message['is_delayed'] && message['is_archived']);
 };
-core_u.shouldCreateMessage = function (attrs) {
+u.shouldCreateMessage = function (attrs) {
   return attrs['retracted'] ||
   // Retraction received *before* the message
   !isEmptyMessage(attrs);
 };
-core_u.shouldCreateGroupchatMessage = function (attrs) {
-  return attrs.nick && (core_u.shouldCreateMessage(attrs) || attrs.is_tombstone);
+u.shouldCreateGroupchatMessage = function (attrs) {
+  return attrs.nick && (u.shouldCreateMessage(attrs) || attrs.is_tombstone);
 };
-core_u.isChatRoom = function (model) {
+u.isChatRoom = function (model) {
   return model && model.get('type') === 'chatroom';
 };
 function isErrorObject(o) {
   return o instanceof Error;
 }
-core_u.isErrorStanza = function (stanza) {
+u.isErrorStanza = function (stanza) {
   if (!isElement(stanza)) {
     return false;
   }
   return stanza.getAttribute('type') === 'error';
 };
-core_u.isForbiddenError = function (stanza) {
+u.isForbiddenError = function (stanza) {
   if (!isElement(stanza)) {
     return false;
   }
   return sizzle_default()(`error[type="auth"] forbidden[xmlns="${Strophe.NS.STANZAS}"]`, stanza).length > 0;
 };
-core_u.isServiceUnavailableError = function (stanza) {
+u.isServiceUnavailableError = function (stanza) {
   if (!isElement(stanza)) {
     return false;
   }
@@ -32021,7 +32648,7 @@ function core_merge(dst, src) {
     }
   }
 }
-core_u.getOuterWidth = function (el) {
+u.getOuterWidth = function (el) {
   let include_margin = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
   let width = el.offsetWidth;
   if (!include_margin) {
@@ -32040,7 +32667,7 @@ core_u.getOuterWidth = function (el) {
  * @method u#stringToElement
  * @param { String } s - The HTML string
  */
-core_u.stringToElement = function (s) {
+u.stringToElement = function (s) {
   var div = document.createElement('div');
   div.innerHTML = s;
   return div.firstElementChild;
@@ -32053,7 +32680,7 @@ core_u.stringToElement = function (s) {
  * @param { Element } el - The DOM element
  * @param { String } selector - The selector
  */
-core_u.matchesSelector = function (el, selector) {
+u.matchesSelector = function (el, selector) {
   const match = el.matches || el.matchesSelector || el.msMatchesSelector || el.mozMatchesSelector || el.webkitMatchesSelector || el.oMatchesSelector;
   return match ? match.call(el, selector) : false;
 };
@@ -32065,10 +32692,10 @@ core_u.matchesSelector = function (el, selector) {
  * @param { Element } el - the DOM element
  * @param { String } selector - the selector they should be matched against
  */
-core_u.queryChildren = function (el, selector) {
-  return Array.from(el.childNodes).filter(el => core_u.matchesSelector(el, selector));
+u.queryChildren = function (el, selector) {
+  return Array.from(el.childNodes).filter(el => u.matchesSelector(el, selector));
 };
-core_u.contains = function (attr, query) {
+u.contains = function (attr, query) {
   const checker = (item, key) => item.get(key).toLowerCase().includes(query.toLowerCase());
   return function (item) {
     if (typeof attr === 'object') {
@@ -32080,28 +32707,28 @@ core_u.contains = function (attr, query) {
     }
   };
 };
-core_u.isOfType = function (type, item) {
+u.isOfType = function (type, item) {
   return item.get('type') == type;
 };
-core_u.isInstance = function (type, item) {
+u.isInstance = function (type, item) {
   return item instanceof type;
 };
-core_u.getAttribute = function (key, item) {
+u.getAttribute = function (key, item) {
   return item.get(key);
 };
-core_u.contains.not = function (attr, query) {
+u.contains.not = function (attr, query) {
   return function (item) {
-    return !core_u.contains(attr, query)(item);
+    return !u.contains(attr, query)(item);
   };
 };
-core_u.rootContains = function (root, el) {
+u.rootContains = function (root, el) {
   // The document element does not have the contains method in IE.
   if (root === document && !root.contains) {
     return document.head.contains(el) || document.body.contains(el);
   }
   return root.contains ? root.contains(el) : window.HTMLElement.prototype.contains.call(root, el);
 };
-core_u.createFragmentFromText = function (markup) {
+u.createFragmentFromText = function (markup) {
   /* Returns a DocumentFragment containing DOM nodes based on the
    * passed-in markup text.
    */
@@ -32118,12 +32745,12 @@ core_u.createFragmentFromText = function (markup) {
   }
   return frag;
 };
-core_u.isPersistableModel = function (model) {
+u.isPersistableModel = function (model) {
   return model.collection && model.collection.browserStorage;
 };
-core_u.getResolveablePromise = getOpenPromise;
-core_u.getOpenPromise = getOpenPromise;
-core_u.interpolate = function (string, o) {
+u.getResolveablePromise = getOpenPromise;
+u.getOpenPromise = getOpenPromise;
+u.interpolate = function (string, o) {
   return string.replace(/{{{([^{}]*)}}}/g, (a, b) => {
     var r = o[b];
     return typeof r === 'string' || typeof r === 'number' ? r : a;
@@ -32139,7 +32766,7 @@ core_u.interpolate = function (string, o) {
  * @param { Function } callback: The function to call once all events have
  *    been triggered.
  */
-core_u.onMultipleEvents = function () {
+u.onMultipleEvents = function () {
   let events = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
   let callback = arguments.length > 1 ? arguments[1] : undefined;
   let triggered = [];
@@ -32153,14 +32780,14 @@ core_u.onMultipleEvents = function () {
   events.forEach(e => e.object.on(e.event, handler));
 };
 function safeSave(model, attributes, options) {
-  if (core_u.isPersistableModel(model)) {
+  if (u.isPersistableModel(model)) {
     model.save(attributes, options);
   } else {
     model.set(attributes, options);
   }
 }
-core_u.safeSave = safeSave;
-core_u.siblingIndex = function (el) {
+u.safeSave = safeSave;
+u.siblingIndex = function (el) {
   /* eslint-disable no-cond-assign */
   for (var i = 0; el = el.previousElementSibling; i++);
   return i;
@@ -32176,7 +32803,7 @@ core_u.siblingIndex = function (el) {
  *  differentiate between words.
  * @private
  */
-core_u.getCurrentWord = function (input, index, delineator) {
+u.getCurrentWord = function (input, index, delineator) {
   if (!index) {
     index = input.selectionEnd || undefined;
   }
@@ -32186,17 +32813,17 @@ core_u.getCurrentWord = function (input, index, delineator) {
   }
   return word;
 };
-core_u.isMentionBoundary = s => s !== '@' && RegExp(`(\\p{Z}|\\p{P})`, 'u').test(s);
-core_u.replaceCurrentWord = function (input, new_value) {
+u.isMentionBoundary = s => s !== '@' && RegExp(`(\\p{Z}|\\p{P})`, 'u').test(s);
+u.replaceCurrentWord = function (input, new_value) {
   const caret = input.selectionEnd || undefined;
   const current_word = lodash_es_last(input.value.slice(0, caret).split(/\s/));
   const value = input.value;
-  const mention_boundary = core_u.isMentionBoundary(current_word[0]) ? current_word[0] : '';
+  const mention_boundary = u.isMentionBoundary(current_word[0]) ? current_word[0] : '';
   input.value = value.slice(0, caret - current_word.length) + mention_boundary + `${new_value} ` + value.slice(caret);
   const selection_end = caret - current_word.length + new_value.length + 1;
   input.selectionEnd = mention_boundary ? selection_end + 1 : selection_end;
 };
-core_u.triggerEvent = function (el, name) {
+u.triggerEvent = function (el, name) {
   let type = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "Event";
   let bubbles = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
   let cancelable = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
@@ -32204,7 +32831,7 @@ core_u.triggerEvent = function (el, name) {
   evt.initEvent(name, bubbles, cancelable);
   el.dispatchEvent(evt);
 };
-core_u.getSelectValues = function (select) {
+u.getSelectValues = function (select) {
   const result = [];
   const options = select && select.options;
   for (var i = 0, iLen = options.length; i < iLen; i++) {
@@ -32218,7 +32845,7 @@ core_u.getSelectValues = function (select) {
 function getRandomInt(max) {
   return Math.random() * max | 0;
 }
-core_u.placeCaretAtEnd = function (textarea) {
+u.placeCaretAtEnd = function (textarea) {
   if (textarea !== document.activeElement) {
     textarea.focus();
   }
@@ -32390,7 +33017,7 @@ function saveWindowState(ev) {
   saveWindowState,
   stx: stx,
   toStanza: toStanza
-}, core_u));
+}, u));
 ;// CONCATENATED MODULE: ./src/headless/log.js
 
 const LEVELS = {
@@ -50074,45 +50701,43 @@ var jed_default = /*#__PURE__*/__webpack_require__.n(jed);
 const {
   dayjs: i18n_dayjs
 } = public_converse.env;
-function detectLocale(library_check) {
-  /* Determine which locale is supported by the user's system as well
-   * as by the relevant library (e.g. converse.js or dayjs).
-   * @param { Function } library_check - Returns a boolean indicating whether
-   *   the locale is supported.
-   */
-  let locale;
-  if (window.navigator.userLanguage) {
-    locale = isLocaleAvailable(window.navigator.userLanguage, library_check);
-  }
-  if (window.navigator.languages && !locale) {
-    for (let i = 0; i < window.navigator.languages.length && !locale; i++) {
-      locale = isLocaleAvailable(window.navigator.languages[i], library_check);
-    }
-  }
-  if (window.navigator.browserLanguage && !locale) {
-    locale = isLocaleAvailable(window.navigator.browserLanguage, library_check);
-  }
-  if (window.navigator.language && !locale) {
-    locale = isLocaleAvailable(window.navigator.language, library_check);
-  }
-  if (window.navigator.systemLanguage && !locale) {
-    locale = isLocaleAvailable(window.navigator.systemLanguage, library_check);
-  }
-  return locale || 'en';
-}
+let jed_instance;
+
+/**
+ * @private
+ * @param { string } locale
+ * @param { string[] } supported_locales
+ */
 function isConverseLocale(locale, supported_locales) {
   return typeof locale === 'string' && supported_locales.includes(locale);
 }
+
+/**
+ * Determines which locale is supported by the user's system as well
+ * as by the relevant library (e.g. converse.js or dayjs).
+ * @private
+ * @param { string } preferred_locale
+ * @param { Function } isSupportedByLibrary - Returns a boolean indicating whether
+ *   the locale is supported.
+ * @returns { string }
+ */
 function getLocale(preferred_locale, isSupportedByLibrary) {
-  if (typeof preferred_locale === 'string') {
-    if (preferred_locale === 'en' || isSupportedByLibrary(preferred_locale)) {
-      return preferred_locale;
-    }
+  if (preferred_locale === 'en' || isSupportedByLibrary(preferred_locale)) {
+    return preferred_locale;
   }
-  return detectLocale(isSupportedByLibrary) || 'en';
+  const {
+    languages
+  } = window.navigator;
+  let locale;
+  for (let i = 0; i < languages.length && !locale; i++) {
+    locale = isLocaleAvailable(languages[i], isSupportedByLibrary);
+  }
+  return locale || 'en';
 }
 
-/* Check whether the locale or sub locale (e.g. en-US, en) is supported.
+/**
+ * Check whether the locale or sub locale (e.g. en-US, en) is supported.
+ * @private
  * @param { String } locale - The locale to check for
  * @param { Function } available - Returns a boolean indicating whether the locale is supported
  */
@@ -50120,29 +50745,35 @@ function isLocaleAvailable(locale, available) {
   if (available(locale)) {
     return locale;
   } else {
-    var sublocale = locale.split("-")[0];
+    var sublocale = locale.split('-')[0];
     if (sublocale !== locale && available(sublocale)) {
       return sublocale;
     }
   }
 }
+
+/**
+ * Given a locale, return the closest locale returned by dayJS
+ * @private
+ * @param { string } locale
+ */
 function getDayJSLocale(locale) {
   const dayjs_locale = locale.toLowerCase().replace('_', '-');
   return dayjs_locale === 'ug' ? 'ug-cn' : dayjs_locale;
 }
 
-/* Fetch the translations for the given local at the given URL.
+/**
+ * Fetch the translations for the given local at the given URL.
  * @private
- * @method i18n#fetchTranslations
- * @param { _converse }
+ * @returns { Jed }
  */
-async function fetchTranslations(_converse) {
+async function fetchTranslations() {
   const {
     api,
     locale
-  } = _converse;
+  } = shared_converse;
   const dayjs_locale = getDayJSLocale(locale);
-  if (!isConverseLocale(locale, api.settings.get("locales")) || locale === 'en') {
+  if (!isConverseLocale(locale, api.settings.get('locales')) || locale === 'en') {
     return;
   }
   const {
@@ -50150,17 +50781,23 @@ async function fetchTranslations(_converse) {
   } = await __webpack_require__(6404)(`./${locale}/LC_MESSAGES/converse.po`);
   await __webpack_require__(3683)(`./${dayjs_locale}.js`);
   i18n_dayjs.locale(getLocale(dayjs_locale, l => i18n_dayjs.locale(l)));
-  jed_instance = new (jed_default())(data);
+  return new (jed_default())(data);
 }
-let jed_instance;
 
 /**
  * @namespace i18n
  */
 Object.assign(i18n, {
+  /**
+   * @param { string } preferred_locale
+   * @param { string[] } available_locales
+   */
   getLocale(preferred_locale, available_locales) {
     return getLocale(preferred_locale, preferred => isConverseLocale(preferred, available_locales));
   },
+  /**
+   * @param { string } str - The string to be translated
+   */
   translate(str) {
     if (!jed_instance) {
       return jed_default().sprintf.apply((jed_default()), arguments);
@@ -50178,8 +50815,8 @@ Object.assign(i18n, {
     } else {
       try {
         const preferred_locale = shared_api.settings.get('i18n');
-        shared_converse.locale = i18n.getLocale(preferred_locale, shared_api.settings.get("locales"));
-        await fetchTranslations(shared_converse);
+        shared_converse.locale = i18n.getLocale(preferred_locale, shared_api.settings.get('locales'));
+        jed_instance = await fetchTranslations();
       } catch (e) {
         log.fatal(e.message);
         shared_converse.locale = 'en';
@@ -50912,12 +51549,19 @@ utils_core.getLastChildElement = function (el) {
   }
   return last_el;
 };
-utils_core.hasClass = function (className, el) {
-  return el instanceof Element && el.classList.contains(className);
-};
 utils_core.toggleClass = function (className, el) {
-  utils_core.hasClass(className, el) ? html_removeClass(className, el) : addClass(className, el);
+  utils_core.hasClass(className, el) ? removeClass(className, el) : addClass(className, el);
 };
+
+/**
+ * Has an element a class?
+ * @method u#hasClass
+ * @param { string } className
+ * @param { Element } el
+ */
+function hasClass(className, el) {
+  return el instanceof Element && el.classList.contains(className);
+}
 
 /**
  * Add a class to an element.
@@ -50936,7 +51580,7 @@ function addClass(className, el) {
  * @param { string } className
  * @param { Element } el
  */
-function html_removeClass(className, el) {
+function removeClass(className, el) {
   el instanceof Element && el.classList.remove(className);
   return el;
 }
@@ -50956,8 +51600,8 @@ utils_core.getElementFromTemplateResult = function (tr) {
   return div.firstElementChild;
 };
 utils_core.showElement = el => {
-  html_removeClass('collapsed', el);
-  html_removeClass('hidden', el);
+  removeClass('collapsed', el);
+  removeClass('hidden', el);
 };
 utils_core.hideElement = function (el) {
   el instanceof Element && el.classList.add('hidden');
@@ -51275,11 +51919,12 @@ utils_core.xForm2TemplateResult = function (field, stanza) {
   }
 };
 Object.assign(utils_core, {
+  hasClass,
   addClass,
   ancestor,
   getOOBURLMarkup,
   isEqualNode,
-  removeClass: html_removeClass,
+  removeClass,
   removeElement,
   slideIn,
   slideOut
@@ -51354,7 +51999,7 @@ const BaseModal = View.extend({
     this.el.addEventListener('hide.bs.modal', () => this.onHide(), false);
   },
   onHide() {
-    u.removeClass('selected', this.trigger_el);
+    removeClass('selected', this.trigger_el);
     !this.persistent && shared_api.modal.remove(this);
   },
   insertIntoDOM() {
@@ -55355,356 +56000,16 @@ class ImageModal extends modal_modal {
 shared_api.elements.define('converse-image-modal', ImageModal);
 ;// CONCATENATED MODULE: ./node_modules/lit/directive.js
 
-;// CONCATENATED MODULE: ./src/shared/gif/stream.js
-class Stream {
-  constructor(data) {
-    if (data.toString().indexOf('ArrayBuffer') > 0) {
-      data = new Uint8Array(data);
-    }
-    this.data = data;
-    this.len = this.data.length;
-    this.pos = 0;
-  }
-  readByte() {
-    if (this.pos >= this.data.length) {
-      throw new Error('Attempted to read past end of stream.');
-    }
-    if (this.data instanceof Uint8Array) return this.data[this.pos++];else return this.data.charCodeAt(this.pos++) & 0xFF;
-  }
-  readBytes(n) {
-    const bytes = [];
-    for (let i = 0; i < n; i++) {
-      bytes.push(this.readByte());
-    }
-    return bytes;
-  }
-  read(n) {
-    let s = '';
-    for (let i = 0; i < n; i++) {
-      s += String.fromCharCode(this.readByte());
-    }
-    return s;
-  }
-  readUnsigned() {
-    // Little-endian.
-    const a = this.readBytes(2);
-    return (a[1] << 8) + a[0];
-  }
-}
-;// CONCATENATED MODULE: ./src/shared/gif/utils.js
-/**
- * @copyright Shachaf Ben-Kiki and the Converse.js contributors
- * @description
- *  Started as a fork of Shachaf Ben-Kiki's jsgif library
- *  https://github.com/shachaf/jsgif
- * @license MIT License
- */
-
-function bitsToNum(ba) {
-  return ba.reduce(function (s, n) {
-    return s * 2 + n;
-  }, 0);
-}
-function byteToBitArr(bite) {
-  const a = [];
-  for (let i = 7; i >= 0; i--) {
-    a.push(!!(bite & 1 << i));
-  }
-  return a;
-}
-function lzwDecode(minCodeSize, data) {
-  // TODO: Now that the GIF parser is a bit different, maybe this should get an array of bytes instead of a String?
-  let pos = 0; // Maybe this streaming thing should be merged with the Stream?
-  function readCode(size) {
-    let code = 0;
-    for (let i = 0; i < size; i++) {
-      if (data.charCodeAt(pos >> 3) & 1 << (pos & 7)) {
-        code |= 1 << i;
-      }
-      pos++;
-    }
-    return code;
-  }
-  const output = [];
-  const clearCode = 1 << minCodeSize;
-  const eoiCode = clearCode + 1;
-  let codeSize = minCodeSize + 1;
-  let dict = [];
-  const clear = function () {
-    dict = [];
-    codeSize = minCodeSize + 1;
-    for (let i = 0; i < clearCode; i++) {
-      dict[i] = [i];
-    }
-    dict[clearCode] = [];
-    dict[eoiCode] = null;
-  };
-  let code = clearCode;
-  let last;
-  clear();
-  while (true) {
-    // eslint-disable-line no-constant-condition
-    last = code;
-    code = readCode(codeSize);
-    if (code === clearCode) {
-      clear();
-      continue;
-    }
-    if (code === eoiCode) break;
-    if (code < dict.length) {
-      if (last !== clearCode) {
-        dict.push(dict[last].concat(dict[code][0]));
-      }
-    } else {
-      if (code !== dict.length) throw new Error('Invalid LZW code.');
-      dict.push(dict[last].concat(dict[last][0]));
-    }
-    output.push.apply(output, dict[code]);
-    if (dict.length === 1 << codeSize && codeSize < 12) {
-      // If we're at the last code and codeSize is 12, the next code will be a clearCode, and it'll be 12 bits long.
-      codeSize++;
-    }
-  }
-  // I don't know if this is technically an error, but some GIFs do it.
-  //if (Math.ceil(pos / 8) !== data.length) throw new Error('Extraneous LZW bytes.');
-  return output;
-}
-function readSubBlocks(st) {
-  let size, data;
-  data = '';
-  do {
-    size = st.readByte();
-    data += st.read(size);
-  } while (size !== 0);
-  return data;
-}
-
-/**
- * Parses GIF image color table information
- * @param { Stream } st
- * @param { Number } entries
- */
-function parseCT(st, entries) {
-  // Each entry is 3 bytes, for RGB.
-  const ct = [];
-  for (let i = 0; i < entries; i++) {
-    ct.push(st.readBytes(3));
-  }
-  return ct;
-}
-
-/**
- * Parses GIF image information
- * @param { Stream } st
- * @param { ByteStream } img
- * @param { Function } [callback]
- */
-function parseImg(st, img, callback) {
-  function deinterlace(pixels, width) {
-    // Of course this defeats the purpose of interlacing. And it's *probably*
-    // the least efficient way it's ever been implemented. But nevertheless...
-    const newPixels = new Array(pixels.length);
-    const rows = pixels.length / width;
-    function cpRow(toRow, fromRow) {
-      const fromPixels = pixels.slice(fromRow * width, (fromRow + 1) * width);
-      newPixels.splice.apply(newPixels, [toRow * width, width].concat(fromPixels));
-    }
-
-    // See appendix E.
-    const offsets = [0, 4, 2, 1];
-    const steps = [8, 8, 4, 2];
-    let fromRow = 0;
-    for (let pass = 0; pass < 4; pass++) {
-      for (let toRow = offsets[pass]; toRow < rows; toRow += steps[pass]) {
-        cpRow(toRow, fromRow);
-        fromRow++;
-      }
-    }
-    return newPixels;
-  }
-  img.leftPos = st.readUnsigned();
-  img.topPos = st.readUnsigned();
-  img.width = st.readUnsigned();
-  img.height = st.readUnsigned();
-  const bits = byteToBitArr(st.readByte());
-  img.lctFlag = bits.shift();
-  img.interlaced = bits.shift();
-  img.sorted = bits.shift();
-  img.reserved = bits.splice(0, 2);
-  img.lctSize = bitsToNum(bits.splice(0, 3));
-  if (img.lctFlag) {
-    img.lct = parseCT(st, 1 << img.lctSize + 1);
-  }
-  img.lzwMinCodeSize = st.readByte();
-  const lzwData = readSubBlocks(st);
-  img.pixels = lzwDecode(img.lzwMinCodeSize, lzwData);
-  if (img.interlaced) {
-    // Move
-    img.pixels = deinterlace(img.pixels, img.width);
-  }
-  callback?.(img);
-}
-
-/**
- * Parses GIF header information
- * @param { Stream } st
- * @param { Function } [callback]
- */
-function parseHeader(st, callback) {
-  const hdr = {};
-  hdr.sig = st.read(3);
-  hdr.ver = st.read(3);
-  if (hdr.sig !== 'GIF') {
-    throw new Error('Not a GIF file.');
-  }
-  hdr.width = st.readUnsigned();
-  hdr.height = st.readUnsigned();
-  const bits = byteToBitArr(st.readByte());
-  hdr.gctFlag = bits.shift();
-  hdr.colorRes = bitsToNum(bits.splice(0, 3));
-  hdr.sorted = bits.shift();
-  hdr.gctSize = bitsToNum(bits.splice(0, 3));
-  hdr.bgColor = st.readByte();
-  hdr.pixelAspectRatio = st.readByte(); // if not 0, aspectRatio = (pixelAspectRatio + 15) / 64
-  if (hdr.gctFlag) {
-    hdr.gct = parseCT(st, 1 << hdr.gctSize + 1);
-  }
-  callback?.(hdr);
-}
-function parseExt(st, block, handler) {
-  function parseGCExt(block) {
-    st.readByte(); // blocksize, always 4
-    const bits = byteToBitArr(st.readByte());
-    block.reserved = bits.splice(0, 3); // Reserved; should be 000.
-    block.disposalMethod = bitsToNum(bits.splice(0, 3));
-    block.userInput = bits.shift();
-    block.transparencyGiven = bits.shift();
-    block.delayTime = st.readUnsigned();
-    block.transparencyIndex = st.readByte();
-    block.terminator = st.readByte();
-    handler?.gce(block);
-  }
-  function parseComExt(block) {
-    block.comment = readSubBlocks(st);
-    handler.com && handler.com(block);
-  }
-  function parsePTExt(block) {
-    // No one *ever* uses this. If you use it, deal with parsing it yourself.
-    st.readByte(); // blocksize, always 12
-    block.ptHeader = st.readBytes(12);
-    block.ptData = readSubBlocks(st);
-    handler.pte && handler.pte(block);
-  }
-  function parseAppExt(block) {
-    function parseNetscapeExt(block) {
-      st.readByte(); // blocksize, always 3
-      block.unknown = st.readByte(); // ??? Always 1? What is this?
-      block.iterations = st.readUnsigned();
-      block.terminator = st.readByte();
-      handler.app && handler.app.NETSCAPE && handler.app.NETSCAPE(block);
-    }
-    function parseUnknownAppExt(block) {
-      block.appData = readSubBlocks(st);
-      // FIXME: This won't work if a handler wants to match on any identifier.
-      handler.app && handler.app[block.identifier] && handler.app[block.identifier](block);
-    }
-    st.readByte(); // blocksize, always 11
-    block.identifier = st.read(8);
-    block.authCode = st.read(3);
-    switch (block.identifier) {
-      case 'NETSCAPE':
-        parseNetscapeExt(block);
-        break;
-      default:
-        parseUnknownAppExt(block);
-        break;
-    }
-  }
-  function parseUnknownExt(block) {
-    block.data = readSubBlocks(st);
-    handler.unknown && handler.unknown(block);
-  }
-  block.label = st.readByte();
-  switch (block.label) {
-    case 0xF9:
-      block.extType = 'gce';
-      parseGCExt(block);
-      break;
-    case 0xFE:
-      block.extType = 'com';
-      parseComExt(block);
-      break;
-    case 0x01:
-      block.extType = 'pte';
-      parsePTExt(block);
-      break;
-    case 0xFF:
-      block.extType = 'app';
-      parseAppExt(block);
-      break;
-    default:
-      block.extType = 'unknown';
-      parseUnknownExt(block);
-      break;
-  }
-}
-
-/**
- * @param { Stream } st
- * @param { GIFParserHandlers } handler
- */
-function parseBlock(st, handler) {
-  const block = {};
-  block.sentinel = st.readByte();
-  switch (String.fromCharCode(block.sentinel)) {
-    // For ease of matching
-    case '!':
-      block.type = 'ext';
-      parseExt(st, block, handler);
-      break;
-    case ',':
-      block.type = 'img';
-      parseImg(st, block, handler?.img);
-      break;
-    case ';':
-      block.type = 'eof';
-      handler?.eof(block);
-      break;
-    default:
-      throw new Error('Unknown block: 0x' + block.sentinel.toString(16));
-    // TODO: Pad this with a 0.
-  }
-
-  if (block.type !== 'eof') setTimeout(() => parseBlock(st, handler), 0);
-}
-
-/**
- * Takes a Stream and parses it for GIF data, calling the relevant handler
- * methods on the passed in `handler` object.
- * @param { Stream } st
- * @param { GIFParserHandlers } handler
- */
-function parseGIF(st) {
-  let handler = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-  parseHeader(st, handler?.hdr);
-  setTimeout(() => parseBlock(st, handler), 0);
-}
+// EXTERNAL MODULE: ./node_modules/gifuct-js/lib/index.js
+var lib = __webpack_require__(5481);
 ;// CONCATENATED MODULE: ./src/shared/gif/index.js
-/**
- * @copyright Shachaf Ben-Kiki, JC Brand
- * @description
- *  Started as a fork of Shachaf Ben-Kiki's jsgif library
- *  https://github.com/shachaf/jsgif
- * @license MIT License
- */
 
 
 
-const DELAY_FACTOR = 10;
 class ConverseGif {
   /**
    * Creates a new ConverseGif instance
-   * @param { HTMLElement } el
+   * @param { import('lit').LitElement } el
    * @param { Object } [options]
    * @param { Number } [options.width] - The width, in pixels, of the canvas
    * @param { Number } [options.height] - The height, in pixels, of the canvas
@@ -55732,23 +56037,21 @@ class ConverseGif {
     this.gif_el = el.querySelector('img');
     this.canvas = el.querySelector('canvas');
     this.ctx = this.canvas.getContext('2d');
-    // It's good practice to pre-render to an offscreen canvas
+
+    // Offscreen canvas with full gif
     this.offscreenCanvas = document.createElement('canvas');
+    // Offscreen canvas for patches
+    this.patchCanvas = document.createElement('canvas');
     this.ctx_scaled = false;
-    this.disposal_method = null;
-    this.disposal_restore_from_idx = null;
-    this.frame = null;
-    this.frame_offsets = []; // elements have .x and .y properties
     this.frames = [];
-    this.last_disposal_method = null;
-    this.last_img = null;
     this.load_error = null;
     this.playing = this.options.autoplay;
-    this.transparency = null;
-    this.frame_delay = null;
     this.frame_idx = 0;
     this.iteration_count = 0;
     this.start = null;
+    this.hovering = null;
+    this.frameImageData = null;
+    this.disposal_restore_from_idx = null;
     this.initialize();
   }
   async initialize() {
@@ -55756,7 +56059,7 @@ class ConverseGif {
       this.setSizes(this.options.width, this.options.height);
     }
     const data = await this.fetchGIF(this.gif_el.src);
-    requestAnimationFrame(() => this.startParsing(data));
+    requestAnimationFrame(() => this.handleGIFResponse(data));
   }
   initPlayer() {
     if (this.load_error) return;
@@ -55766,9 +56069,9 @@ class ConverseGif {
 
     // Show the first frame
     this.frame_idx = 0;
-    this.putFrame(this.frame_idx);
+    this.renderImage();
     if (this.options.autoplay) {
-      const delay = (this.frames[this.frame_idx]?.delay ?? 0) * DELAY_FACTOR;
+      const delay = this.frames[this.frame_idx]?.delay ?? 0;
       setTimeout(() => this.play(), delay);
     }
   }
@@ -55805,18 +56108,18 @@ class ConverseGif {
    * `frame_delay` parameters can also be passed in. The `timestamp`
    * parameter comes from `requestAnimationFrame`.
    *
-   * The purpose of this method is to call `putFrame` with the right delay
+   * The purpose of this method is to call `renderImage` with the right delay
    * in order to render the GIF animation.
    *
    * Note, this method will cause the *next* upcoming frame to be rendered,
    * not the current one.
    *
-   * This means `this.frame_idx` will be incremented before calling `this.putFrame`, so
-   * `putFrame(0)` needs to be called *before* this method, otherwise the
+   * This means `this.frame_idx` will be incremented before calling `this.renderImage`, so
+   * `renderImage(0)` needs to be called *before* this method, otherwise the
    * animation will incorrectly start from frame #1 (this is done in `initPlayer`).
    *
-   * @param { DOMHighRestTimestamp } timestamp - The timestamp as returned by `requestAnimationFrame`
-   * @param { DOMHighRestTimestamp } previous_timestamp - The timestamp from the previous iteration of this method.
+   * @param { DOMHighResTimeStamp } timestamp - The timestamp as returned by `requestAnimationFrame`
+   * @param { DOMHighResTimeStamp } previous_timestamp - The timestamp from the previous iteration of this method.
    * We need this in order to calculate whether we have waited long enough to
    * show the next frame.
    * @param { Number } frame_delay - The delay (in 1/100th of a second)
@@ -55827,7 +56130,7 @@ class ConverseGif {
       return;
     }
     if (timestamp - previous_timestamp < frame_delay) {
-      this.hovering ? this.drawPauseIcon() : this.putFrame(this.frame_idx);
+      this.hovering ? this.drawPauseIcon() : this.renderImage();
       // We need to wait longer
       requestAnimationFrame(ts => this.onAnimationFrame(ts, previous_timestamp, frame_delay));
       return;
@@ -55837,8 +56140,8 @@ class ConverseGif {
       return;
     }
     this.frame_idx = next_frame;
-    this.putFrame(this.frame_idx);
-    const delay = (this.frames[this.frame_idx]?.delay || 8) * DELAY_FACTOR;
+    this.renderImage();
+    const delay = this.frames[this.frame_idx]?.delay || 8;
     requestAnimationFrame(ts => this.onAnimationFrame(ts, timestamp, delay));
   }
   setSizes(w, h) {
@@ -55849,18 +56152,6 @@ class ConverseGif {
     this.offscreenCanvas.style.width = w + 'px';
     this.offscreenCanvas.style.height = h + 'px';
     this.offscreenCanvas.getContext('2d').setTransform(1, 0, 0, 1, 0, 0);
-  }
-  setFrameOffset(frame, offset) {
-    if (!this.frame_offsets[frame]) {
-      this.frame_offsets[frame] = offset;
-      return;
-    }
-    if (typeof offset.x !== 'undefined') {
-      this.frame_offsets[frame].x = offset.x;
-    }
-    if (typeof offset.y !== 'undefined') {
-      this.frame_offsets[frame].y = offset.y;
-    }
   }
   doShowProgress(pos, length, draw) {
     if (draw && this.options.show_progress_bar) {
@@ -55879,46 +56170,34 @@ class ConverseGif {
   /**
    * Starts parsing the GIF stream data by calling `parseGIF` and passing in
    * a map of handler functions.
-   * @param { String } data - The GIF file data, as returned by the server
+   * @param {ArrayBuffer} data - The GIF file data, as returned by the server
    */
-  startParsing(data) {
-    const stream = new Stream(data);
-    /**
-     * @typedef { Object } GIFParserHandlers
-     * A map of callback functions passed `parseGIF`. These functions are
-     * called as various parts of the GIF file format are parsed.
-     * @property { Function } hdr - Callback to handle the GIF header data
-     * @property { Function } gce - Callback to handle the GIF Graphic Control Extension data
-     * @property { Function } com - Callback to handle the comment extension block
-     * @property { Function } img - Callback to handle image data
-     * @property { Function } eof - Callback once the end of file has been reached
-     */
-    const handler = {
-      'hdr': this.withProgress(stream, header => this.handleHeader(header)),
-      'gce': this.withProgress(stream, gce => this.handleGCE(gce)),
-      'com': this.withProgress(stream),
-      'img': this.withProgress(stream, img => this.doImg(img), true),
-      'eof': () => this.handleEOF(stream)
-    };
+  handleGIFResponse(data) {
     try {
-      parseGIF(stream, handler);
+      const gif = (0,lib/* parseGIF */.vq)(data);
+      this.hdr = gif.header;
+      this.lsd = gif.lsd;
+      this.setSizes(this.options.width ?? this.lsd.width, this.options.height ?? this.lsd.height);
+      this.frames = (0,lib/* decompressFrames */.zw)(gif, true);
     } catch (err) {
-      this.showError('parse');
+      this.showError();
     }
+    this.initPlayer();
+    !this.options.autoplay && this.drawPlayIcon();
   }
   drawError() {
     this.ctx.fillStyle = 'black';
-    this.ctx.fillRect(0, 0, this.options.width ? this.options.width : this.hdr.width, this.options.height ? this.options.height : this.hdr.height);
+    this.ctx.fillRect(0, 0, this.options.width, this.options.height);
     this.ctx.strokeStyle = 'red';
     this.ctx.lineWidth = 3;
     this.ctx.moveTo(0, 0);
-    this.ctx.lineTo(this.options.width ? this.options.width : this.hdr.width, this.options.height ? this.options.height : this.hdr.height);
-    this.ctx.moveTo(0, this.options.height ? this.options.height : this.hdr.height);
-    this.ctx.lineTo(this.options.width ? this.options.width : this.hdr.width, 0);
+    this.ctx.lineTo(this.options.width, this.options.height);
+    this.ctx.moveTo(0, this.options.height);
+    this.ctx.lineTo(this.options.width, 0);
     this.ctx.stroke();
   }
-  showError(errtype) {
-    this.load_error = errtype;
+  showError() {
+    this.load_error = true;
     this.hdr = {
       width: this.gif_el.width,
       height: this.gif_el.height
@@ -55927,49 +56206,10 @@ class ConverseGif {
     this.drawError();
     this.el.requestUpdate();
   }
-  handleHeader(header) {
-    this.hdr = header;
-    this.setSizes(this.options.width ?? this.hdr.width, this.options.height ?? this.hdr.height);
-  }
-
-  /**
-   * Handler for GIF Graphic Control Extension (GCE) data
-   */
-  handleGCE(gce) {
-    this.pushFrame();
-    this.clear();
-    this.frame_delay = gce.delayTime;
-    this.transparency = gce.transparencyGiven ? gce.transparencyIndex : null;
-    this.disposal_method = gce.disposalMethod;
-  }
-
-  /**
-   * Handler for when the end of the GIF's file has been reached
-   */
-  handleEOF(stream) {
-    this.pushFrame();
-    this.doDecodeProgress(stream, false);
-    this.initPlayer();
-    !this.options.autoplay && this.drawPlayIcon();
-  }
-  pushFrame() {
-    if (!this.frame) return;
-    this.frames.push({
-      data: this.frame.getImageData(0, 0, this.hdr.width, this.hdr.height),
-      delay: this.frame_delay
-    });
-    this.frame_offsets.push({
-      x: 0,
-      y: 0
-    });
-  }
-  doImg(img) {
-    this.frame = this.frame || this.offscreenCanvas.getContext('2d');
-    const currIdx = this.frames.length;
-
-    //ct = color table, gct = global color table
-    const ct = img.lctFlag ? img.lct : this.hdr.gct; // TODO: What if neither exists?
-
+  manageDisposal(i) {
+    if (i <= 0) return;
+    const offscreenContext = this.offscreenCanvas.getContext('2d');
+    const disposal = this.frames[i - 1].disposalType;
     /*
      *  Disposal method indicates the way in which the graphic is to
      *  be treated after being displayed.
@@ -55987,79 +56227,59 @@ class ConverseGif {
      *                  Importantly, "previous" means the frame state
      *                  after the last disposal of method 0, 1, or 2.
      */
-    if (currIdx > 0) {
-      if (this.last_disposal_method === 3) {
-        // Restore to previous
-        // If we disposed every frame including first frame up to this point, then we have
-        // no composited frame to restore to. In this case, restore to background instead.
-        if (this.disposal_restore_from_idx !== null) {
-          this.frame.putImageData(this.frames[this.disposal_restore_from_idx].data, 0, 0);
-        } else {
-          this.frame.clearRect(this.last_img.leftPos, this.last_img.topPos, this.last_img.width, this.last_img.height);
+    if (i > 1) {
+      if (disposal === 3) {
+        // eslint-disable-next-line no-eq-null
+        if (this.disposal_restore_from_idx != null) {
+          offscreenContext.putImageData(this.frames[this.disposal_restore_from_idx].data, 0, 0);
         }
       } else {
-        this.disposal_restore_from_idx = currIdx - 1;
-      }
-      if (this.last_disposal_method === 2) {
-        // Restore to background color
-        // Browser implementations historically restore to transparent; we do the same.
-        // http://www.wizards-toolkit.org/discourse-server/viewtopic.php?f=1&t=21172#p86079
-        this.frame.clearRect(this.last_img.leftPos, this.last_img.topPos, this.last_img.width, this.last_img.height);
+        this.disposal_restore_from_idx = i - 1;
       }
     }
-    // else, Undefined/Do not dispose.
-    // frame contains final pixel data from the last frame; do nothing
-
-    //Get existing pixels for img region after applying disposal method
-    const imgData = this.frame.getImageData(img.leftPos, img.topPos, img.width, img.height);
-
-    //apply color table colors
-    img.pixels.forEach((pixel, i) => {
-      // imgData.data === [R,G,B,A,R,G,B,A,...]
-      if (pixel !== this.transparency) {
-        imgData.data[i * 4 + 0] = ct[pixel][0];
-        imgData.data[i * 4 + 1] = ct[pixel][1];
-        imgData.data[i * 4 + 2] = ct[pixel][2];
-        imgData.data[i * 4 + 3] = 255; // Opaque.
-      }
-    });
-
-    this.frame.putImageData(imgData, img.leftPos, img.topPos);
-    if (!this.ctx_scaled) {
-      this.ctx.scale(this.getCanvasScale(), this.getCanvasScale());
-      this.ctx_scaled = true;
+    if (disposal === 2) {
+      // Restore to background color
+      // Browser implementations historically restore to transparent; we do the same.
+      // http://www.wizards-toolkit.org/discourse-server/viewtopic.php?f=1&t=21172#p86079
+      offscreenContext.clearRect(this.last_frame.dims.left, this.last_frame.dims.top, this.last_frame.dims.width, this.last_frame.dims.height);
     }
-    if (!this.last_img) {
-      // This is the first received image, so we draw it
-      this.ctx.drawImage(this.offscreenCanvas, 0, 0);
-    }
-    this.last_img = img;
   }
 
   /**
    * Draws a gif frame at a specific index inside the canvas.
-   * @param { Number } i - The frame index
+   * @param {boolean} show_pause_on_hover - The frame index
    */
-  putFrame(i) {
-    let show_pause_on_hover = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+  renderImage() {
+    let show_pause_on_hover = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
     if (!this.frames.length) return;
-    i = parseInt(i, 10);
+    let i = this.frame_idx;
+    i = parseInt(i.toString(), 10);
     if (i > this.frames.length - 1 || i < 0) {
       i = 0;
     }
-    const offset = this.frame_offsets[i];
-    this.offscreenCanvas.getContext('2d').putImageData(this.frames[i].data, offset.x, offset.y);
-    this.ctx.globalCompositeOperation = 'copy';
-    this.ctx.drawImage(this.offscreenCanvas, 0, 0);
+    this.manageDisposal(i);
+    const frame = this.frames[i];
+    const patchContext = this.patchCanvas.getContext('2d');
+    const offscreenContext = this.offscreenCanvas.getContext('2d');
+    const dims = frame.dims;
+    if (!this.frameImageData || dims.width != this.frameImageData.width || dims.height != this.frameImageData.height) {
+      this.patchCanvas.width = dims.width;
+      this.patchCanvas.height = dims.height;
+      this.frameImageData = patchContext.createImageData(dims.width, dims.height);
+    }
+
+    // set the patch data as an override
+    this.frameImageData.data.set(frame.patch);
+    // draw the patch back over the canvas
+    patchContext.putImageData(this.frameImageData, 0, 0);
+    offscreenContext.drawImage(this.patchCanvas, dims.left, dims.top);
+    const imageData = offscreenContext.getImageData(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+    this.ctx.putImageData(imageData, 0, 0);
+    this.ctx.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height);
     if (show_pause_on_hover && this.hovering) {
       this.drawPauseIcon();
     }
-  }
-  clear() {
-    this.transparency = null;
-    this.last_disposal_method = this.disposal_method;
-    this.disposal_method = null;
-    this.frame = null;
+    this.last_frame = frame;
   }
 
   /**
@@ -56078,18 +56298,15 @@ class ConverseGif {
     requestAnimationFrame(() => this.drawPlayIcon());
   }
   drawPauseIcon() {
-    if (!this.playing) {
-      return;
-    }
+    if (!this.playing) return;
+
     // Clear the potential play button by re-rendering the current frame
-    this.putFrame(this.frame_idx, false);
-    this.ctx.globalCompositeOperation = 'source-over';
+    this.renderImage(false);
 
     // Draw dark overlay
     this.ctx.fillStyle = 'rgb(0, 0, 0, 0.25)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     const icon_size = this.canvas.height * 0.1;
-
     // Draw bars
     this.ctx.lineWidth = this.canvas.height * 0.04;
     this.ctx.beginPath();
@@ -56111,14 +56328,10 @@ class ConverseGif {
     this.ctx.stroke();
   }
   drawPlayIcon() {
-    if (this.playing) {
-      return;
-    }
+    if (this.playing) return;
 
     // Clear the potential pause button by re-rendering the current frame
-    this.putFrame(this.frame_idx, false);
-    this.ctx.globalCompositeOperation = 'source-over';
-
+    this.renderImage(false);
     // Draw dark overlay
     this.ctx.fillStyle = 'rgb(0, 0, 0, 0.25)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -56141,27 +56354,10 @@ class ConverseGif {
     this.ctx.arc(this.canvas.width / 2, this.canvas.height / 2, circle_size, 0, 2 * Math.PI);
     this.ctx.stroke();
   }
-  doDecodeProgress(stream, draw) {
-    this.doShowProgress(stream.pos, stream.data.length, draw);
-  }
-
-  /**
-   * @param{boolean=} draw Whether to draw progress bar or not;
-   *  this is not idempotent because of translucency.
-   *  Note that this means that the text will be unsynchronized
-   *  with the progress bar on non-frames;
-   *  but those are typically so small (GCE etc.) that it doesn't really matter
-   */
-  withProgress(stream, fn, draw) {
-    return block => {
-      fn?.(block);
-      this.doDecodeProgress(stream, draw);
-    };
-  }
   getCanvasScale() {
     let scale;
-    if (this.options.max_width && this.hdr && this.hdr.width > this.options.max_width) {
-      scale = this.options.max_width / this.hdr.width;
+    if (this.options.max_width && this.hdr && this.lsd.width > this.options.max_width) {
+      scale = this.options.max_width / this.lsd.width;
     } else {
       scale = 1;
     }
@@ -56171,22 +56367,26 @@ class ConverseGif {
   /**
    * Makes an HTTP request to fetch a GIF
    * @param { String } url
-   * @returns { Promise<String> } Returns a promise which resolves with the response data.
+   * @returns { Promise<ArrayBuffer> } Returns a promise which resolves with the response data.
    */
   fetchGIF(url) {
     const promise = getOpenPromise();
     const h = new XMLHttpRequest();
     h.open('GET', url, true);
+    h.responseType = 'arraybuffer';
     h?.overrideMimeType('text/plain; charset=x-user-defined');
     h.onload = () => {
       if (h.status != 200) {
-        this.showError('xhr - response');
+        this.showError();
         return promise.reject();
       }
       promise.resolve(h.response);
     };
     h.onprogress = e => e.lengthComputable && this.doShowProgress(e.loaded, e.total, true);
-    h.onerror = () => this.showError('xhr');
+    h.onerror = e => {
+      log.error(e);
+      this.showError();
+    };
     h.send();
     return promise;
   }
@@ -56260,6 +56460,7 @@ class ConverseGIFElement extends CustomElement {
   }
   constructor() {
     super();
+    this.src = null;
     this.autoplay = false;
     this.noloop = false;
     this.fallback = 'url';
@@ -57097,11 +57298,6 @@ class RichText extends String {
 
   /**
    * Parse the text and add template references for rendering the "rich" parts.
-   *
-   * @param { RichText } text
-   * @param { Boolean } show_images - Should URLs of images be rendered as `<img>` tags?
-   * @param { Function } onImgLoad
-   * @param { Function } onImgClick
    **/
   async addTemplates() {
     /**
@@ -58387,6 +58583,13 @@ class Image extends CustomElement {
         type: String
       }
     };
+  }
+  constructor() {
+    super();
+    this.src = null;
+    this.href = null;
+    this.onImgClick = null;
+    this.onImgLoad = null;
   }
   render() {
     if (isGIFURL(this.src) && shouldRenderMediaFromURL(this.src, 'image')) {
@@ -69794,7 +69997,7 @@ class AddContactModal extends modal_modal {
       addClass('d-block', el);
       return false;
     }
-    html_removeClass('d-block', el);
+    removeClass('d-block', el);
     return true;
   }
   afterSubmission(_form, jid, name, group) {
@@ -73712,7 +73915,7 @@ const converse = {
       __webpack_require__.p = settings.assets_path; // eslint-disable-line no-undef
     }
 
-    __webpack_require__(7806);
+    __webpack_require__(3263);
     Object.keys(plugins).forEach(name => converse.plugins.add(name, plugins[name]));
     return converse;
   }
