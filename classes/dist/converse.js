@@ -1,420 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8487:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-(function (global, factory) {
-   true ? factory(exports, __webpack_require__(5513)) : 0;
-})(this, function (exports, localforage) {
-  'use strict';
-
-  localforage = 'default' in localforage ? localforage['default'] : localforage;
-  function getSerializerPromise(localForageInstance) {
-    if (getSerializerPromise.result) {
-      return getSerializerPromise.result;
-    }
-    if (!localForageInstance || typeof localForageInstance.getSerializer !== 'function') {
-      return Promise.reject(new Error('localforage.getSerializer() was not available! ' + 'localforage v1.4+ is required!'));
-    }
-    getSerializerPromise.result = localForageInstance.getSerializer();
-    return getSerializerPromise.result;
-  }
-  function executeCallback(promise, callback) {
-    if (callback) {
-      promise.then(function (result) {
-        callback(null, result);
-      }, function (error) {
-        callback(error);
-      });
-    }
-    return promise;
-  }
-  function getItemKeyValue(key, callback) {
-    var localforageInstance = this;
-    var promise = localforageInstance.getItem(key).then(function (value) {
-      return {
-        key: key,
-        value: value
-      };
-    });
-    executeCallback(promise, callback);
-    return promise;
-  }
-  function getItemsGeneric(keys /*, callback*/) {
-    var localforageInstance = this;
-    var promise = new Promise(function (resolve, reject) {
-      var itemPromises = [];
-      for (var i = 0, len = keys.length; i < len; i++) {
-        itemPromises.push(getItemKeyValue.call(localforageInstance, keys[i]));
-      }
-      Promise.all(itemPromises).then(function (keyValuePairs) {
-        var result = {};
-        for (var i = 0, len = keyValuePairs.length; i < len; i++) {
-          var keyValuePair = keyValuePairs[i];
-          result[keyValuePair.key] = keyValuePair.value;
-        }
-        resolve(result);
-      }).catch(reject);
-    });
-    return promise;
-  }
-  function getAllItemsUsingIterate() {
-    var localforageInstance = this;
-    var accumulator = {};
-    return localforageInstance.iterate(function (value, key /*, iterationNumber*/) {
-      accumulator[key] = value;
-    }).then(function () {
-      return accumulator;
-    });
-  }
-  function getIDBKeyRange() {
-    /* global IDBKeyRange, webkitIDBKeyRange, mozIDBKeyRange */
-    if (typeof IDBKeyRange !== 'undefined') {
-      return IDBKeyRange;
-    }
-    if (typeof webkitIDBKeyRange !== 'undefined') {
-      return webkitIDBKeyRange;
-    }
-    if (typeof mozIDBKeyRange !== 'undefined') {
-      return mozIDBKeyRange;
-    }
-  }
-  var idbKeyRange = getIDBKeyRange();
-  function getItemsIndexedDB(keys /*, callback*/) {
-    keys = keys.slice();
-    var localforageInstance = this;
-    function comparer(a, b) {
-      return a < b ? -1 : a > b ? 1 : 0;
-    }
-    var promise = new Promise(function (resolve, reject) {
-      localforageInstance.ready().then(function () {
-        // Thanks https://hacks.mozilla.org/2014/06/breaking-the-borders-of-indexeddb/
-        var dbInfo = localforageInstance._dbInfo;
-        var store = dbInfo.db.transaction(dbInfo.storeName, 'readonly').objectStore(dbInfo.storeName);
-        var set = keys.sort(comparer);
-        var keyRangeValue = idbKeyRange.bound(keys[0], keys[keys.length - 1], false, false);
-        var req;
-        if ('getAll' in store) {
-          req = store.getAll(keyRangeValue);
-          req.onsuccess = function () {
-            var value = req.result;
-            if (value === undefined) {
-              value = null;
-            }
-            resolve(value);
-          };
-        } else {
-          req = store.openCursor(keyRangeValue);
-          var result = {};
-          var i = 0;
-          req.onsuccess = function () /*event*/{
-            var cursor = req.result; // event.target.result;
-
-            if (!cursor) {
-              resolve(result);
-              return;
-            }
-            var key = cursor.key;
-            while (key > set[i]) {
-              i++; // The cursor has passed beyond this key. Check next.
-
-              if (i === set.length) {
-                // There is no next. Stop searching.
-                resolve(result);
-                return;
-              }
-            }
-            if (key === set[i]) {
-              // The current cursor value should be included and we should continue
-              // a single step in case next item has the same key or possibly our
-              // next key in set.
-              var value = cursor.value;
-              if (value === undefined) {
-                value = null;
-              }
-              result[key] = value;
-              // onfound(cursor.value);
-              cursor.continue();
-            } else {
-              // cursor.key not yet at set[i]. Forward cursor to the next key to hunt for.
-              cursor.continue(set[i]);
-            }
-          };
-        }
-        req.onerror = function () /*event*/{
-          reject(req.error);
-        };
-      }).catch(reject);
-    });
-    return promise;
-  }
-  function getItemsWebsql(keys /*, callback*/) {
-    var localforageInstance = this;
-    var promise = new Promise(function (resolve, reject) {
-      localforageInstance.ready().then(function () {
-        return getSerializerPromise(localforageInstance);
-      }).then(function (serializer) {
-        var dbInfo = localforageInstance._dbInfo;
-        dbInfo.db.transaction(function (t) {
-          var queryParts = new Array(keys.length);
-          for (var i = 0, len = keys.length; i < len; i++) {
-            queryParts[i] = '?';
-          }
-          t.executeSql('SELECT * FROM ' + dbInfo.storeName + ' WHERE (key IN (' + queryParts.join(',') + '))', keys, function (t, results) {
-            var result = {};
-            var rows = results.rows;
-            for (var i = 0, len = rows.length; i < len; i++) {
-              var item = rows.item(i);
-              var value = item.value;
-
-              // Check to see if this is serialized content we need to
-              // unpack.
-              if (value) {
-                value = serializer.deserialize(value);
-              }
-              result[item.key] = value;
-            }
-            resolve(result);
-          }, function (t, error) {
-            reject(error);
-          });
-        });
-      }).catch(reject);
-    });
-    return promise;
-  }
-  function localforageGetItems(keys, callback) {
-    var localforageInstance = this;
-    var promise;
-    if (!arguments.length || keys === null) {
-      promise = getAllItemsUsingIterate.apply(localforageInstance);
-    } else {
-      var currentDriver = localforageInstance.driver();
-      if (currentDriver === localforageInstance.INDEXEDDB) {
-        promise = getItemsIndexedDB.apply(localforageInstance, arguments);
-      } else if (currentDriver === localforageInstance.WEBSQL) {
-        promise = getItemsWebsql.apply(localforageInstance, arguments);
-      } else {
-        promise = getItemsGeneric.apply(localforageInstance, arguments);
-      }
-    }
-    executeCallback(promise, callback);
-    return promise;
-  }
-  function extendPrototype(localforage$$1) {
-    var localforagePrototype = Object.getPrototypeOf(localforage$$1);
-    if (localforagePrototype) {
-      localforagePrototype.getItems = localforageGetItems;
-      localforagePrototype.getItems.indexedDB = function () {
-        return getItemsIndexedDB.apply(this, arguments);
-      };
-      localforagePrototype.getItems.websql = function () {
-        return getItemsWebsql.apply(this, arguments);
-      };
-      localforagePrototype.getItems.generic = function () {
-        return getItemsGeneric.apply(this, arguments);
-      };
-    }
-  }
-  var extendPrototypeResult = extendPrototype(localforage);
-  exports.localforageGetItems = localforageGetItems;
-  exports.extendPrototype = extendPrototype;
-  exports.extendPrototypeResult = extendPrototypeResult;
-  exports.getItemsGeneric = getItemsGeneric;
-  Object.defineProperty(exports, '__esModule', {
-    value: true
-  });
-});
-
-/***/ }),
-
-/***/ 7609:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-"use strict";
-
-
-const atob = __webpack_require__(7776);
-const btoa = __webpack_require__(2350);
-module.exports = {
-  atob,
-  btoa
-};
-
-/***/ }),
-
-/***/ 7776:
-/***/ ((module) => {
-
-"use strict";
-
-
-/**
- * Implementation of atob() according to the HTML and Infra specs, except that
- * instead of throwing INVALID_CHARACTER_ERR we return null.
- */
-function atob(data) {
-  if (arguments.length === 0) {
-    throw new TypeError("1 argument required, but only 0 present.");
-  }
-
-  // Web IDL requires DOMStrings to just be converted using ECMAScript
-  // ToString, which in our case amounts to using a template literal.
-  data = `${data}`;
-  // "Remove all ASCII whitespace from data."
-  data = data.replace(/[ \t\n\f\r]/g, "");
-  // "If data's length divides by 4 leaving no remainder, then: if data ends
-  // with one or two U+003D (=) code points, then remove them from data."
-  if (data.length % 4 === 0) {
-    data = data.replace(/==?$/, "");
-  }
-  // "If data's length divides by 4 leaving a remainder of 1, then return
-  // failure."
-  //
-  // "If data contains a code point that is not one of
-  //
-  // U+002B (+)
-  // U+002F (/)
-  // ASCII alphanumeric
-  //
-  // then return failure."
-  if (data.length % 4 === 1 || /[^+/0-9A-Za-z]/.test(data)) {
-    return null;
-  }
-  // "Let output be an empty byte sequence."
-  let output = "";
-  // "Let buffer be an empty buffer that can have bits appended to it."
-  //
-  // We append bits via left-shift and or.  accumulatedBits is used to track
-  // when we've gotten to 24 bits.
-  let buffer = 0;
-  let accumulatedBits = 0;
-  // "Let position be a position variable for data, initially pointing at the
-  // start of data."
-  //
-  // "While position does not point past the end of data:"
-  for (let i = 0; i < data.length; i++) {
-    // "Find the code point pointed to by position in the second column of
-    // Table 1: The Base 64 Alphabet of RFC 4648. Let n be the number given in
-    // the first cell of the same row.
-    //
-    // "Append to buffer the six bits corresponding to n, most significant bit
-    // first."
-    //
-    // atobLookup() implements the table from RFC 4648.
-    buffer <<= 6;
-    buffer |= atobLookup(data[i]);
-    accumulatedBits += 6;
-    // "If buffer has accumulated 24 bits, interpret them as three 8-bit
-    // big-endian numbers. Append three bytes with values equal to those
-    // numbers to output, in the same order, and then empty buffer."
-    if (accumulatedBits === 24) {
-      output += String.fromCharCode((buffer & 0xff0000) >> 16);
-      output += String.fromCharCode((buffer & 0xff00) >> 8);
-      output += String.fromCharCode(buffer & 0xff);
-      buffer = accumulatedBits = 0;
-    }
-    // "Advance position by 1."
-  }
-  // "If buffer is not empty, it contains either 12 or 18 bits. If it contains
-  // 12 bits, then discard the last four and interpret the remaining eight as
-  // an 8-bit big-endian number. If it contains 18 bits, then discard the last
-  // two and interpret the remaining 16 as two 8-bit big-endian numbers. Append
-  // the one or two bytes with values equal to those one or two numbers to
-  // output, in the same order."
-  if (accumulatedBits === 12) {
-    buffer >>= 4;
-    output += String.fromCharCode(buffer);
-  } else if (accumulatedBits === 18) {
-    buffer >>= 2;
-    output += String.fromCharCode((buffer & 0xff00) >> 8);
-    output += String.fromCharCode(buffer & 0xff);
-  }
-  // "Return output."
-  return output;
-}
-/**
- * A lookup table for atob(), which converts an ASCII character to the
- * corresponding six-bit number.
- */
-
-const keystr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-function atobLookup(chr) {
-  const index = keystr.indexOf(chr);
-  // Throw exception if character is not in the lookup string; should not be hit in tests
-  return index < 0 ? undefined : index;
-}
-module.exports = atob;
-
-/***/ }),
-
-/***/ 2350:
-/***/ ((module) => {
-
-"use strict";
-
-
-/**
- * btoa() as defined by the HTML and Infra specs, which mostly just references
- * RFC 4648.
- */
-function btoa(s) {
-  if (arguments.length === 0) {
-    throw new TypeError("1 argument required, but only 0 present.");
-  }
-  let i;
-  // String conversion as required by Web IDL.
-  s = `${s}`;
-  // "The btoa() method must throw an "InvalidCharacterError" DOMException if
-  // data contains any character whose code point is greater than U+00FF."
-  for (i = 0; i < s.length; i++) {
-    if (s.charCodeAt(i) > 255) {
-      return null;
-    }
-  }
-  let out = "";
-  for (i = 0; i < s.length; i += 3) {
-    const groupsOfSix = [undefined, undefined, undefined, undefined];
-    groupsOfSix[0] = s.charCodeAt(i) >> 2;
-    groupsOfSix[1] = (s.charCodeAt(i) & 0x03) << 4;
-    if (s.length > i + 1) {
-      groupsOfSix[1] |= s.charCodeAt(i + 1) >> 4;
-      groupsOfSix[2] = (s.charCodeAt(i + 1) & 0x0f) << 2;
-    }
-    if (s.length > i + 2) {
-      groupsOfSix[2] |= s.charCodeAt(i + 2) >> 6;
-      groupsOfSix[3] = s.charCodeAt(i + 2) & 0x3f;
-    }
-    for (let j = 0; j < groupsOfSix.length; j++) {
-      if (typeof groupsOfSix[j] === "undefined") {
-        out += "=";
-      } else {
-        out += btoaLookup(groupsOfSix[j]);
-      }
-    }
-  }
-  return out;
-}
-
-/**
- * Lookup table for btoa(), which converts a six-bit number into the
- * corresponding ASCII character.
- */
-const keystr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-function btoaLookup(index) {
-  if (index >= 0 && index < 64) {
-    return keystr[index];
-  }
-
-  // Throw INVALID_CHARACTER_ERR exception here -- won't be hit in the tests.
-  return undefined;
-}
-module.exports = btoa;
-
-/***/ }),
-
-/***/ 3170:
+/***/ 8577:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// Native Javascript for Bootstrap 4 v2.0.27 | © dnp_theme | MIT-License
@@ -1836,7 +1423,420 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 /***/ }),
 
-/***/ 4923:
+/***/ 1588:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+(function (global, factory) {
+   true ? factory(exports, __webpack_require__(2302)) : 0;
+})(this, function (exports, localforage) {
+  'use strict';
+
+  localforage = 'default' in localforage ? localforage['default'] : localforage;
+  function getSerializerPromise(localForageInstance) {
+    if (getSerializerPromise.result) {
+      return getSerializerPromise.result;
+    }
+    if (!localForageInstance || typeof localForageInstance.getSerializer !== 'function') {
+      return Promise.reject(new Error('localforage.getSerializer() was not available! ' + 'localforage v1.4+ is required!'));
+    }
+    getSerializerPromise.result = localForageInstance.getSerializer();
+    return getSerializerPromise.result;
+  }
+  function executeCallback(promise, callback) {
+    if (callback) {
+      promise.then(function (result) {
+        callback(null, result);
+      }, function (error) {
+        callback(error);
+      });
+    }
+    return promise;
+  }
+  function getItemKeyValue(key, callback) {
+    var localforageInstance = this;
+    var promise = localforageInstance.getItem(key).then(function (value) {
+      return {
+        key: key,
+        value: value
+      };
+    });
+    executeCallback(promise, callback);
+    return promise;
+  }
+  function getItemsGeneric(keys /*, callback*/) {
+    var localforageInstance = this;
+    var promise = new Promise(function (resolve, reject) {
+      var itemPromises = [];
+      for (var i = 0, len = keys.length; i < len; i++) {
+        itemPromises.push(getItemKeyValue.call(localforageInstance, keys[i]));
+      }
+      Promise.all(itemPromises).then(function (keyValuePairs) {
+        var result = {};
+        for (var i = 0, len = keyValuePairs.length; i < len; i++) {
+          var keyValuePair = keyValuePairs[i];
+          result[keyValuePair.key] = keyValuePair.value;
+        }
+        resolve(result);
+      }).catch(reject);
+    });
+    return promise;
+  }
+  function getAllItemsUsingIterate() {
+    var localforageInstance = this;
+    var accumulator = {};
+    return localforageInstance.iterate(function (value, key /*, iterationNumber*/) {
+      accumulator[key] = value;
+    }).then(function () {
+      return accumulator;
+    });
+  }
+  function getIDBKeyRange() {
+    /* global IDBKeyRange, webkitIDBKeyRange, mozIDBKeyRange */
+    if (typeof IDBKeyRange !== 'undefined') {
+      return IDBKeyRange;
+    }
+    if (typeof webkitIDBKeyRange !== 'undefined') {
+      return webkitIDBKeyRange;
+    }
+    if (typeof mozIDBKeyRange !== 'undefined') {
+      return mozIDBKeyRange;
+    }
+  }
+  var idbKeyRange = getIDBKeyRange();
+  function getItemsIndexedDB(keys /*, callback*/) {
+    keys = keys.slice();
+    var localforageInstance = this;
+    function comparer(a, b) {
+      return a < b ? -1 : a > b ? 1 : 0;
+    }
+    var promise = new Promise(function (resolve, reject) {
+      localforageInstance.ready().then(function () {
+        // Thanks https://hacks.mozilla.org/2014/06/breaking-the-borders-of-indexeddb/
+        var dbInfo = localforageInstance._dbInfo;
+        var store = dbInfo.db.transaction(dbInfo.storeName, 'readonly').objectStore(dbInfo.storeName);
+        var set = keys.sort(comparer);
+        var keyRangeValue = idbKeyRange.bound(keys[0], keys[keys.length - 1], false, false);
+        var req;
+        if ('getAll' in store) {
+          req = store.getAll(keyRangeValue);
+          req.onsuccess = function () {
+            var value = req.result;
+            if (value === undefined) {
+              value = null;
+            }
+            resolve(value);
+          };
+        } else {
+          req = store.openCursor(keyRangeValue);
+          var result = {};
+          var i = 0;
+          req.onsuccess = function () /*event*/{
+            var cursor = req.result; // event.target.result;
+
+            if (!cursor) {
+              resolve(result);
+              return;
+            }
+            var key = cursor.key;
+            while (key > set[i]) {
+              i++; // The cursor has passed beyond this key. Check next.
+
+              if (i === set.length) {
+                // There is no next. Stop searching.
+                resolve(result);
+                return;
+              }
+            }
+            if (key === set[i]) {
+              // The current cursor value should be included and we should continue
+              // a single step in case next item has the same key or possibly our
+              // next key in set.
+              var value = cursor.value;
+              if (value === undefined) {
+                value = null;
+              }
+              result[key] = value;
+              // onfound(cursor.value);
+              cursor.continue();
+            } else {
+              // cursor.key not yet at set[i]. Forward cursor to the next key to hunt for.
+              cursor.continue(set[i]);
+            }
+          };
+        }
+        req.onerror = function () /*event*/{
+          reject(req.error);
+        };
+      }).catch(reject);
+    });
+    return promise;
+  }
+  function getItemsWebsql(keys /*, callback*/) {
+    var localforageInstance = this;
+    var promise = new Promise(function (resolve, reject) {
+      localforageInstance.ready().then(function () {
+        return getSerializerPromise(localforageInstance);
+      }).then(function (serializer) {
+        var dbInfo = localforageInstance._dbInfo;
+        dbInfo.db.transaction(function (t) {
+          var queryParts = new Array(keys.length);
+          for (var i = 0, len = keys.length; i < len; i++) {
+            queryParts[i] = '?';
+          }
+          t.executeSql('SELECT * FROM ' + dbInfo.storeName + ' WHERE (key IN (' + queryParts.join(',') + '))', keys, function (t, results) {
+            var result = {};
+            var rows = results.rows;
+            for (var i = 0, len = rows.length; i < len; i++) {
+              var item = rows.item(i);
+              var value = item.value;
+
+              // Check to see if this is serialized content we need to
+              // unpack.
+              if (value) {
+                value = serializer.deserialize(value);
+              }
+              result[item.key] = value;
+            }
+            resolve(result);
+          }, function (t, error) {
+            reject(error);
+          });
+        });
+      }).catch(reject);
+    });
+    return promise;
+  }
+  function localforageGetItems(keys, callback) {
+    var localforageInstance = this;
+    var promise;
+    if (!arguments.length || keys === null) {
+      promise = getAllItemsUsingIterate.apply(localforageInstance);
+    } else {
+      var currentDriver = localforageInstance.driver();
+      if (currentDriver === localforageInstance.INDEXEDDB) {
+        promise = getItemsIndexedDB.apply(localforageInstance, arguments);
+      } else if (currentDriver === localforageInstance.WEBSQL) {
+        promise = getItemsWebsql.apply(localforageInstance, arguments);
+      } else {
+        promise = getItemsGeneric.apply(localforageInstance, arguments);
+      }
+    }
+    executeCallback(promise, callback);
+    return promise;
+  }
+  function extendPrototype(localforage$$1) {
+    var localforagePrototype = Object.getPrototypeOf(localforage$$1);
+    if (localforagePrototype) {
+      localforagePrototype.getItems = localforageGetItems;
+      localforagePrototype.getItems.indexedDB = function () {
+        return getItemsIndexedDB.apply(this, arguments);
+      };
+      localforagePrototype.getItems.websql = function () {
+        return getItemsWebsql.apply(this, arguments);
+      };
+      localforagePrototype.getItems.generic = function () {
+        return getItemsGeneric.apply(this, arguments);
+      };
+    }
+  }
+  var extendPrototypeResult = extendPrototype(localforage);
+  exports.localforageGetItems = localforageGetItems;
+  exports.extendPrototype = extendPrototype;
+  exports.extendPrototypeResult = extendPrototypeResult;
+  exports.getItemsGeneric = getItemsGeneric;
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
+});
+
+/***/ }),
+
+/***/ 6841:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+
+
+const atob = __webpack_require__(7348);
+const btoa = __webpack_require__(6048);
+module.exports = {
+  atob,
+  btoa
+};
+
+/***/ }),
+
+/***/ 7348:
+/***/ ((module) => {
+
+"use strict";
+
+
+/**
+ * Implementation of atob() according to the HTML and Infra specs, except that
+ * instead of throwing INVALID_CHARACTER_ERR we return null.
+ */
+function atob(data) {
+  if (arguments.length === 0) {
+    throw new TypeError("1 argument required, but only 0 present.");
+  }
+
+  // Web IDL requires DOMStrings to just be converted using ECMAScript
+  // ToString, which in our case amounts to using a template literal.
+  data = `${data}`;
+  // "Remove all ASCII whitespace from data."
+  data = data.replace(/[ \t\n\f\r]/g, "");
+  // "If data's length divides by 4 leaving no remainder, then: if data ends
+  // with one or two U+003D (=) code points, then remove them from data."
+  if (data.length % 4 === 0) {
+    data = data.replace(/==?$/, "");
+  }
+  // "If data's length divides by 4 leaving a remainder of 1, then return
+  // failure."
+  //
+  // "If data contains a code point that is not one of
+  //
+  // U+002B (+)
+  // U+002F (/)
+  // ASCII alphanumeric
+  //
+  // then return failure."
+  if (data.length % 4 === 1 || /[^+/0-9A-Za-z]/.test(data)) {
+    return null;
+  }
+  // "Let output be an empty byte sequence."
+  let output = "";
+  // "Let buffer be an empty buffer that can have bits appended to it."
+  //
+  // We append bits via left-shift and or.  accumulatedBits is used to track
+  // when we've gotten to 24 bits.
+  let buffer = 0;
+  let accumulatedBits = 0;
+  // "Let position be a position variable for data, initially pointing at the
+  // start of data."
+  //
+  // "While position does not point past the end of data:"
+  for (let i = 0; i < data.length; i++) {
+    // "Find the code point pointed to by position in the second column of
+    // Table 1: The Base 64 Alphabet of RFC 4648. Let n be the number given in
+    // the first cell of the same row.
+    //
+    // "Append to buffer the six bits corresponding to n, most significant bit
+    // first."
+    //
+    // atobLookup() implements the table from RFC 4648.
+    buffer <<= 6;
+    buffer |= atobLookup(data[i]);
+    accumulatedBits += 6;
+    // "If buffer has accumulated 24 bits, interpret them as three 8-bit
+    // big-endian numbers. Append three bytes with values equal to those
+    // numbers to output, in the same order, and then empty buffer."
+    if (accumulatedBits === 24) {
+      output += String.fromCharCode((buffer & 0xff0000) >> 16);
+      output += String.fromCharCode((buffer & 0xff00) >> 8);
+      output += String.fromCharCode(buffer & 0xff);
+      buffer = accumulatedBits = 0;
+    }
+    // "Advance position by 1."
+  }
+  // "If buffer is not empty, it contains either 12 or 18 bits. If it contains
+  // 12 bits, then discard the last four and interpret the remaining eight as
+  // an 8-bit big-endian number. If it contains 18 bits, then discard the last
+  // two and interpret the remaining 16 as two 8-bit big-endian numbers. Append
+  // the one or two bytes with values equal to those one or two numbers to
+  // output, in the same order."
+  if (accumulatedBits === 12) {
+    buffer >>= 4;
+    output += String.fromCharCode(buffer);
+  } else if (accumulatedBits === 18) {
+    buffer >>= 2;
+    output += String.fromCharCode((buffer & 0xff00) >> 8);
+    output += String.fromCharCode(buffer & 0xff);
+  }
+  // "Return output."
+  return output;
+}
+/**
+ * A lookup table for atob(), which converts an ASCII character to the
+ * corresponding six-bit number.
+ */
+
+const keystr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function atobLookup(chr) {
+  const index = keystr.indexOf(chr);
+  // Throw exception if character is not in the lookup string; should not be hit in tests
+  return index < 0 ? undefined : index;
+}
+module.exports = atob;
+
+/***/ }),
+
+/***/ 6048:
+/***/ ((module) => {
+
+"use strict";
+
+
+/**
+ * btoa() as defined by the HTML and Infra specs, which mostly just references
+ * RFC 4648.
+ */
+function btoa(s) {
+  if (arguments.length === 0) {
+    throw new TypeError("1 argument required, but only 0 present.");
+  }
+  let i;
+  // String conversion as required by Web IDL.
+  s = `${s}`;
+  // "The btoa() method must throw an "InvalidCharacterError" DOMException if
+  // data contains any character whose code point is greater than U+00FF."
+  for (i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) > 255) {
+      return null;
+    }
+  }
+  let out = "";
+  for (i = 0; i < s.length; i += 3) {
+    const groupsOfSix = [undefined, undefined, undefined, undefined];
+    groupsOfSix[0] = s.charCodeAt(i) >> 2;
+    groupsOfSix[1] = (s.charCodeAt(i) & 0x03) << 4;
+    if (s.length > i + 1) {
+      groupsOfSix[1] |= s.charCodeAt(i + 1) >> 4;
+      groupsOfSix[2] = (s.charCodeAt(i + 1) & 0x0f) << 2;
+    }
+    if (s.length > i + 2) {
+      groupsOfSix[2] |= s.charCodeAt(i + 2) >> 6;
+      groupsOfSix[3] = s.charCodeAt(i + 2) & 0x3f;
+    }
+    for (let j = 0; j < groupsOfSix.length; j++) {
+      if (typeof groupsOfSix[j] === "undefined") {
+        out += "=";
+      } else {
+        out += btoaLookup(groupsOfSix[j]);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Lookup table for btoa(), which converts a six-bit number into the
+ * corresponding ASCII character.
+ */
+const keystr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function btoaLookup(index) {
+  if (index >= 0 && index < 64) {
+    return keystr[index];
+  }
+
+  // Throw INVALID_CHARACTER_ERR exception here -- won't be hit in the tests.
+  return undefined;
+}
+module.exports = btoa;
+
+/***/ }),
+
+/***/ 326:
 /***/ ((module) => {
 
 !function (t, e) {
@@ -2672,7 +2672,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 /***/ }),
 
-/***/ 7705:
+/***/ 1223:
 /***/ ((module) => {
 
 "use strict";
@@ -2764,7 +2764,7 @@ module.exports = function (cssWithMappingToString) {
 
 /***/ }),
 
-/***/ 4216:
+/***/ 3245:
 /***/ ((module) => {
 
 "use strict";
@@ -2787,7 +2787,7 @@ module.exports = function (item) {
 
 /***/ }),
 
-/***/ 7076:
+/***/ 2028:
 /***/ (function(module) {
 
 !function (t, e) {
@@ -3105,7 +3105,7 @@ module.exports = function (item) {
 
 /***/ }),
 
-/***/ 2455:
+/***/ 9437:
 /***/ (function(module) {
 
 !function (e, t) {
@@ -3161,7 +3161,7 @@ module.exports = function (item) {
 
 /***/ }),
 
-/***/ 1199:
+/***/ 929:
 /***/ (function(module) {
 
 /*! @license DOMPurify 2.4.5 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/2.4.5/LICENSE */
@@ -4669,7 +4669,7 @@ module.exports = function (item) {
 
 /***/ }),
 
-/***/ 3243:
+/***/ 8042:
 /***/ ((module, exports) => {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -5423,7 +5423,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
 
 /***/ }),
 
-/***/ 2598:
+/***/ 2987:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -5460,7 +5460,7 @@ exports.deinterlace = deinterlace;
 
 /***/ }),
 
-/***/ 5481:
+/***/ 3028:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -5471,11 +5471,11 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.zw = __webpack_unused_export__ = exports.vq = void 0;
-var _gif = _interopRequireDefault(__webpack_require__(4609));
-var _jsBinarySchemaParser = __webpack_require__(9588);
-var _uint = __webpack_require__(7656);
-var _deinterlace = __webpack_require__(2598);
-var _lzw = __webpack_require__(9826);
+var _gif = _interopRequireDefault(__webpack_require__(4450));
+var _jsBinarySchemaParser = __webpack_require__(1074);
+var _uint = __webpack_require__(1708);
+var _deinterlace = __webpack_require__(2987);
+var _lzw = __webpack_require__(5351);
 function _interopRequireDefault(obj) {
   return obj && obj.__esModule ? obj : {
     "default": obj
@@ -5557,7 +5557,7 @@ exports.zw = decompressFrames;
 
 /***/ }),
 
-/***/ 9826:
+/***/ 5351:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -5667,7 +5667,7 @@ exports.lzw = lzw;
 
 /***/ }),
 
-/***/ 2579:
+/***/ 136:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
@@ -5738,7 +5738,7 @@ function immediate(task) {
 
 /***/ }),
 
-/***/ 2107:
+/***/ 6226:
 /***/ (function(module, exports) {
 
 /**
@@ -7163,7 +7163,7 @@ in order to offer easy upgrades -- jsgettext.berlios.de
 
 /***/ }),
 
-/***/ 9588:
+/***/ 1074:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -7224,7 +7224,7 @@ exports.loop = loop;
 
 /***/ }),
 
-/***/ 7656:
+/***/ 1708:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -7326,7 +7326,7 @@ exports.readBits = readBits;
 
 /***/ }),
 
-/***/ 4609:
+/***/ 4450:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -7336,8 +7336,8 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = void 0;
-var _ = __webpack_require__(9588);
-var _uint = __webpack_require__(7656);
+var _ = __webpack_require__(1074);
+var _uint = __webpack_require__(1708);
 
 // a set of 0x00 terminated subblocks
 var subBlocksSchema = {
@@ -7546,13 +7546,13 @@ exports["default"] = _default;
 
 /***/ }),
 
-/***/ 3842:
+/***/ 3979:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var immediate = __webpack_require__(2579);
+var immediate = __webpack_require__(136);
 
 /* istanbul ignore next */
 function INTERNAL() {}
@@ -7781,19 +7781,19 @@ function race(iterable) {
 
 /***/ }),
 
-/***/ 3449:
+/***/ 8250:
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
 if (typeof __webpack_require__.g.Promise !== 'function') {
-  __webpack_require__.g.Promise = __webpack_require__(3842);
+  __webpack_require__.g.Promise = __webpack_require__(3979);
 }
 
 /***/ }),
 
-/***/ 8747:
+/***/ 9149:
 /***/ (function(__unused_webpack_module, exports) {
 
 /*!
@@ -8364,11 +8364,11 @@ SOFTWARE.
 
 /***/ }),
 
-/***/ 6883:
+/***/ 6550:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 (function (global, factory) {
-   true ? factory(exports, __webpack_require__(5513)) : 0;
+   true ? factory(exports, __webpack_require__(2302)) : 0;
 })(this, function (exports, localforage) {
   'use strict';
 
@@ -8543,21 +8543,21 @@ SOFTWARE.
 
 /***/ }),
 
-/***/ 2734:
+/***/ 4217:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(8135);
+var _interopRequireDefault = __webpack_require__(6733);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = createDriver;
-var _regenerator = _interopRequireDefault(__webpack_require__(1117));
-var _defineProperty2 = _interopRequireDefault(__webpack_require__(1514));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(9563));
-var _utils = __webpack_require__(8413);
+var _regenerator = _interopRequireDefault(__webpack_require__(7077));
+var _defineProperty2 = _interopRequireDefault(__webpack_require__(355));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(8308));
+var _utils = __webpack_require__(8161);
 function createDriver(name, property) {
   var storage = (0, _utils.getStorage)();
   var support = !!(storage && storage[property]);
@@ -8754,43 +8754,43 @@ function createDriver(name, property) {
 
 /***/ }),
 
-/***/ 5914:
+/***/ 3484:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 var __webpack_unused_export__;
 
 
-var _interopRequireDefault = __webpack_require__(8135);
+var _interopRequireDefault = __webpack_require__(6733);
 __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _driver = _interopRequireDefault(__webpack_require__(2734));
+var _driver = _interopRequireDefault(__webpack_require__(4217));
 var _default = (0, _driver["default"])('webExtensionLocalStorage', 'local');
 exports.Z = _default;
 
 /***/ }),
 
-/***/ 5848:
+/***/ 8146:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 var __webpack_unused_export__;
 
 
-var _interopRequireDefault = __webpack_require__(8135);
+var _interopRequireDefault = __webpack_require__(6733);
 __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _driver = _interopRequireDefault(__webpack_require__(2734));
+var _driver = _interopRequireDefault(__webpack_require__(4217));
 var _default = (0, _driver["default"])('webExtensionSyncStorage', 'sync');
 exports.Z = _default;
 
 /***/ }),
 
-/***/ 8413:
+/***/ 8161:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -8840,7 +8840,7 @@ function usePromise(fn, arg) {
 
 /***/ }),
 
-/***/ 5513:
+/***/ 2302:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*!
@@ -11384,7 +11384,7 @@ function usePromise(fn, arg) {
 
 /***/ }),
 
-/***/ 3568:
+/***/ 7620:
 /***/ ((module, exports, __webpack_require__) => {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -13512,7 +13512,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
 /***/ }),
 
-/***/ 6293:
+/***/ 1149:
 /***/ ((module, exports, __webpack_require__) => {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;/* global window, exports, define */
@@ -13743,7 +13743,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/* global window, exports, define */
 
 /***/ }),
 
-/***/ 7939:
+/***/ 7949:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -13921,7 +13921,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
 /***/ }),
 
-/***/ 3338:
+/***/ 7341:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -14172,7 +14172,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
 /***/ }),
 
-/***/ 9988:
+/***/ 5168:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -14193,10 +14193,10 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   // https://github.com/umdjs/umd/blob/master/returnExports.js
   if ( true && module.exports) {
     // Node
-    module.exports = factory(__webpack_require__(7562), __webpack_require__(7939), __webpack_require__(3338));
+    module.exports = factory(__webpack_require__(3658), __webpack_require__(7949), __webpack_require__(7341));
   } else if (true) {
     // AMD. Register as an anonymous module.
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(7562), __webpack_require__(7939), __webpack_require__(3338)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(3658), __webpack_require__(7949), __webpack_require__(7341)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
 		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
 		(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
@@ -16240,7 +16240,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 /***/ }),
 
-/***/ 7562:
+/***/ 3658:
 /***/ (function(module, exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
@@ -16735,7 +16735,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/punycode v1.4.0 by @mathia
 
 /***/ }),
 
-/***/ 3263:
+/***/ 4847:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -23052,24 +23052,27 @@ function getDummyXMLDOMDocument() {
   return document.implementation.createDocument('jabber:client', 'strophe', null);
 }
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/constants.js
-/** Constants: XMPP Namespace Constants
- *  Common namespace constants from the XMPP RFCs and XEPs.
+/**
+ * Common namespace constants from the XMPP RFCs and XEPs.
  *
- *  Strophe.NS.HTTPBIND - HTTP BIND namespace from XEP 124.
- *  Strophe.NS.BOSH - BOSH namespace from XEP 206.
- *  Strophe.NS.CLIENT - Main XMPP client namespace.
- *  Strophe.NS.AUTH - Legacy authentication namespace.
- *  Strophe.NS.ROSTER - Roster operations namespace.
- *  Strophe.NS.PROFILE - Profile namespace.
- *  Strophe.NS.DISCO_INFO - Service discovery info namespace from XEP 30.
- *  Strophe.NS.DISCO_ITEMS - Service discovery items namespace from XEP 30.
- *  Strophe.NS.MUC - Multi-User Chat namespace from XEP 45.
- *  Strophe.NS.SASL - XMPP SASL namespace from RFC 3920.
- *  Strophe.NS.STREAM - XMPP Streams namespace from RFC 3920.
- *  Strophe.NS.BIND - XMPP Binding namespace from RFC 3920 and RFC 6120.
- *  Strophe.NS.SESSION - XMPP Session namespace from RFC 3920.
- *  Strophe.NS.XHTML_IM - XHTML-IM namespace from XEP 71.
- *  Strophe.NS.XHTML - XHTML body namespace from XEP 71.
+ * @typedef { Object } NS
+ * @property {string} NS.HTTPBIND - HTTP BIND namespace from XEP 124.
+ * @property {string} NS.BOSH - BOSH namespace from XEP 206.
+ * @property {string} NS.CLIENT - Main XMPP client namespace.
+ * @property {string} NS.AUTH - Legacy authentication namespace.
+ * @property {string} NS.ROSTER - Roster operations namespace.
+ * @property {string} NS.PROFILE - Profile namespace.
+ * @property {string} NS.DISCO_INFO - Service discovery info namespace from XEP 30.
+ * @property {string} NS.DISCO_ITEMS - Service discovery items namespace from XEP 30.
+ * @property {string} NS.MUC - Multi-User Chat namespace from XEP 45.
+ * @property {string} NS.SASL - XMPP SASL namespace from RFC 3920.
+ * @property {string} NS.STREAM - XMPP Streams namespace from RFC 3920.
+ * @property {string} NS.BIND - XMPP Binding namespace from RFC 3920 and RFC 6120.
+ * @property {string} NS.SESSION - XMPP Session namespace from RFC 3920.
+ * @property {string} NS.XHTML_IM - XHTML-IM namespace from XEP 71.
+ * @property {string} NS.XHTML - XHTML body namespace from XEP 71.
+ * @property {string} NS.STANZAS
+ * @property {string} NS.FRAMING
  */
 const NS = {
   HTTPBIND: 'http://jabber.org/protocol/httpbind',
@@ -23092,47 +23095,57 @@ const NS = {
   XHTML: 'http://www.w3.org/1999/xhtml'
 };
 
-/** Constants: XHTML_IM Namespace
- *  contains allowed tags, tag attributes, and css properties.
- *  Used in the createHtml function to filter incoming html into the allowed XHTML-IM subset.
- *  See http://xmpp.org/extensions/xep-0071.html#profile-summary for the list of recommended
- *  allowed tags and their attributes.
+/**
+ * Contains allowed tags, tag attributes, and css properties.
+ * Used in the {@link Strophe.createHtml} function to filter incoming html into the allowed XHTML-IM subset.
+ * See [XEP-0071](http://xmpp.org/extensions/xep-0071.html#profile-summary) for the list of recommended
+ * allowed tags and their attributes.
  */
 const XHTML = {
   tags: ['a', 'blockquote', 'br', 'cite', 'em', 'img', 'li', 'ol', 'p', 'span', 'strong', 'ul', 'body'],
   attributes: {
     'a': ['href'],
     'blockquote': ['style'],
+    /** @type {never[]} */
     'br': [],
     'cite': ['style'],
+    /** @type {never[]} */
     'em': [],
     'img': ['src', 'alt', 'style', 'height', 'width'],
     'li': ['style'],
     'ol': ['style'],
     'p': ['style'],
     'span': ['style'],
+    /** @type {never[]} */
     'strong': [],
     'ul': ['style'],
+    /** @type {never[]} */
     'body': []
   },
   css: ['background-color', 'color', 'font-family', 'font-size', 'font-style', 'font-weight', 'margin-left', 'margin-right', 'text-align', 'text-decoration']
 };
 
-/** Constants: Connection Status Constants
- *  Connection status constants for use by the connection handler
- *  callback.
+/** @typedef {number} connstatus */
+
+/**
+ * Connection status constants for use by the connection handler
+ * callback.
  *
- *  Strophe.Status.ERROR - An error has occurred
- *  Strophe.Status.CONNECTING - The connection is currently being made
- *  Strophe.Status.CONNFAIL - The connection attempt failed
- *  Strophe.Status.AUTHENTICATING - The connection is authenticating
- *  Strophe.Status.AUTHFAIL - The authentication attempt failed
- *  Strophe.Status.CONNECTED - The connection has succeeded
- *  Strophe.Status.DISCONNECTED - The connection has been terminated
- *  Strophe.Status.DISCONNECTING - The connection is currently being terminated
- *  Strophe.Status.ATTACHED - The connection has been attached
- *  Strophe.Status.REDIRECT - The connection has been redirected
- *  Strophe.Status.CONNTIMEOUT - The connection has timed out
+ * @typedef {Object} Status
+ * @property {connstatus} Status.ERROR - An error has occurred
+ * @property {connstatus} Status.CONNECTING - The connection is currently being made
+ * @property {connstatus} Status.CONNFAIL - The connection attempt failed
+ * @property {connstatus} Status.AUTHENTICATING - The connection is authenticating
+ * @property {connstatus} Status.AUTHFAIL - The authentication attempt failed
+ * @property {connstatus} Status.CONNECTED - The connection has succeeded
+ * @property {connstatus} Status.DISCONNECTED - The connection has been terminated
+ * @property {connstatus} Status.DISCONNECTING - The connection is currently being terminated
+ * @property {connstatus} Status.ATTACHED - The connection has been attached
+ * @property {connstatus} Status.REDIRECT - The connection has been redirected
+ * @property {connstatus} Status.CONNTIMEOUT - The connection has timed out
+ * @property {connstatus} Status.BINDREQUIRED - The JID resource needs to be bound for this session
+ * @property {connstatus} Status.ATTACHFAIL - Failed to attach to a pre-existing session
+ * @property {connstatus} Status.RECONNECTING - Not used by Strophe, but added for integrators
  */
 const Status = {
   ERROR: 0,
@@ -23147,7 +23160,8 @@ const Status = {
   REDIRECT: 9,
   CONNTIMEOUT: 10,
   BINDREQUIRED: 11,
-  ATTACHFAIL: 12
+  ATTACHFAIL: 12,
+  RECONNECTING: 13
 };
 const ErrorCondition = {
   BAD_FORMAT: 'bad-format',
@@ -23157,14 +23171,23 @@ const ErrorCondition = {
   UNKNOWN_REASON: 'unknown'
 };
 
-/** Constants: Log Level Constants
- *  Logging level indicators.
+/**
+ * @typedef {Object} LogLevel
+ * @property {string} DEBUG
+ * @property {string} INFO
+ * @property {string} WARN
+ * @property {string} ERROR
+ * @property {string} FATAL
+ */
+
+/**
+ * Logging level indicators.
  *
- *  Strophe.LogLevel.DEBUG - Debug output
- *  Strophe.LogLevel.INFO - Informational output
- *  Strophe.LogLevel.WARN - Warnings
- *  Strophe.LogLevel.ERROR - Errors
- *  Strophe.LogLevel.FATAL - Fatal errors
+ * - Strophe.LogLevel.DEBUG - Debug output
+ * - Strophe.LogLevel.INFO - Informational output
+ * - Strophe.LogLevel.WARN - Warnings
+ * - Strophe.LogLevel.ERROR - Errors
+ * - Strophe.LogLevel.FATAL - Fatal errors
  */
 const LogLevel = {
   DEBUG: 0,
@@ -23174,12 +23197,12 @@ const LogLevel = {
   FATAL: 4
 };
 
-/** PrivateConstants: DOM Element Type Constants
- *  DOM element types.
+/**
+ * DOM element types.
  *
- *  ElementType.NORMAL - Normal element.
- *  ElementType.TEXT - Text data element.
- *  ElementType.FRAGMENT - XHTML fragment element.
+ * - ElementType.NORMAL - Normal element.
+ * - ElementType.TEXT - Text data element.
+ * - ElementType.FRAGMENT - XHTML fragment element.
  */
 const ElementType = {
   NORMAL: 1,
@@ -23187,28 +23210,278 @@ const ElementType = {
   CDATA: 4,
   FRAGMENT: 11
 };
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/builder.js
 
-/** PrivateConstants: Timeout Values
- *  Timeout values for error states.  These values are in seconds.
- *  These should not be changed unless you know exactly what you are
- *  doing.
- *
- *  TIMEOUT - Timeout multiplier. A waiting request will be considered
- *      failed after Math.floor(TIMEOUT * wait) seconds have elapsed.
- *      This defaults to 1.1, and with default wait, 66 seconds.
- *  SECONDARY_TIMEOUT - Secondary timeout multiplier. In cases where
- *      Strophe can detect early failure, it will consider the request
- *      failed if it doesn't return after
- *      Math.floor(SECONDARY_TIMEOUT * wait) seconds have elapsed.
- *      This defaults to 0.1, and with default wait, 6 seconds.
+
+
+/**
+ * Create a {@link Strophe.Builder}
+ * This is an alias for `new Strophe.Builder(name, attrs)`.
+ * @param {string} name - The root element name.
+ * @param {Object.<string,string|number>} [attrs] - The attributes for the root element in object notation.
+ * @return {Builder} A new Strophe.Builder object.
  */
-const TIMEOUT = 1.1;
-const SECONDARY_TIMEOUT = 0.1;
+function $build(name, attrs) {
+  return new Builder(name, attrs);
+}
+
+/**
+ * Create a {@link Strophe.Builder} with a `<message/>` element as the root.
+ * @param {Object.<string,string>} [attrs] - The <message/> element attributes in object notation.
+ * @return {Builder} A new Strophe.Builder object.
+ */
+function $msg(attrs) {
+  return new Builder('message', attrs);
+}
+
+/**
+ * Create a {@link Strophe.Builder} with an `<iq/>` element as the root.
+ * @param {Object.<string,string>} [attrs] - The <iq/> element attributes in object notation.
+ * @return {Builder} A new Strophe.Builder object.
+ */
+function $iq(attrs) {
+  return new Builder('iq', attrs);
+}
+
+/**
+ * Create a {@link Strophe.Builder} with a `<presence/>` element as the root.
+ * @param {Object.<string,string>} [attrs] - The <presence/> element attributes in object notation.
+ * @return {Builder} A new Strophe.Builder object.
+ */
+function $pres(attrs) {
+  return new Builder('presence', attrs);
+}
+
+/**
+ * This class provides an interface similar to JQuery but for building
+ * DOM elements easily and rapidly.  All the functions except for `toString()`
+ * and tree() return the object, so calls can be chained.
+ *
+ * The corresponding DOM manipulations to get a similar fragment would be
+ * a lot more tedious and probably involve several helper variables.
+ *
+ * Since adding children makes new operations operate on the child, up()
+ * is provided to traverse up the tree.  To add two children, do
+ * > builder.c('child1', ...).up().c('child2', ...)
+ *
+ * The next operation on the Builder will be relative to the second child.
+ *
+ * @example
+ *  // Here's an example using the $iq() builder helper.
+ *  $iq({to: 'you', from: 'me', type: 'get', id: '1'})
+ *      .c('query', {xmlns: 'strophe:example'})
+ *      .c('example')
+ *      .toString()
+ *
+ *  // The above generates this XML fragment
+ *  //  <iq to='you' from='me' type='get' id='1'>
+ *  //    <query xmlns='strophe:example'>
+ *  //      <example/>
+ *  //    </query>
+ *  //  </iq>
+ */
+class Builder {
+  /**
+   * @typedef {Object.<string, string|number>} StanzaAttrs
+   * @property {string} [StanzaAttrs.xmlns]
+   */
+
+  /**
+   * The attributes should be passed in object notation.
+   * @param {string} name - The name of the root element.
+   * @param {StanzaAttrs} [attrs] - The attributes for the root element in object notation.
+   * @example const b = new Builder('message', {to: 'you', from: 'me'});
+   * @example const b = new Builder('messsage', {'xml:lang': 'en'});
+   */
+  constructor(name, attrs) {
+    // Set correct namespace for jabber:client elements
+    if (name === 'presence' || name === 'message' || name === 'iq') {
+      if (attrs && !attrs.xmlns) {
+        attrs.xmlns = NS.CLIENT;
+      } else if (!attrs) {
+        attrs = {
+          xmlns: NS.CLIENT
+        };
+      }
+    }
+    // Holds the tree being built.
+    this.nodeTree = xmlElement(name, attrs);
+    // Points to the current operation node.
+    this.node = this.nodeTree;
+  }
+
+  /**
+   * Return the DOM tree.
+   *
+   * This function returns the current DOM tree as an element object.  This
+   * is suitable for passing to functions like Strophe.Connection.send().
+   *
+   * @return {Element} The DOM tree as a element object.
+   */
+  tree() {
+    return this.nodeTree;
+  }
+
+  /**
+   * Serialize the DOM tree to a String.
+   *
+   * This function returns a string serialization of the current DOM
+   * tree.  It is often used internally to pass data to a
+   * Strophe.Request object.
+   *
+   * @return {string} The serialized DOM tree in a String.
+   */
+  toString() {
+    return serialize(this.nodeTree);
+  }
+
+  /**
+   * Make the current parent element the new current element.
+   * This function is often used after c() to traverse back up the tree.
+   *
+   * @example
+   *  // For example, to add two children to the same element
+   *  builder.c('child1', {}).up().c('child2', {});
+   *
+   * @return {Builder} The Strophe.Builder object.
+   */
+  up() {
+    this.node = this.node.parentElement;
+    return this;
+  }
+
+  /**
+   * Make the root element the new current element.
+   *
+   * When at a deeply nested element in the tree, this function can be used
+   * to jump back to the root of the tree, instead of having to repeatedly
+   * call up().
+   *
+   * @return {Builder} The Strophe.Builder object.
+   */
+  root() {
+    this.node = this.nodeTree;
+    return this;
+  }
+
+  /**
+   * Add or modify attributes of the current element.
+   *
+   * The attributes should be passed in object notation.
+   * This function does not move the current element pointer.
+   * @param {Object.<string, string|number|null>} moreattrs - The attributes to add/modify in object notation.
+   *  If an attribute is set to `null` or `undefined`, it will be removed.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  attrs(moreattrs) {
+    for (const k in moreattrs) {
+      if (Object.prototype.hasOwnProperty.call(moreattrs, k)) {
+        // eslint-disable-next-line no-eq-null
+        if (moreattrs[k] != null) {
+          this.node.setAttribute(k, moreattrs[k].toString());
+        } else {
+          this.node.removeAttribute(k);
+        }
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Add a child to the current element and make it the new current
+   * element.
+   *
+   * This function moves the current element pointer to the child,
+   * unless text is provided.  If you need to add another child, it
+   * is necessary to use up() to go back to the parent in the tree.
+   *
+   * @param {string} name - The name of the child.
+   * @param {Object.<string, string>|string} [attrs] - The attributes of the child in object notation.
+   * @param {string} [text] - The text to add to the child.
+   *
+   * @return {Builder} The Strophe.Builder object.
+   */
+  c(name, attrs, text) {
+    const child = xmlElement(name, attrs, text);
+    this.node.appendChild(child);
+    if (typeof text !== 'string' && typeof text !== 'number') {
+      this.node = child;
+    }
+    return this;
+  }
+
+  /**
+   * Add a child to the current element and make it the new current
+   * element.
+   *
+   * This function is the same as c() except that instead of using a
+   * name and an attributes object to create the child it uses an
+   * existing DOM element object.
+   *
+   * @param {Element} elem - A DOM element.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  cnode(elem) {
+    let impNode;
+    const xmlGen = xmlGenerator();
+    try {
+      impNode = xmlGen.importNode !== undefined;
+    } catch (e) {
+      impNode = false;
+    }
+    const newElem = impNode ? xmlGen.importNode(elem, true) : copyElement(elem);
+    this.node.appendChild(newElem);
+    this.node = /** @type {Element} */newElem;
+    return this;
+  }
+
+  /**
+   * Add a child text element.
+   *
+   * This *does not* make the child the new current element since there
+   * are no children of text elements.
+   *
+   * @param {string} text - The text data to append to the current element.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  t(text) {
+    const child = xmlTextNode(text);
+    this.node.appendChild(child);
+    return this;
+  }
+
+  /**
+   * Replace current element contents with the HTML passed in.
+   *
+   * This *does not* make the child the new current element
+   *
+   * @param {string} html - The html to insert as contents of current element.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  h(html) {
+    const fragment = xmlGenerator().createElement('body');
+    // force the browser to try and fix any invalid HTML tags
+    fragment.innerHTML = html;
+    // copy cleaned html into an xml dom
+    const xhtml = createHtml(fragment);
+    while (xhtml.childNodes.length > 0) {
+      this.node.appendChild(xhtml.childNodes[0]);
+    }
+    return this;
+  }
+}
+/* harmony default export */ const builder = (Builder);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/utils.js
-/* global btoa, ActiveXObject */
+/* global btoa */
 
 
 
+
+
+/**
+ * @param {string} str
+ * @return {string}
+ */
 function utf16to8(str) {
   let out = '';
   const len = str.length;
@@ -23227,6 +23500,11 @@ function utf16to8(str) {
   }
   return out;
 }
+
+/**
+ * @param {ArrayBufferLike} x
+ * @param {ArrayBufferLike} y
+ */
 function xorArrayBuffers(x, y) {
   const xIntArray = new Uint8Array(x);
   const yIntArray = new Uint8Array(y);
@@ -23236,6 +23514,11 @@ function xorArrayBuffers(x, y) {
   }
   return zIntArray.buffer;
 }
+
+/**
+ * @param {ArrayBufferLike} buffer
+ * @return {string}
+ */
 function arrayBufToBase64(buffer) {
   // This function is due to mobz (https://stackoverflow.com/users/1234628/mobz)
   // and Emmanuel (https://stackoverflow.com/users/288564/emmanuel)
@@ -23247,36 +23530,51 @@ function arrayBufToBase64(buffer) {
   }
   return btoa(binary);
 }
+
+/**
+ * @param {string} str
+ * @return {ArrayBufferLike}
+ */
 function base64ToArrayBuf(str) {
   return Uint8Array.from(atob(str), c => c.charCodeAt(0))?.buffer;
 }
+
+/**
+ * @param {string} str
+ * @return {ArrayBufferLike}
+ */
 function stringToArrayBuf(str) {
-  const bytes = new TextEncoder('utf-8').encode(str);
+  const bytes = new TextEncoder().encode(str);
   return bytes.buffer;
 }
+
+/**
+ * @param {Cookies} cookies
+ */
 function addCookies(cookies) {
   if (typeof document === 'undefined') {
-    Strophe.log(Strophe.LogLevel.ERROR, `addCookies: not adding any cookies, since there's no document object`);
+    core.log(core.LogLevel.ERROR, `addCookies: not adding any cookies, since there's no document object`);
   }
 
-  /* Parameters:
-   *  (Object) cookies - either a map of cookie names
-   *    to string values or to maps of cookie values.
+  /**
+   * @typedef {Object.<string, string>} Cookie
+   *
+   * A map of cookie names to string values or to maps of cookie values.
+   * @typedef {Cookie|Object.<string, Cookie>} Cookies
    *
    * For example:
    * { "myCookie": "1234" }
    *
    * or:
    * { "myCookie": {
-   *      "value": "1234",
-   *      "domain": ".example.org",
-   *      "path": "/",
-   *      "expires": expirationDate
-   *      }
-   *  }
+   *    "value": "1234",
+   *    "domain": ".example.org",
+   *    "path": "/",
+   *    "expires": expirationDate
+   *    }
+   * }
    *
-   *  These values get passed to Strophe.Connection via
-   *   options.cookies
+   * These values get passed to {@link Strophe.Connection} via options.cookies
    */
   cookies = cookies || {};
   for (const cookieName in cookies) {
@@ -23296,13 +23594,13 @@ function addCookies(cookies) {
     }
   }
 }
+
+/** @type {Document} */
 let _xmlGenerator = null;
 
-/** Function: Strophe.xmlGenerator
- *  Get the DOM document to generate elements.
- *
- *  Returns:
- *    The currently used DOM document.
+/**
+ * Get the DOM document to generate elements.
+ * @return {Document} - The currently used DOM document.
  */
 function xmlGenerator() {
   if (!_xmlGenerator) {
@@ -23311,100 +23609,81 @@ function xmlGenerator() {
   return _xmlGenerator;
 }
 
-/** Function: Strophe.xmlTextNode
- *  Creates an XML DOM text node.
- *
- *  Provides a cross implementation version of document.createTextNode.
- *
- *  Parameters:
- *    (String) text - The content of the text node.
- *
- *  Returns:
- *    A new XML DOM text node.
+/**
+ * Creates an XML DOM text node.
+ * Provides a cross implementation version of document.createTextNode.
+ * @param {string} text - The content of the text node.
+ * @return {Text} - A new XML DOM text node.
  */
 function xmlTextNode(text) {
   return xmlGenerator().createTextNode(text);
 }
 
-/** Function: Strophe.xmlHtmlNode
- *  Creates an XML DOM html node.
- *
- *  Parameters:
- *    (String) html - The content of the html node.
- *
- *  Returns:
- *    A new XML DOM text node.
+/**
+ * Creates an XML DOM node.
+ * @param {string} html - The content of the html node.
+ * @return {XMLDocument}
  */
 function xmlHtmlNode(html) {
-  let node;
-  //ensure text is escaped
-  if (DOMParser) {
-    const parser = new DOMParser();
-    node = parser.parseFromString(html, 'text/xml');
-  } else {
-    node = new ActiveXObject('Microsoft.XMLDOM');
-    node.async = 'false';
-    node.loadXML(html);
-  }
-  return node;
+  const parser = new DOMParser();
+  return parser.parseFromString(html, 'text/xml');
 }
 
-/** Function: Strophe.xmlElement
- *  Create an XML DOM element.
+/**
+ * Create an XML DOM element.
  *
- *  This function creates an XML DOM element correctly across all
- *  implementations. Note that these are not HTML DOM elements, which
- *  aren't appropriate for XMPP stanzas.
+ * This function creates an XML DOM element correctly across all
+ * implementations. Note that these are not HTML DOM elements, which
+ * aren't appropriate for XMPP stanzas.
  *
- *  Parameters:
- *    (String) name - The name for the element.
- *    (Array|Object) attrs - An optional array or object containing
- *      key/value pairs to use as element attributes. The object should
- *      be in the format {'key': 'value'} or {key: 'value'}. The array
- *      should have the format [['key1', 'value1'], ['key2', 'value2']].
- *    (String) text - The text child data for the element.
+ * @param {string} name - The name for the element.
+ * @param {Array<Array<string>>|Object.<string,string|number>|string|number} [attrs]
+ *    An optional array or object containing
+ *    key/value pairs to use as element attributes.
+ *    The object should be in the format `{'key': 'value'}`.
+ *    The array should have the format `[['key1', 'value1'], ['key2', 'value2']]`.
+ * @param {string|number} [text] - The text child data for the element.
  *
- *  Returns:
- *    A new XML DOM element.
+ * @return {Element} A new XML DOM element.
  */
-function xmlElement(name) {
-  if (!name) {
-    return null;
-  }
+function xmlElement(name, attrs, text) {
+  if (!name) return null;
   const node = xmlGenerator().createElement(name);
-  // FIXME: this should throw errors if args are the wrong type or
-  // there are more than two optional args
-  for (let a = 1; a < arguments.length; a++) {
-    const arg = arguments[a];
-    if (!arg) {
-      continue;
-    }
-    if (typeof arg === 'string' || typeof arg === 'number') {
-      node.appendChild(xmlTextNode(arg));
-    } else if (typeof arg === 'object' && typeof arg.sort === 'function') {
-      for (let i = 0; i < arg.length; i++) {
-        const attr = arg[i];
-        if (typeof attr === 'object' && typeof attr.sort === 'function' && attr[1] !== undefined && attr[1] !== null) {
+  if (text && (typeof text === 'string' || typeof text === 'number')) {
+    node.appendChild(xmlTextNode(text.toString()));
+  } else if (typeof attrs === 'string' || typeof attrs === 'number') {
+    node.appendChild(xmlTextNode( /** @type {number|string} */attrs.toString()));
+    return node;
+  } else if (!attrs) {
+    return node;
+  }
+  if (Array.isArray(attrs)) {
+    for (const attr of attrs) {
+      if (Array.isArray(attr)) {
+        // eslint-disable-next-line no-eq-null
+        if (attr[0] != null && attr[1] != null) {
           node.setAttribute(attr[0], attr[1]);
         }
       }
-    } else if (typeof arg === 'object') {
-      for (const k in arg) {
-        if (Object.prototype.hasOwnProperty.call(arg, k) && arg[k] !== undefined && arg[k] !== null) {
-          node.setAttribute(k, arg[k]);
-        }
+    }
+  } else if (typeof attrs === 'object') {
+    for (const k of Object.keys(attrs)) {
+      // eslint-disable-next-line no-eq-null
+      if (k && attrs[k] != null) {
+        node.setAttribute(k, attrs[k].toString());
       }
     }
   }
   return node;
 }
 
-/** Function: Strophe.XHTML.validTag
- *
+/**
  * Utility method to determine whether a tag is allowed
  * in the XHTML_IM namespace.
  *
  * XHTML tag names are case sensitive and must be lower case.
+ * @method Strophe.XHTML.validTag
+ * @param {string} tag
  */
 function validTag(tag) {
   for (let i = 0; i < XHTML.tags.length; i++) {
@@ -23415,17 +23694,24 @@ function validTag(tag) {
   return false;
 }
 
-/** Function: Strophe.XHTML.validAttribute
- *
+/**
+ * @typedef {'a'|'blockquote'|'br'|'cite'|'em'|'img'|'li'|'ol'|'p'|'span'|'strong'|'ul'|'body'} XHTMLAttrs
+ */
+
+/**
  * Utility method to determine whether an attribute is allowed
  * as recommended per XEP-0071
  *
  * XHTML attribute names are case sensitive and must be lower case.
+ * @method Strophe.XHTML.validAttribute
+ * @param {string} tag
+ * @param {string} attribute
  */
 function validAttribute(tag, attribute) {
-  if (typeof XHTML.attributes[tag] !== 'undefined' && XHTML.attributes[tag].length > 0) {
-    for (let i = 0; i < XHTML.attributes[tag].length; i++) {
-      if (attribute === XHTML.attributes[tag][i]) {
+  const attrs = XHTML.attributes[/** @type {XHTMLAttrs} */tag];
+  if (attrs?.length > 0) {
+    for (let i = 0; i < attrs.length; i++) {
+      if (attribute === attrs[i]) {
         return true;
       }
     }
@@ -23433,7 +23719,10 @@ function validAttribute(tag, attribute) {
   return false;
 }
 
-/** Function: Strophe.XHTML.validCSS */
+/**
+ * @method Strophe.XHTML.validCSS
+ * @param {string} style
+ */
 function validCSS(style) {
   for (let i = 0; i < XHTML.css.length; i++) {
     if (style === XHTML.css[i]) {
@@ -23443,35 +23732,32 @@ function validCSS(style) {
   return false;
 }
 
-/** Function: Strophe.createHtml
- *
- *  Copy an HTML DOM element into an XML DOM.
- *
- *  This function copies a DOM element and all its descendants and returns
- *  the new copy.
- *
- *  Parameters:
- *    (HTMLElement) elem - A DOM element.
- *
- *  Returns:
- *    A new, copied DOM element tree.
+/**
+ * Copy an HTML DOM Element into an XML DOM.
+ * This function copies a DOM element and all its descendants and returns
+ * the new copy.
+ * @method Strophe.createHtml
+ * @param {HTMLElement} elem - A DOM element.
+ * @return {Node} - A new, copied DOM element tree.
  */
-function createHtml(elem) {
+function createFromHtmlElement(elem) {
   let el;
-  if (elem.nodeType === ElementType.NORMAL) {
-    const tag = elem.nodeName.toLowerCase(); // XHTML tags must be lower case.
-    if (validTag(tag)) {
-      try {
-        el = xmlElement(tag);
-        for (let i = 0; i < XHTML.attributes[tag].length; i++) {
-          const attribute = XHTML.attributes[tag][i];
+  const tag = elem.nodeName.toLowerCase(); // XHTML tags must be lower case.
+  if (validTag(tag)) {
+    try {
+      el = xmlElement(tag);
+      if (tag in XHTML.attributes) {
+        const attrs = XHTML.attributes[/** @type {XHTMLAttrs} */tag];
+        for (let i = 0; i < attrs.length; i++) {
+          const attribute = attrs[i];
           let value = elem.getAttribute(attribute);
-          if (typeof value === 'undefined' || value === null || value === '' || value === false || value === 0) {
+          if (typeof value === 'undefined' || value === null || value === '') {
             continue;
           }
-          if (attribute === 'style' && typeof value === 'object' && typeof value.cssText !== 'undefined') {
-            value = value.cssText; // we're dealing with IE, need to get CSS out
+          if (attribute === 'style' && typeof value === 'object') {
+            value = /** @type {Object.<'csstext',string>} */value.cssText ?? value; // we're dealing with IE, need to get CSS out
           }
+
           // filter out invalid css styles
           if (attribute === 'style') {
             const css = [];
@@ -23495,63 +23781,73 @@ function createHtml(elem) {
         for (let i = 0; i < elem.childNodes.length; i++) {
           el.appendChild(createHtml(elem.childNodes[i]));
         }
-      } catch (e) {
-        // invalid elements
-        el = xmlTextNode('');
       }
-    } else {
-      el = xmlGenerator().createDocumentFragment();
-      for (let i = 0; i < elem.childNodes.length; i++) {
-        el.appendChild(createHtml(elem.childNodes[i]));
-      }
+    } catch (e) {
+      // invalid elements
+      el = xmlTextNode('');
     }
-  } else if (elem.nodeType === ElementType.FRAGMENT) {
+  } else {
     el = xmlGenerator().createDocumentFragment();
     for (let i = 0; i < elem.childNodes.length; i++) {
       el.appendChild(createHtml(elem.childNodes[i]));
     }
-  } else if (elem.nodeType === ElementType.TEXT) {
-    el = xmlTextNode(elem.nodeValue);
   }
   return el;
 }
 
-/** Function: Strophe.copyElement
- *  Copy an XML DOM element.
- *
- *  This function copies a DOM element and all its descendants and returns
- *  the new copy.
- *
- *  Parameters:
- *    (XMLElement) elem - A DOM element.
- *
- *  Returns:
- *    A new, copied DOM element tree.
+/**
+ * Copy an HTML DOM Node into an XML DOM.
+ * This function copies a DOM element and all its descendants and returns
+ * the new copy.
+ * @method Strophe.createHtml
+ * @param {Node} node - A DOM element.
+ * @return {Node} - A new, copied DOM element tree.
  */
-function copyElement(elem) {
-  let el;
-  if (elem.nodeType === ElementType.NORMAL) {
-    el = xmlElement(elem.tagName);
-    for (let i = 0; i < elem.attributes.length; i++) {
-      el.setAttribute(elem.attributes[i].nodeName, elem.attributes[i].value);
+function createHtml(node) {
+  if (node.nodeType === ElementType.NORMAL) {
+    return createFromHtmlElement( /** @type {HTMLElement} */node);
+  } else if (node.nodeType === ElementType.FRAGMENT) {
+    const el = xmlGenerator().createDocumentFragment();
+    for (let i = 0; i < node.childNodes.length; i++) {
+      el.appendChild(createHtml(node.childNodes[i]));
     }
-    for (let i = 0; i < elem.childNodes.length; i++) {
-      el.appendChild(copyElement(elem.childNodes[i]));
-    }
-  } else if (elem.nodeType === ElementType.TEXT) {
-    el = xmlGenerator().createTextNode(elem.nodeValue);
+    return el;
+  } else if (node.nodeType === ElementType.TEXT) {
+    return xmlTextNode(node.nodeValue);
   }
-  return el;
 }
 
-/*  Function: Strophe.xmlescape
- *  Excapes invalid xml characters.
+/**
+ * Copy an XML DOM element.
  *
- *  Parameters:
- *     (String) text - text to escape.
- *
- *  Returns:
- *      Escaped text.
+ * This function copies a DOM element and all its descendants and returns
+ * the new copy.
+ * @method Strophe.copyElement
+ * @param {Node} node - A DOM element.
+ * @return {Element|Text} - A new, copied DOM element tree.
+ */
+function copyElement(node) {
+  let out;
+  if (node.nodeType === ElementType.NORMAL) {
+    const el = /** @type {Element} */node;
+    out = xmlElement(el.tagName);
+    for (let i = 0; i < el.attributes.length; i++) {
+      out.setAttribute(el.attributes[i].nodeName, el.attributes[i].value);
+    }
+    for (let i = 0; i < el.childNodes.length; i++) {
+      out.appendChild(copyElement(el.childNodes[i]));
+    }
+  } else if (node.nodeType === ElementType.TEXT) {
+    out = xmlGenerator().createTextNode(node.nodeValue);
+  }
+  return out;
+}
+
+/**
+ * Excapes invalid xml characters.
+ * @method Strophe.xmlescape
+ * @param {string} text - text to escape.
+ * @return {string} - Escaped text.
  */
 function xmlescape(text) {
   text = text.replace(/\&/g, '&amp;');
@@ -23562,14 +23858,11 @@ function xmlescape(text) {
   return text;
 }
 
-/*  Function: Strophe.xmlunescape
- *  Unexcapes invalid xml characters.
- *
- *  Parameters:
- *     (String) text - text to unescape.
- *
- *  Returns:
- *      Unescaped text.
+/**
+ * Unexcapes invalid xml characters.
+ * @method Strophe.xmlunescape
+ * @param {string} text - text to unescape.
+ * @return {string} - Unescaped text.
  */
 function xmlunescape(text) {
   text = text.replace(/\&amp;/g, '&');
@@ -23580,33 +23873,26 @@ function xmlunescape(text) {
   return text;
 }
 
-/** Function: Strophe.serialize
- *  Render a DOM element and all descendants to a String.
- *
- *  Parameters:
- *    (XMLElement) elem - A DOM element.
- *
- *  Returns:
- *    The serialized element tree as a String.
+/**
+ * Render a DOM element and all descendants to a String.
+ * @method Strophe.serialize
+ * @param {Element|Builder} elem - A DOM element.
+ * @return {string} - The serialized element tree as a String.
  */
 function serialize(elem) {
-  if (!elem) {
-    return null;
-  }
-  if (typeof elem.tree === 'function') {
-    elem = elem.tree();
-  }
-  const names = [...Array(elem.attributes.length).keys()].map(i => elem.attributes[i].nodeName);
+  if (!elem) return null;
+  const el = elem instanceof builder ? elem.tree() : elem;
+  const names = [...Array(el.attributes.length).keys()].map(i => el.attributes[i].nodeName);
   names.sort();
-  let result = names.reduce((a, n) => `${a} ${n}="${xmlescape(elem.attributes.getNamedItem(n).value)}"`, `<${elem.nodeName}`);
-  if (elem.childNodes.length > 0) {
+  let result = names.reduce((a, n) => `${a} ${n}="${xmlescape(el.attributes.getNamedItem(n).value)}"`, `<${el.nodeName}`);
+  if (el.childNodes.length > 0) {
     result += '>';
-    for (let i = 0; i < elem.childNodes.length; i++) {
-      const child = elem.childNodes[i];
+    for (let i = 0; i < el.childNodes.length; i++) {
+      const child = el.childNodes[i];
       switch (child.nodeType) {
         case ElementType.NORMAL:
           // normal element, so recurse
-          result += serialize(child);
+          result += serialize( /** @type {Element} */child);
           break;
         case ElementType.TEXT:
           // text element to escape values
@@ -23617,26 +23903,26 @@ function serialize(elem) {
           result += '<![CDATA[' + child.nodeValue + ']]>';
       }
     }
-    result += '</' + elem.nodeName + '>';
+    result += '</' + el.nodeName + '>';
   } else {
     result += '/>';
   }
   return result;
 }
 
-/** Function: Strophe.forEachChild
- *  Map a function over some or all child elements of a given element.
+/**
+ * Map a function over some or all child elements of a given element.
  *
- *  This is a small convenience function for mapping a function over
- *  some or all of the children of an element.  If elemName is null, all
- *  children will be passed to the function, otherwise only children
- *  whose tag names match elemName will be passed.
+ * This is a small convenience function for mapping a function over
+ * some or all of the children of an element.  If elemName is null, all
+ * children will be passed to the function, otherwise only children
+ * whose tag names match elemName will be passed.
  *
- *  Parameters:
- *    (XMLElement) elem - The element to operate on.
- *    (String) elemName - The child element tag name filter.
- *    (Function) func - The function to apply to each child.  This
- *      function should take a single argument, a DOM element.
+ * @method Strophe.forEachChild
+ * @param {Element} elem - The element to operate on.
+ * @param {string} elemName - The child element tag name filter.
+ * @param {Function} func - The function to apply to each child.  This
+ *    function should take a single argument, a DOM element.
  */
 function forEachChild(elem, elemName, func) {
   for (let i = 0; i < elem.childNodes.length; i++) {
@@ -23647,31 +23933,25 @@ function forEachChild(elem, elemName, func) {
   }
 }
 
-/** Function: Strophe.isTagEqual
- *  Compare an element's tag name with a string.
- *
- *  This function is case sensitive.
- *
- *  Parameters:
- *    (XMLElement) el - A DOM element.
- *    (String) name - The element name.
- *
- *  Returns:
- *    true if the element's tag name matches _el_, and false
- *    otherwise.
+/**
+ * Compare an element's tag name with a string.
+ * This function is case sensitive.
+ * @method Strophe.isTagEqual
+ * @param {Element} el - A DOM element.
+ * @param {string} name - The element name.
+ * @return {boolean}
+ *  true if the element's tag name matches _el_, and false
+ *  otherwise.
  */
 function isTagEqual(el, name) {
   return el.tagName === name;
 }
 
-/** Function: Strophe.getText
- *  Get the concatenation of all text children of an element.
- *
- *  Parameters:
- *    (XMLElement) elem - A DOM element.
- *
- *  Returns:
- *    A String with the concatenated text of all text element children.
+/**
+ * Get the concatenation of all text children of an element.
+ * @method Strophe.getText
+ * @param {Element} elem - A DOM element.
+ * @return {string} - A String with the concatenated text of all text element children.
  */
 function getText(elem) {
   if (!elem) {
@@ -23689,14 +23969,11 @@ function getText(elem) {
   return xmlescape(str);
 }
 
-/** Function: Strophe.escapeNode
- *  Escape the node part (also called local part) of a JID.
- *
- *  Parameters:
- *    (String) node - A node (or local part).
- *
- *  Returns:
- *    An escaped node (or local part).
+/**
+ * Escape the node part (also called local part) of a JID.
+ * @method Strophe.escapeNode
+ * @param {string} node - A node (or local part).
+ * @return {string} An escaped node (or local part).
  */
 function escapeNode(node) {
   if (typeof node !== 'string') {
@@ -23705,14 +23982,11 @@ function escapeNode(node) {
   return node.replace(/^\s+|\s+$/g, '').replace(/\\/g, '\\5c').replace(/ /g, '\\20').replace(/\"/g, '\\22').replace(/\&/g, '\\26').replace(/\'/g, '\\27').replace(/\//g, '\\2f').replace(/:/g, '\\3a').replace(/</g, '\\3c').replace(/>/g, '\\3e').replace(/@/g, '\\40');
 }
 
-/** Function: Strophe.unescapeNode
- *  Unescape a node part (also called local part) of a JID.
- *
- *  Parameters:
- *    (String) node - A node (or local part).
- *
- *  Returns:
- *    An unescaped node (or local part).
+/**
+ * Unescape a node part (also called local part) of a JID.
+ * @method Strophe.unescapeNode
+ * @param {string} node - A node (or local part).
+ * @return {string} An unescaped node (or local part).
  */
 function unescapeNode(node) {
   if (typeof node !== 'string') {
@@ -23721,14 +23995,11 @@ function unescapeNode(node) {
   return node.replace(/\\20/g, ' ').replace(/\\22/g, '"').replace(/\\26/g, '&').replace(/\\27/g, "'").replace(/\\2f/g, '/').replace(/\\3a/g, ':').replace(/\\3c/g, '<').replace(/\\3e/g, '>').replace(/\\40/g, '@').replace(/\\5c/g, '\\');
 }
 
-/** Function: Strophe.getNodeFromJid
- *  Get the node portion of a JID String.
- *
- *  Parameters:
- *    (String) jid - A JID.
- *
- *  Returns:
- *    A String containing the node.
+/**
+ * Get the node portion of a JID String.
+ * @method Strophe.getNodeFromJid
+ * @param {string} jid - A JID.
+ * @return {string} - A String containing the node.
  */
 function getNodeFromJid(jid) {
   if (jid.indexOf('@') < 0) {
@@ -23737,14 +24008,11 @@ function getNodeFromJid(jid) {
   return jid.split('@')[0];
 }
 
-/** Function: Strophe.getDomainFromJid
- *  Get the domain portion of a JID String.
- *
- *  Parameters:
- *    (String) jid - A JID.
- *
- *  Returns:
- *    A String containing the domain.
+/**
+ * Get the domain portion of a JID String.
+ * @method Strophe.getDomainFromJid
+ * @param {string} jid - A JID.
+ * @return {string} - A String containing the domain.
  */
 function getDomainFromJid(jid) {
   const bare = getBareJidFromJid(jid);
@@ -23757,14 +24025,11 @@ function getDomainFromJid(jid) {
   }
 }
 
-/** Function: Strophe.getResourceFromJid
- *  Get the resource portion of a JID String.
- *
- *  Parameters:
- *    (String) jid - A JID.
- *
- *  Returns:
- *    A String containing the resource.
+/**
+ * Get the resource portion of a JID String.
+ * @method Strophe.getResourceFromJid
+ * @param {string} jid - A JID.
+ * @return {string} - A String containing the resource.
  */
 function getResourceFromJid(jid) {
   if (!jid) {
@@ -23778,14 +24043,11 @@ function getResourceFromJid(jid) {
   return s.join('/');
 }
 
-/** Function: Strophe.getBareJidFromJid
- *  Get the bare JID from a JID String.
- *
- *  Parameters:
- *    (String) jid - A JID.
- *
- *  Returns:
- *    A String containing the bare JID.
+/**
+ * Get the bare JID from a JID String.
+ * @method Strophe.getBareJidFromJid
+ * @param {string} jid - A JID.
+ * @return {string} - A String containing the bare JID.
  */
 function getBareJidFromJid(jid) {
   return jid ? jid.split('/')[0] : null;
@@ -23799,336 +24061,41 @@ const utils = {
   addCookies
 };
 
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/builder.js
-
-
-
-/** Function: $build
- *  Create a Strophe.Builder.
- *  This is an alias for 'new Strophe.Builder(name, attrs)'.
- *
- *  Parameters:
- *    (String) name - The root element name.
- *    (Object) attrs - The attributes for the root element in object notation.
- *
- *  Returns:
- *    A new Strophe.Builder object.
- */
-function $build(name, attrs) {
-  return new Builder(name, attrs);
-}
-
-/** Function: $msg
- *  Create a Strophe.Builder with a <message/> element as the root.
- *
- *  Parameters:
- *    (Object) attrs - The <message/> element attributes in object notation.
- *
- *  Returns:
- *    A new Strophe.Builder object.
- */
-function $msg(attrs) {
-  return new Builder('message', attrs);
-}
-
-/** Function: $iq
- *  Create a Strophe.Builder with an <iq/> element as the root.
- *
- *  Parameters:
- *    (Object) attrs - The <iq/> element attributes in object notation.
- *
- *  Returns:
- *    A new Strophe.Builder object.
- */
-function $iq(attrs) {
-  return new Builder('iq', attrs);
-}
-
-/** Function: $pres
- *  Create a Strophe.Builder with a <presence/> element as the root.
- *
- *  Parameters:
- *    (Object) attrs - The <presence/> element attributes in object notation.
- *
- *  Returns:
- *    A new Strophe.Builder object.
- */
-function $pres(attrs) {
-  return new Builder('presence', attrs);
-}
-
-/** Class: Strophe.Builder
- *  XML DOM builder.
- *
- *  This object provides an interface similar to JQuery but for building
- *  DOM elements easily and rapidly.  All the functions except for toString()
- *  and tree() return the object, so calls can be chained.  Here's an
- *  example using the $iq() builder helper.
- *  > $iq({to: 'you', from: 'me', type: 'get', id: '1'})
- *  >     .c('query', {xmlns: 'strophe:example'})
- *  >     .c('example')
- *  >     .toString()
- *
- *  The above generates this XML fragment
- *  > <iq to='you' from='me' type='get' id='1'>
- *  >   <query xmlns='strophe:example'>
- *  >     <example/>
- *  >   </query>
- *  > </iq>
- *  The corresponding DOM manipulations to get a similar fragment would be
- *  a lot more tedious and probably involve several helper variables.
- *
- *  Since adding children makes new operations operate on the child, up()
- *  is provided to traverse up the tree.  To add two children, do
- *  > builder.c('child1', ...).up().c('child2', ...)
- *  The next operation on the Builder will be relative to the second child.
- */
-
-/** Constructor: Strophe.Builder
- *  Create a Strophe.Builder object.
- *
- *  The attributes should be passed in object notation.  For example
- *  > let b = new Builder('message', {to: 'you', from: 'me'});
- *  or
- *  > let b = new Builder('messsage', {'xml:lang': 'en'});
- *
- *  Parameters:
- *    (String) name - The name of the root element.
- *    (Object) attrs - The attributes for the root element in object notation.
- *
- *  Returns:
- *    A new Strophe.Builder.
- */
-
-class Builder {
-  constructor(name, attrs) {
-    // Set correct namespace for jabber:client elements
-    if (name === 'presence' || name === 'message' || name === 'iq') {
-      if (attrs && !attrs.xmlns) {
-        attrs.xmlns = NS.CLIENT;
-      } else if (!attrs) {
-        attrs = {
-          xmlns: NS.CLIENT
-        };
-      }
-    }
-    // Holds the tree being built.
-    this.nodeTree = xmlElement(name, attrs);
-    // Points to the current operation node.
-    this.node = this.nodeTree;
-  }
-
-  /** Function: tree
-   *  Return the DOM tree.
-   *
-   *  This function returns the current DOM tree as an element object.  This
-   *  is suitable for passing to functions like Strophe.Connection.send().
-   *
-   *  Returns:
-   *    The DOM tree as a element object.
-   */
-  tree() {
-    return this.nodeTree;
-  }
-
-  /** Function: toString
-   *  Serialize the DOM tree to a String.
-   *
-   *  This function returns a string serialization of the current DOM
-   *  tree.  It is often used internally to pass data to a
-   *  Strophe.Request object.
-   *
-   *  Returns:
-   *    The serialized DOM tree in a String.
-   */
-  toString() {
-    return serialize(this.nodeTree);
-  }
-
-  /** Function: up
-   *  Make the current parent element the new current element.
-   *
-   *  This function is often used after c() to traverse back up the tree.
-   *  For example, to add two children to the same element
-   *  > builder.c('child1', {}).up().c('child2', {});
-   *
-   *  Returns:
-   *    The Stophe.Builder object.
-   */
-  up() {
-    this.node = this.node.parentNode;
-    return this;
-  }
-
-  /** Function: root
-   *  Make the root element the new current element.
-   *
-   *  When at a deeply nested element in the tree, this function can be used
-   *  to jump back to the root of the tree, instead of having to repeatedly
-   *  call up().
-   *
-   *  Returns:
-   *    The Stophe.Builder object.
-   */
-  root() {
-    this.node = this.nodeTree;
-    return this;
-  }
-
-  /** Function: attrs
-   *  Add or modify attributes of the current element.
-   *
-   *  The attributes should be passed in object notation.  This function
-   *  does not move the current element pointer.
-   *
-   *  Parameters:
-   *    (Object) moreattrs - The attributes to add/modify in object notation.
-   *
-   *  Returns:
-   *    The Strophe.Builder object.
-   */
-  attrs(moreattrs) {
-    for (const k in moreattrs) {
-      if (Object.prototype.hasOwnProperty.call(moreattrs, k)) {
-        if (moreattrs[k] === undefined) {
-          this.node.removeAttribute(k);
-        } else {
-          this.node.setAttribute(k, moreattrs[k]);
-        }
-      }
-    }
-    return this;
-  }
-
-  /** Function: c
-   *  Add a child to the current element and make it the new current
-   *  element.
-   *
-   *  This function moves the current element pointer to the child,
-   *  unless text is provided.  If you need to add another child, it
-   *  is necessary to use up() to go back to the parent in the tree.
-   *
-   *  Parameters:
-   *    (String) name - The name of the child.
-   *    (Object) attrs - The attributes of the child in object notation.
-   *    (String) text - The text to add to the child.
-   *
-   *  Returns:
-   *    The Strophe.Builder object.
-   */
-  c(name, attrs, text) {
-    const child = xmlElement(name, attrs, text);
-    this.node.appendChild(child);
-    if (typeof text !== 'string' && typeof text !== 'number') {
-      this.node = child;
-    }
-    return this;
-  }
-
-  /** Function: cnode
-   *  Add a child to the current element and make it the new current
-   *  element.
-   *
-   *  This function is the same as c() except that instead of using a
-   *  name and an attributes object to create the child it uses an
-   *  existing DOM element object.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - A DOM element.
-   *
-   *  Returns:
-   *    The Strophe.Builder object.
-   */
-  cnode(elem) {
-    let impNode;
-    const xmlGen = xmlGenerator();
-    try {
-      impNode = xmlGen.importNode !== undefined;
-    } catch (e) {
-      impNode = false;
-    }
-    const newElem = impNode ? xmlGen.importNode(elem, true) : copyElement(elem);
-    this.node.appendChild(newElem);
-    this.node = newElem;
-    return this;
-  }
-
-  /** Function: t
-   *  Add a child text element.
-   *
-   *  This *does not* make the child the new current element since there
-   *  are no children of text elements.
-   *
-   *  Parameters:
-   *    (String) text - The text data to append to the current element.
-   *
-   *  Returns:
-   *    The Strophe.Builder object.
-   */
-  t(text) {
-    const child = xmlTextNode(text);
-    this.node.appendChild(child);
-    return this;
-  }
-
-  /** Function: h
-   *  Replace current element contents with the HTML passed in.
-   *
-   *  This *does not* make the child the new current element
-   *
-   *  Parameters:
-   *    (String) html - The html to insert as contents of current element.
-   *
-   *  Returns:
-   *    The Strophe.Builder object.
-   */
-  h(html) {
-    const fragment = xmlGenerator().createElement('body');
-    // force the browser to try and fix any invalid HTML tags
-    fragment.innerHTML = html;
-    // copy cleaned html into an xml dom
-    const xhtml = createHtml(fragment);
-    while (xhtml.childNodes.length > 0) {
-      this.node.appendChild(xhtml.childNodes[0]);
-    }
-    return this;
-  }
-}
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/handler.js
 
 
 
-/** PrivateClass: Strophe.Handler
- *  _Private_ helper class for managing stanza handlers.
+/**
+ * _Private_ helper class for managing stanza handlers.
  *
- *  A Strophe.Handler encapsulates a user provided callback function to be
- *  executed when matching stanzas are received by the connection.
- *  Handlers can be either one-off or persistant depending on their
- *  return value. Returning true will cause a Handler to remain active, and
- *  returning false will remove the Handler.
+ * A Strophe.Handler encapsulates a user provided callback function to be
+ * executed when matching stanzas are received by the connection.
+ * Handlers can be either one-off or persistant depending on their
+ * return value. Returning true will cause a Handler to remain active, and
+ * returning false will remove the Handler.
  *
- *  Users will not use Strophe.Handler objects directly, but instead they
- *  will use Strophe.Connection.addHandler() and
- *  Strophe.Connection.deleteHandler().
+ * Users will not use Strophe.Handler objects directly, but instead they
+ * will use {@link Strophe.Connection.addHandler} and
+ * {@link Strophe.Connection.deleteHandler}.
  */
-
-/** PrivateConstructor: Strophe.Handler
- *  Create and initialize a new Strophe.Handler.
- *
- *  Parameters:
- *    (Function) handler - A function to be executed when the handler is run.
- *    (String) ns - The namespace to match.
- *    (String) name - The element name to match.
- *    (String) type - The element type to match.
- *    (String) id - The element id attribute to match.
- *    (String) from - The element from attribute to match.
- *    (Object) options - Handler options
- *
- *  Returns:
- *    A new Strophe.Handler object.
- */
-
 class Handler {
+  /**
+   * @typedef {Object} HandlerOptions
+   * @property {boolean} [HandlerOptions.matchBareFromJid]
+   * @property {boolean} [HandlerOptions.ignoreNamespaceFragment]
+   */
+
+  /**
+   * Create and initialize a new Strophe.Handler.
+   *
+   * @param {Function} handler - A function to be executed when the handler is run.
+   * @param {string} ns - The namespace to match.
+   * @param {string} name - The element name to match.
+   * @param {string|string[]} type - The stanza type (or types if an array) to match.
+   * @param {string} [id] - The element id attribute to match.
+   * @param {string} [from] - The element from attribute to match.
+   * @param {HandlerOptions} [options] - Handler options
+   */
   constructor(handler, ns, name, type, id, from, options) {
     this.handler = handler;
     this.ns = ns;
@@ -24139,12 +24106,6 @@ class Handler {
       'matchBareFromJid': false,
       'ignoreNamespaceFragment': false
     };
-    // BBB: Maintain backward compatibility with old `matchBare` option
-    if (this.options.matchBare) {
-      Strophe.warn('The "matchBare" option is deprecated, use "matchBareFromJid" instead.');
-      this.options.matchBareFromJid = this.options.matchBare;
-      delete this.options.matchBare;
-    }
     if (this.options.matchBareFromJid) {
       this.from = from ? getBareJidFromJid(from) : null;
     } else {
@@ -24154,16 +24115,12 @@ class Handler {
     this.user = true;
   }
 
-  /** PrivateFunction: getNamespace
-   *  Returns the XML namespace attribute on an element.
-   *  If `ignoreNamespaceFragment` was passed in for this handler, then the
-   *  URL fragment will be stripped.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The XML element with the namespace.
-   *
-   *  Returns:
-   *    The namespace, with optionally the fragment stripped.
+  /**
+   * Returns the XML namespace attribute on an element.
+   * If `ignoreNamespaceFragment` was passed in for this handler, then the
+   * URL fragment will be stripped.
+   * @param {Element} elem - The XML element with the namespace.
+   * @return {string} - The namespace, with optionally the fragment stripped.
    */
   getNamespace(elem) {
     let elNamespace = elem.getAttribute('xmlns');
@@ -24173,21 +24130,18 @@ class Handler {
     return elNamespace;
   }
 
-  /** PrivateFunction: namespaceMatch
-   *  Tests if a stanza matches the namespace set for this Strophe.Handler.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The XML element to test.
-   *
-   *  Returns:
-   *    true if the stanza matches and false otherwise.
+  /**
+   * Tests if a stanza matches the namespace set for this Strophe.Handler.
+   * @param {Element} elem - The XML element to test.
+   * @return {boolean} - true if the stanza matches and false otherwise.
    */
   namespaceMatch(elem) {
     let nsMatch = false;
     if (!this.ns) {
       return true;
     } else {
-      forEachChild(elem, null, elem => {
+      forEachChild(elem, null, /** @param {Element} elem */
+      elem => {
         if (this.getNamespace(elem) === this.ns) {
           nsMatch = true;
         }
@@ -24196,14 +24150,10 @@ class Handler {
     }
   }
 
-  /** PrivateFunction: isMatch
-   *  Tests if a stanza matches the Strophe.Handler.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The XML element to test.
-   *
-   *  Returns:
-   *    true if the stanza matches and false otherwise.
+  /**
+   * Tests if a stanza matches the Strophe.Handler.
+   * @param {Element} elem - The XML element to test.
+   * @return {boolean} - true if the stanza matches and false otherwise.
    */
   isMatch(elem) {
     let from = elem.getAttribute('from');
@@ -24211,68 +24161,59 @@ class Handler {
       from = getBareJidFromJid(from);
     }
     const elem_type = elem.getAttribute('type');
-    if (this.namespaceMatch(elem) && (!this.name || Strophe.isTagEqual(elem, this.name)) && (!this.type || (Array.isArray(this.type) ? this.type.indexOf(elem_type) !== -1 : elem_type === this.type)) && (!this.id || elem.getAttribute('id') === this.id) && (!this.from || from === this.from)) {
+    if (this.namespaceMatch(elem) && (!this.name || core.isTagEqual(elem, this.name)) && (!this.type || (Array.isArray(this.type) ? this.type.indexOf(elem_type) !== -1 : elem_type === this.type)) && (!this.id || elem.getAttribute('id') === this.id) && (!this.from || from === this.from)) {
       return true;
     }
     return false;
   }
 
-  /** PrivateFunction: run
-   *  Run the callback on a matching stanza.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The DOM element that triggered the
-   *      Strophe.Handler.
-   *
-   *  Returns:
-   *    A boolean indicating if the handler should remain active.
+  /**
+   * Run the callback on a matching stanza.
+   * @param {Element} elem - The DOM element that triggered the Strophe.Handler.
+   * @return {boolean} - A boolean indicating if the handler should remain active.
    */
   run(elem) {
     let result = null;
     try {
       result = this.handler(elem);
     } catch (e) {
-      Strophe._handleError(e);
+      core._handleError(e);
       throw e;
     }
     return result;
   }
 
-  /** PrivateFunction: toString
-   *  Get a String representation of the Strophe.Handler object.
-   *
-   *  Returns:
-   *    A String.
+  /**
+   * Get a String representation of the Strophe.Handler object.
+   * @return {string}
    */
   toString() {
     return '{Handler: ' + this.handler + '(' + this.name + ',' + this.id + ',' + this.ns + ')}';
   }
 }
+/* harmony default export */ const src_handler = (Handler);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/timed-handler.js
-/** PrivateClass: Strophe.TimedHandler
- *  _Private_ helper class for managing timed handlers.
+/**
+ * _Private_ helper class for managing timed handlers.
  *
- *  A Strophe.TimedHandler encapsulates a user provided callback that
- *  should be called after a certain period of time or at regular
- *  intervals.  The return value of the callback determines whether the
- *  Strophe.TimedHandler will continue to fire.
+ * A Strophe.TimedHandler encapsulates a user provided callback that
+ * should be called after a certain period of time or at regular
+ * intervals.  The return value of the callback determines whether the
+ * Strophe.TimedHandler will continue to fire.
  *
- *  Users will not use Strophe.TimedHandler objects directly, but instead
- *  they will use Strophe.Connection.addTimedHandler() and
- *  Strophe.Connection.deleteTimedHandler().
+ * Users will not use Strophe.TimedHandler objects directly, but instead
+ * they will use {@link Strophe.Connection#addTimedHandler|addTimedHandler()} and
+ * {@link Strophe.Connection#deleteTimedHandler|deleteTimedHandler()}.
+ *
+ * @memberof Strophe
  */
 class TimedHandler {
-  /** PrivateConstructor: Strophe.TimedHandler
-   *  Create and initialize a new Strophe.TimedHandler object.
-   *
-   *  Parameters:
-   *    (Integer) period - The number of milliseconds to wait before the
-   *      handler is called.
-   *    (Function) handler - The callback to run when the handler fires.  This
-   *      function should take no arguments.
-   *
-   *  Returns:
-   *    A new Strophe.TimedHandler object.
+  /**
+   * Create and initialize a new Strophe.TimedHandler object.
+   * @param {number} period - The number of milliseconds to wait before the
+   *     handler is called.
+   * @param {Function} handler - The callback to run when the handler fires.  This
+   *     function should take no arguments.
    */
   constructor(period, handler) {
     this.period = period;
@@ -24281,39 +24222,48 @@ class TimedHandler {
     this.user = true;
   }
 
-  /** PrivateFunction: run
-   *  Run the callback for the Strophe.TimedHandler.
+  /**
+   * Run the callback for the Strophe.TimedHandler.
    *
-   *  Returns:
-   *    true if the Strophe.TimedHandler should be called again, and false
-   *      otherwise.
+   * @return {boolean} Returns the result of running the handler,
+   *  which is `true` if the Strophe.TimedHandler should be called again,
+   *  and `false` otherwise.
    */
   run() {
     this.lastCalled = new Date().getTime();
     return this.handler();
   }
 
-  /** PrivateFunction: reset
-   *  Reset the last called time for the Strophe.TimedHandler.
+  /**
+   * Reset the last called time for the Strophe.TimedHandler.
    */
   reset() {
     this.lastCalled = new Date().getTime();
   }
 
-  /** PrivateFunction: toString
-   *  Get a string representation of the Strophe.TimedHandler object.
-   *
-   *  Returns:
-   *    The string representation.
+  /**
+   * Get a string representation of the Strophe.TimedHandler object.
+   * @return {string}
    */
   toString() {
     return '{TimedHandler: ' + this.handler + '(' + this.period + ')}';
   }
 }
+/* harmony default export */ const timed_handler = (TimedHandler);
 // EXTERNAL MODULE: ./node_modules/abab/index.js
-var abab = __webpack_require__(7609);
+var abab = __webpack_require__(6841);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/errors.js
+class SessionError extends Error {
+  /**
+   * @param {string} message
+   */
+  constructor(message) {
+    super(message);
+    this.name = 'StropheSessionError';
+  }
+}
+
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/connection.js
-/*sessionStorage, setTimeout, clearTimeout */
 
 
 
@@ -24323,179 +24273,190 @@ var abab = __webpack_require__(7609);
 
 
 
-/** Class: Strophe.Connection
- *  XMPP Connection manager.
- *
- *  This class is the main part of Strophe.  It manages a BOSH or websocket
- *  connection to an XMPP server and dispatches events to the user callbacks
- *  as data arrives. It supports SASL PLAIN, SASL SCRAM-SHA-1
- *  and legacy authentication.
- *
- *  After creating a Strophe.Connection object, the user will typically
- *  call connect() with a user supplied callback to handle connection level
- *  events like authentication failure, disconnection, or connection
- *  complete.
- *
- *  The user will also have several event handlers defined by using
- *  addHandler() and addTimedHandler().  These will allow the user code to
- *  respond to interesting stanzas or do something periodically with the
- *  connection. These handlers will be active once authentication is
- *  finished.
- *
- *  To send data to the connection, use send().
+/**
+ * @typedef {import("./sasl.js").default} SASLMechanism
+ * @typedef {import("./request.js").default} Request
  */
 
-/** Constructor: Strophe.Connection
- *  Create and initialize a Strophe.Connection object.
+/**
+ * **XMPP Connection manager**
  *
- *  The transport-protocol for this connection will be chosen automatically
- *  based on the given service parameter. URLs starting with "ws://" or
- *  "wss://" will use WebSockets, URLs starting with "http://", "https://"
- *  or without a protocol will use BOSH.
+ * This class is the main part of Strophe.  It manages a BOSH or websocket
+ * connection to an XMPP server and dispatches events to the user callbacks
+ * as data arrives.
  *
- *  To make Strophe connect to the current host you can leave out the protocol
- *  and host part and just pass the path, e.g.
+ * It supports various authentication mechanisms (e.g. SASL PLAIN, SASL SCRAM),
+ * and more can be added via
+ * {@link Strophe.Connection#registerSASLMechanisms|registerSASLMechanisms()}.
  *
- *  > let conn = new Strophe.Connection("/http-bind/");
+ * After creating a Strophe.Connection object, the user will typically
+ * call {@link Strophe.Connection#connect|connect()} with a user supplied callback
+ * to handle connection level events like authentication failure,
+ * disconnection, or connection complete.
  *
- *  Options common to both Websocket and BOSH:
- *  ------------------------------------------
+ * The user will also have several event handlers defined by using
+ * {@link Strophe.Connection#addHandler|addHandler()} and
+ * {@link Strophe.Connection#addTimedHandler|addTimedHandler()}.
+ * These will allow the user code to respond to interesting stanzas or do
+ * something periodically with the connection. These handlers will be active
+ * once authentication is finished.
  *
- *  cookies:
+ * To send data to the connection, use {@link Strophe.Connection#send|send()}.
  *
- *  The *cookies* option allows you to pass in cookies to be added to the
- *  document. These cookies will then be included in the BOSH XMLHttpRequest
- *  or in the websocket connection.
- *
- *  The passed in value must be a map of cookie names and string values.
- *
- *  > { "myCookie": {
- *  >     "value": "1234",
- *  >     "domain": ".example.org",
- *  >     "path": "/",
- *  >     "expires": expirationDate
- *  >     }
- *  > }
- *
- *  Note that cookies can't be set in this way for other domains (i.e. cross-domain).
- *  Those cookies need to be set under those domains, for example they can be
- *  set server-side by making a XHR call to that domain to ask it to set any
- *  necessary cookies.
- *
- *  mechanisms:
- *
- *  The *mechanisms* option allows you to specify the SASL mechanisms that this
- *  instance of Strophe.Connection (and therefore your XMPP client) will
- *  support.
- *
- *  The value must be an array of objects with Strophe.SASLMechanism
- *  prototypes.
- *
- *  If nothing is specified, then the following mechanisms (and their
- *  priorities) are registered:
- *
- *      SCRAM-SHA-512 - 72
- *      SCRAM-SHA-384 - 71
- *      SCRAM-SHA-256 - 70
- *      SCRAM-SHA-1   - 60
- *      PLAIN         - 50
- *      OAUTHBEARER   - 40
- *      X-OAUTH2      - 30
- *      ANONYMOUS     - 20
- *      EXTERNAL      - 10
- *
- *  explicitResourceBinding:
- *
- *  If `explicitResourceBinding` is set to a truthy value, then the XMPP client
- *  needs to explicitly call `Strophe.Connection.prototype.bind` once the XMPP
- *  server has advertised the "urn:ietf:params:xml:ns:xmpp-bind" feature.
- *
- *  Making this step explicit allows client authors to first finish other
- *  stream related tasks, such as setting up an XEP-0198 Stream Management
- *  session, before binding the JID resource for this session.
- *
- *  WebSocket options:
- *  ------------------
- *
- *  protocol:
- *
- *  If you want to connect to the current host with a WebSocket connection you
- *  can tell Strophe to use WebSockets through a "protocol" attribute in the
- *  optional options parameter. Valid values are "ws" for WebSocket and "wss"
- *  for Secure WebSocket.
- *  So to connect to "wss://CURRENT_HOSTNAME/xmpp-websocket" you would call
- *
- *  > let conn = new Strophe.Connection("/xmpp-websocket/", {protocol: "wss"});
- *
- *  Note that relative URLs _NOT_ starting with a "/" will also include the path
- *  of the current site.
- *
- *  Also because downgrading security is not permitted by browsers, when using
- *  relative URLs both BOSH and WebSocket connections will use their secure
- *  variants if the current connection to the site is also secure (https).
- *
- *  worker:
- *
- *  Set this option to URL from where the shared worker script should be loaded.
- *
- *  To run the websocket connection inside a shared worker.
- *  This allows you to share a single websocket-based connection between
- *  multiple Strophe.Connection instances, for example one per browser tab.
- *
- *  The script to use is the one in `src/shared-connection-worker.js`.
- *
- *  BOSH options:
- *  -------------
- *
- *  By adding "sync" to the options, you can control if requests will
- *  be made synchronously or not. The default behaviour is asynchronous.
- *  If you want to make requests synchronous, make "sync" evaluate to true.
- *  > let conn = new Strophe.Connection("/http-bind/", {sync: true});
- *
- *  You can also toggle this on an already established connection.
- *  > conn.options.sync = true;
- *
- *  The *customHeaders* option can be used to provide custom HTTP headers to be
- *  included in the XMLHttpRequests made.
- *
- *  The *keepalive* option can be used to instruct Strophe to maintain the
- *  current BOSH session across interruptions such as webpage reloads.
- *
- *  It will do this by caching the sessions tokens in sessionStorage, and when
- *  "restore" is called it will check whether there are cached tokens with
- *  which it can resume an existing session.
- *
- *  The *withCredentials* option should receive a Boolean value and is used to
- *  indicate wether cookies should be included in ajax requests (by default
- *  they're not).
- *  Set this value to true if you are connecting to a BOSH service
- *  and for some reason need to send cookies to it.
- *  In order for this to work cross-domain, the server must also enable
- *  credentials by setting the Access-Control-Allow-Credentials response header
- *  to "true". For most usecases however this setting should be false (which
- *  is the default).
- *  Additionally, when using Access-Control-Allow-Credentials, the
- *  Access-Control-Allow-Origin header can't be set to the wildcard "*", but
- *  instead must be restricted to actual domains.
- *
- *  The *contentType* option can be set to change the default Content-Type
- *  of "text/xml; charset=utf-8", which can be useful to reduce the amount of
- *  CORS preflight requests that are sent to the server.
- *
- *  Parameters:
- *    (String) service - The BOSH or WebSocket service URL.
- *    (Object) options - A hash of configuration options
- *
- *  Returns:
- *    A new Strophe.Connection object.
+ * @memberof Strophe
  */
-
 class Connection {
-  constructor(service, options) {
+  /**
+   * @typedef {Object.<string, string>} Cookie
+   * @typedef {Cookie|Object.<string, Cookie>} Cookies
+   */
+
+  /**
+   * @typedef {Object} ConnectionOptions
+   * @property {Cookies} [cookies]
+   *  Allows you to pass in cookies that will be included in HTTP requests.
+   *  Relevant to both the BOSH and Websocket transports.
+   *
+   *  The passed in value must be a map of cookie names and string values.
+   *
+   *  > { "myCookie": {
+   *  >     "value": "1234",
+   *  >     "domain": ".example.org",
+   *  >     "path": "/",
+   *  >     "expires": expirationDate
+   *  >     }
+   *  > }
+   *
+   *  Note that cookies can't be set in this way for domains other than the one
+   *  that's hosting Strophe (i.e. cross-domain).
+   *  Those cookies need to be set under those domains, for example they can be
+   *  set server-side by making a XHR call to that domain to ask it to set any
+   *  necessary cookies.
+   * @property {SASLMechanism[]} [mechanisms]
+   *  Allows you to specify the SASL authentication mechanisms that this
+   *  instance of Strophe.Connection (and therefore your XMPP client) will support.
+   *
+   *  The value must be an array of objects with {@link Strophe.SASLMechanism}
+   *  prototypes.
+   *
+   *  If nothing is specified, then the following mechanisms (and their
+   *  priorities) are registered:
+   *
+   *      Mechanism       Priority
+   *      ------------------------
+   *      SCRAM-SHA-512   72
+   *      SCRAM-SHA-384   71
+   *      SCRAM-SHA-256   70
+   *      SCRAM-SHA-1     60
+   *      PLAIN           50
+   *      OAUTHBEARER     40
+   *      X-OAUTH2        30
+   *      ANONYMOUS       20
+   *      EXTERNAL        10
+   *
+   * @property {boolean} [explicitResourceBinding]
+   *  If `explicitResourceBinding` is set to `true`, then the XMPP client
+   *  needs to explicitly call {@link Strophe.Connection.bind} once the XMPP
+   *  server has advertised the `urn:ietf:propertys:xml:ns:xmpp-bind` feature.
+   *
+   *  Making this step explicit allows client authors to first finish other
+   *  stream related tasks, such as setting up an XEP-0198 Stream Management
+   *  session, before binding the JID resource for this session.
+   *
+   * @property {'ws'|'wss'} [protocol]
+   *  _Note: This option is only relevant to Websocket connections, and not BOSH_
+   *
+   *  If you want to connect to the current host with a WebSocket connection you
+   *  can tell Strophe to use WebSockets through the "protocol" option.
+   *  Valid values are `ws` for WebSocket and `wss` for Secure WebSocket.
+   *  So to connect to "wss://CURRENT_HOSTNAME/xmpp-websocket" you would call
+   *
+   *      const conn = new Strophe.Connection(
+   *          "/xmpp-websocket/",
+   *          {protocol: "wss"}
+   *      );
+   *
+   *  Note that relative URLs _NOT_ starting with a "/" will also include the path
+   *  of the current site.
+   *
+   *  Also because downgrading security is not permitted by browsers, when using
+   *  relative URLs both BOSH and WebSocket connections will use their secure
+   *  variants if the current connection to the site is also secure (https).
+   *
+   * @property {string} [worker]
+   *  _Note: This option is only relevant to Websocket connections, and not BOSH_
+   *
+   *  Set this option to URL from where the shared worker script should be loaded.
+   *
+   *  To run the websocket connection inside a shared worker.
+   *  This allows you to share a single websocket-based connection between
+   *  multiple Strophe.Connection instances, for example one per browser tab.
+   *
+   *  The script to use is the one in `src/shared-connection-worker.js`.
+   *
+   * @property {boolean} [sync]
+   *  Used to control whether BOSH HTTP requests will be made synchronously or not.
+   *  The default behaviour is asynchronous. If you want to make requests
+   *  synchronous, make "sync" evaluate to true.
+   *
+   *  > const conn = new Strophe.Connection("/http-bind/", {sync: true});
+   *
+   *  You can also toggle this on an already established connection.
+   *
+   *  > conn.options.sync = true;
+   *
+   * @property {string[]} [customHeaders]
+   *  Used to provide custom HTTP headers to be included in the BOSH HTTP requests.
+   *
+   * @property {boolean} [keepalive]
+   *  Used to instruct Strophe to maintain the current BOSH session across
+   *  interruptions such as webpage reloads.
+   *
+   *  It will do this by caching the sessions tokens in sessionStorage, and when
+   *  "restore" is called it will check whether there are cached tokens with
+   *  which it can resume an existing session.
+   *
+   * @property {boolean} [withCredentials]
+   *  Used to indicate wether cookies should be included in HTTP requests (by default
+   *  they're not).
+   *  Set this value to `true` if you are connecting to a BOSH service
+   *  and for some reason need to send cookies to it.
+   *  In order for this to work cross-domain, the server must also enable
+   *  credentials by setting the `Access-Control-Allow-Credentials` response header
+   *  to "true". For most usecases however this setting should be false (which
+   *  is the default).
+   *  Additionally, when using `Access-Control-Allow-Credentials`, the
+   *  `Access-Control-Allow-Origin` header can't be set to the wildcard "*", but
+   *  instead must be restricted to actual domains.
+   *
+   * @property {string} [contentType]
+   *  Used to change the default Content-Type, which is "text/xml; charset=utf-8".
+   *  Can be useful to reduce the amount of CORS preflight requests that are sent
+   *  to the server.
+   */
+
+  /**
+   * Create and initialize a {@link Strophe.Connection} object.
+   *
+   * The transport-protocol for this connection will be chosen automatically
+   * based on the given service parameter. URLs starting with "ws://" or
+   * "wss://" will use WebSockets, URLs starting with "http://", "https://"
+   * or without a protocol will use [BOSH](https://xmpp.org/extensions/xep-0124.html).
+   *
+   * To make Strophe connect to the current host you can leave out the protocol
+   * and host part and just pass the path:
+   *
+   *  const conn = new Strophe.Connection("/http-bind/");
+   *
+   * @param {string} service - The BOSH or WebSocket service URL.
+   * @param {ConnectionOptions} options - A object containing configuration options
+   */
+  constructor(service) {
+    let options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     // The service URL
     this.service = service;
     // Configuration options
-    this.options = options || {};
+    this.options = options;
     this.setProtocol();
 
     /* The connected JID. */
@@ -24506,20 +24467,40 @@ class Connection {
     this.features = null;
 
     // SASL
+    /**
+     * @typedef {Object.<string, any>} SASLData
+     * @property {Object} [SASLData.keys]
+     */
+
+    /** @type {SASLData} */
     this._sasl_data = {};
     this.do_bind = false;
     this.do_session = false;
+
+    /** @type {Object.<string, SASLMechanism>} */
     this.mechanisms = {};
 
-    // handler lists
+    /** @type {TimedHandler[]} */
     this.timedHandlers = [];
+
+    /** @type {Handler[]} */
     this.handlers = [];
+
+    /** @type {TimedHandler[]} */
     this.removeTimeds = [];
+
+    /** @type {Handler[]} */
     this.removeHandlers = [];
+
+    /** @type {TimedHandler[]} */
     this.addTimeds = [];
+
+    /** @type {Handler[]} */
     this.addHandlers = [];
     this.protocolErrorHandlers = {
+      /** @type {Object.<number, Function>} */
       'HTTP': {},
+      /** @type {Object.<number, Function>} */
       'websocket': {}
     };
     this._idleTimeout = null;
@@ -24530,6 +24511,8 @@ class Connection {
     this.do_authentication = true;
     this.paused = false;
     this.restored = false;
+
+    /** @type {(Element|'restart')[]} */
     this._data = [];
     this._uniqueId = 0;
     this._sasl_success_handler = null;
@@ -24549,45 +24532,51 @@ class Connection {
     //
     // This is a fallback handler which gets called when no other handler
     // was called for a received IQ "set" or "get".
-    this.iqFallbackHandler = new Handler(iq => this.send($iq({
+    this.iqFallbackHandler = new src_handler(
+    /**
+     * @param {Element} iq
+     */
+    iq => this.send($iq({
       type: 'error',
       id: iq.getAttribute('id')
     }).c('error', {
       'type': 'cancel'
     }).c('service-unavailable', {
-      'xmlns': Strophe.NS.STANZAS
+      'xmlns': core.NS.STANZAS
     })), null, 'iq', ['get', 'set']);
 
     // initialize plugins
-    for (const k in Strophe._connectionPlugins) {
-      if (Object.prototype.hasOwnProperty.call(Strophe._connectionPlugins, k)) {
+    for (const k in core._connectionPlugins) {
+      if (Object.prototype.hasOwnProperty.call(core._connectionPlugins, k)) {
         const F = function () {};
-        F.prototype = Strophe._connectionPlugins[k];
+        F.prototype = core._connectionPlugins[k];
+        // @ts-ignore
         this[k] = new F();
+        // @ts-ignore
         this[k].init(this);
       }
     }
   }
 
-  /** Function: setProtocol
-   *  Select protocal based on this.options or this.service
+  /**
+   * Select protocal based on this.options or this.service
    */
   setProtocol() {
     const proto = this.options.protocol || '';
     if (this.options.worker) {
-      this._proto = new Strophe.WorkerWebsocket(this);
+      this._proto = new core.WorkerWebsocket(this);
     } else if (this.service.indexOf('ws:') === 0 || this.service.indexOf('wss:') === 0 || proto.indexOf('ws') === 0) {
-      this._proto = new Strophe.Websocket(this);
+      this._proto = new core.Websocket(this);
     } else {
-      this._proto = new Strophe.Bosh(this);
+      this._proto = new core.Bosh(this);
     }
   }
 
-  /** Function: reset
-   *  Reset the connection.
+  /**
+   * Reset the connection.
    *
-   *  This function should be called after a connection is disconnected
-   *  before that connection is reused.
+   * This function should be called after a connection is disconnected
+   * before that connection is reused.
    */
   reset() {
     this._proto._reset();
@@ -24608,53 +24597,51 @@ class Connection {
     this.disconnecting = false;
     this.restored = false;
     this._data = [];
+    /** @type {Request[]} */
     this._requests = [];
     this._uniqueId = 0;
   }
 
-  /** Function: pause
-   *  Pause the request manager.
+  /**
+   * Pause the request manager.
    *
-   *  This will prevent Strophe from sending any more requests to the
-   *  server.  This is very useful for temporarily pausing
-   *  BOSH-Connections while a lot of send() calls are happening quickly.
-   *  This causes Strophe to send the data in a single request, saving
-   *  many request trips.
+   * This will prevent Strophe from sending any more requests to the
+   * server.  This is very useful for temporarily pausing
+   * BOSH-Connections while a lot of send() calls are happening quickly.
+   * This causes Strophe to send the data in a single request, saving
+   * many request trips.
    */
   pause() {
     this.paused = true;
   }
 
-  /** Function: resume
-   *  Resume the request manager.
+  /**
+   * Resume the request manager.
    *
-   *  This resumes after pause() has been called.
+   * This resumes after pause() has been called.
    */
   resume() {
     this.paused = false;
   }
 
-  /** Function: getUniqueId
-   *  Generate a unique ID for use in <iq/> elements.
+  /**
+   * Generate a unique ID for use in <iq/> elements.
    *
-   *  All <iq/> stanzas are required to have unique id attributes.  This
-   *  function makes creating these easy.  Each connection instance has
-   *  a counter which starts from zero, and the value of this counter
-   *  plus a colon followed by the suffix becomes the unique id. If no
-   *  suffix is supplied, the counter is used as the unique id.
+   * All <iq/> stanzas are required to have unique id attributes.  This
+   * function makes creating these easy.  Each connection instance has
+   * a counter which starts from zero, and the value of this counter
+   * plus a colon followed by the suffix becomes the unique id. If no
+   * suffix is supplied, the counter is used as the unique id.
    *
-   *  Suffixes are used to make debugging easier when reading the stream
-   *  data, and their use is recommended.  The counter resets to 0 for
-   *  every new connection for the same reason.  For connections to the
-   *  same server that authenticate the same way, all the ids should be
-   *  the same, which makes it easy to see changes.  This is useful for
-   *  automated testing as well.
+   * Suffixes are used to make debugging easier when reading the stream
+   * data, and their use is recommended.  The counter resets to 0 for
+   * every new connection for the same reason.  For connections to the
+   * same server that authenticate the same way, all the ids should be
+   * the same, which makes it easy to see changes.  This is useful for
+   * automated testing as well.
    *
-   *  Parameters:
-   *    (String) suffix - A optional suffix to append to the id.
-   *
-   *  Returns:
-   *    A unique string to be used for the id attribute.
+   * @param {string} suffix - A optional suffix to append to the id.
+   * @returns {string} A unique string to be used for the id attribute.
    */
   // eslint-disable-next-line class-methods-use-this
   getUniqueId(suffix) {
@@ -24670,106 +24657,103 @@ class Connection {
     }
   }
 
-  /** Function: addProtocolErrorHandler
-   *  Register a handler function for when a protocol (websocker or HTTP)
-   *  error occurs.
+  /**
+   * Register a handler function for when a protocol (websocker or HTTP)
+   * error occurs.
    *
-   *  NOTE: Currently only HTTP errors for BOSH requests are handled.
-   *  Patches that handle websocket errors would be very welcome.
+   * NOTE: Currently only HTTP errors for BOSH requests are handled.
+   * Patches that handle websocket errors would be very welcome.
    *
-   *  Parameters:
-   *    (String) protocol - 'HTTP' or 'websocket'
-   *    (Integer) status_code - Error status code (e.g 500, 400 or 404)
-   *    (Function) callback - Function that will fire on Http error
-   *
-   *  Example:
+   * @example
    *  function onError(err_code){
    *    //do stuff
    *  }
    *
-   *  let conn = Strophe.connect('http://example.com/http-bind');
+   *  const conn = Strophe.connect('http://example.com/http-bind');
    *  conn.addProtocolErrorHandler('HTTP', 500, onError);
    *  // Triggers HTTP 500 error and onError handler will be called
    *  conn.connect('user_jid@incorrect_jabber_host', 'secret', onConnect);
+   *
+   * @param {'HTTP'|'websocket'} protocol - 'HTTP' or 'websocket'
+   * @param {number} status_code - Error status code (e.g 500, 400 or 404)
+   * @param {Function} callback - Function that will fire on Http error
    */
   addProtocolErrorHandler(protocol, status_code, callback) {
     this.protocolErrorHandlers[protocol][status_code] = callback;
   }
 
-  /** Function: connect
-   *  Starts the connection process.
+  /**
+   * @typedef {Object} Password
+   * @property {string} Password.name
+   * @property {string} Password.ck
+   * @property {string} Password.sk
+   * @property {number} Password.iter
+   * @property {string} Password.salt
+   */
+
+  /**
+   * Starts the connection process.
    *
-   *  As the connection process proceeds, the user supplied callback will
-   *  be triggered multiple times with status updates.  The callback
-   *  should take two arguments - the status code and the error condition.
+   * As the connection process proceeds, the user supplied callback will
+   * be triggered multiple times with status updates.  The callback
+   * should take two arguments - the status code and the error condition.
    *
-   *  The status code will be one of the values in the Strophe.Status
-   *  constants.  The error condition will be one of the conditions
-   *  defined in RFC 3920 or the condition 'strophe-parsererror'.
+   * The status code will be one of the values in the Strophe.Status
+   * constants.  The error condition will be one of the conditions
+   * defined in RFC 3920 or the condition 'strophe-parsererror'.
    *
-   *  The Parameters _wait_, _hold_ and _route_ are optional and only relevant
-   *  for BOSH connections. Please see XEP 124 for a more detailed explanation
-   *  of the optional parameters.
+   * The Parameters _wait_, _hold_ and _route_ are optional and only relevant
+   * for BOSH connections. Please see XEP 124 for a more detailed explanation
+   * of the optional parameters.
    *
-   *  Parameters:
-   *    (String) jid - The user's JID.  This may be a bare JID,
-   *      or a full JID.  If a node is not supplied, SASL OAUTHBEARER or
-   *      SASL ANONYMOUS authentication will be attempted (OAUTHBEARER will
-   *      process the provided password value as an access token).
-   *    (String or Object) pass - The user's password, or an object containing
-   *      the users SCRAM client and server keys, in a fashion described as follows:
+   * @param {string} jid - The user's JID.  This may be a bare JID,
+   *     or a full JID.  If a node is not supplied, SASL OAUTHBEARER or
+   *     SASL ANONYMOUS authentication will be attempted (OAUTHBEARER will
+   *     process the provided password value as an access token).
+   *   (String or Object) pass - The user's password, or an object containing
+   *     the users SCRAM client and server keys, in a fashion described as follows:
    *
-   *      { name: String, representing the hash used (eg. SHA-1),
-   *        salt: String, base64 encoded salt used to derive the client key,
-   *        iter: Int,    the iteration count used to derive the client key,
-   *        ck:   String, the base64 encoding of the SCRAM client key
-   *        sk:   String, the base64 encoding of the SCRAM server key
-   *      }
-   *
-   *    (Function) callback - The connect callback function.
-   *    (Integer) wait - The optional HTTPBIND wait value.  This is the
-   *      time the server will wait before returning an empty result for
-   *      a request.  The default setting of 60 seconds is recommended.
-   *    (Integer) hold - The optional HTTPBIND hold value.  This is the
-   *      number of connections the server will hold at one time.  This
-   *      should almost always be set to 1 (the default).
-   *    (String) route - The optional route value.
-   *    (String) authcid - The optional alternative authentication identity
-   *      (username) if intending to impersonate another user.
-   *      When using the SASL-EXTERNAL authentication mechanism, for example
-   *      with client certificates, then the authcid value is used to
-   *      determine whether an authorization JID (authzid) should be sent to
-   *      the server. The authzid should NOT be sent to the server if the
-   *      authzid and authcid are the same. So to prevent it from being sent
-   *      (for example when the JID is already contained in the client
-   *      certificate), set authcid to that same JID. See XEP-178 for more
-   *      details.
-   *     (Integer) disconnection_timeout - The optional disconnection timeout
-   *      in milliseconds before _doDisconnect will be called.
+   *     { name: String, representing the hash used (eg. SHA-1),
+   *       salt: String, base64 encoded salt used to derive the client key,
+   *       iter: Int,    the iteration count used to derive the client key,
+   *       ck:   String, the base64 encoding of the SCRAM client key
+   *       sk:   String, the base64 encoding of the SCRAM server key
+   *     }
+   * @param {string|Password} pass - The user password
+   * @param {Function} callback - The connect callback function.
+   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {string} [route] - The optional route value.
+   * @param {string} [authcid] - The optional alternative authentication identity
+   *     (username) if intending to impersonate another user.
+   *     When using the SASL-EXTERNAL authentication mechanism, for example
+   *     with client certificates, then the authcid value is used to
+   *     determine whether an authorization JID (authzid) should be sent to
+   *     the server. The authzid should NOT be sent to the server if the
+   *     authzid and authcid are the same. So to prevent it from being sent
+   *     (for example when the JID is already contained in the client
+   *     certificate), set authcid to that same JID. See XEP-178 for more
+   *     details.
+   *  @param {number} [disconnection_timeout=3000] - The optional disconnection timeout
+   *     in milliseconds before _doDisconnect will be called.
    */
   connect(jid, pass, callback, wait, hold, route, authcid) {
     let disconnection_timeout = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : 3000;
     this.jid = jid;
-    /** Variable: authzid
-     *  Authorization identity.
-     */
-    this.authzid = Strophe.getBareJidFromJid(this.jid);
-
-    /** Variable: authcid
-     *  Authentication identity (User name).
-     */
-    this.authcid = authcid || Strophe.getNodeFromJid(this.jid);
-
-    /** Variable: pass
-     *  Authentication identity (User password).
-     *
-     */
+    /** Authorization identity */
+    this.authzid = core.getBareJidFromJid(this.jid);
+    /** Authentication identity (User name) */
+    this.authcid = authcid || core.getNodeFromJid(this.jid);
+    /** Authentication identity (User password) */
     this.pass = pass;
 
-    /** Variable: scram_keys
-     *  The SASL SCRAM client and server keys. This variable will be populated with a non-null
-     *  object of the above described form after a successful SCRAM connection
-     *
+    /**
+     * The SASL SCRAM client and server keys. This variable will be populated with a non-null
+     * object of the above described form after a successful SCRAM connection
      */
     this.scram_keys = null;
     this.connect_callback = callback;
@@ -24780,88 +24764,86 @@ class Connection {
     this.disconnection_timeout = disconnection_timeout;
 
     // parse jid for domain
-    this.domain = Strophe.getDomainFromJid(this.jid);
+    this.domain = core.getDomainFromJid(this.jid);
     this._changeConnectStatus(Status.CONNECTING, null);
     this._proto._connect(wait, hold, route);
   }
 
-  /** Function: attach
-   *  Attach to an already created and authenticated BOSH session.
+  /**
+   * Attach to an already created and authenticated BOSH session.
    *
-   *  This function is provided to allow Strophe to attach to BOSH
-   *  sessions which have been created externally, perhaps by a Web
-   *  application.  This is often used to support auto-login type features
-   *  without putting user credentials into the page.
+   * This function is provided to allow Strophe to attach to BOSH
+   * sessions which have been created externally, perhaps by a Web
+   * application.  This is often used to support auto-login type features
+   * without putting user credentials into the page.
    *
-   *  Parameters:
-   *    (String) jid - The full JID that is bound by the session.
-   *    (String) sid - The SID of the BOSH session.
-   *    (String) rid - The current RID of the BOSH session.  This RID
-   *      will be used by the next request.
-   *    (Function) callback The connect callback function.
-   *    (Integer) wait - The optional HTTPBIND wait value.  This is the
-   *      time the server will wait before returning an empty result for
-   *      a request.  The default setting of 60 seconds is recommended.
-   *      Other settings will require tweaks to the Strophe.TIMEOUT value.
-   *    (Integer) hold - The optional HTTPBIND hold value.  This is the
-   *      number of connections the server will hold at one time.  This
-   *      should almost always be set to 1 (the default).
-   *    (Integer) wind - The optional HTTBIND window value.  This is the
-   *      allowed range of request ids that are valid.  The default is 5.
+   * @param {string|Function} jid - The full JID that is bound by the session.
+   * @param {string} [sid] - The SID of the BOSH session.
+   * @param {number} [rid] - The current RID of the BOSH session.  This RID
+   *     will be used by the next request.
+   * @param {Function} [callback] - The connect callback function.
+   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} [wind] - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
    */
   attach(jid, sid, rid, callback, wait, hold, wind) {
-    if (this._proto._attach) {
+    if (this._proto instanceof core.Bosh && typeof jid === 'string') {
       return this._proto._attach(jid, sid, rid, callback, wait, hold, wind);
+    } else if (this._proto instanceof core.WorkerWebsocket && typeof jid === 'function') {
+      const callback = jid;
+      return this._proto._attach(callback);
     } else {
-      const error = new Error('The "attach" method is not available for your connection protocol');
-      error.name = 'StropheSessionError';
-      throw error;
+      throw new SessionError('The "attach" method is not available for your connection protocol');
     }
   }
 
-  /** Function: restore
-   *  Attempt to restore a cached BOSH session.
+  /**
+   * Attempt to restore a cached BOSH session.
    *
-   *  This function is only useful in conjunction with providing the
-   *  "keepalive":true option when instantiating a new Strophe.Connection.
+   * This function is only useful in conjunction with providing the
+   * "keepalive":true option when instantiating a new {@link Strophe.Connection}.
    *
-   *  When "keepalive" is set to true, Strophe will cache the BOSH tokens
-   *  RID (Request ID) and SID (Session ID) and then when this function is
-   *  called, it will attempt to restore the session from those cached
-   *  tokens.
+   * When "keepalive" is set to true, Strophe will cache the BOSH tokens
+   * RID (Request ID) and SID (Session ID) and then when this function is
+   * called, it will attempt to restore the session from those cached
+   * tokens.
    *
-   *  This function must therefore be called instead of connect or attach.
+   * This function must therefore be called instead of connect or attach.
    *
-   *  For an example on how to use it, please see examples/restore.js
+   * For an example on how to use it, please see examples/restore.js
    *
-   *  Parameters:
-   *    (String) jid - The user's JID.  This may be a bare JID or a full JID.
-   *    (Function) callback - The connect callback function.
-   *    (Integer) wait - The optional HTTPBIND wait value.  This is the
-   *      time the server will wait before returning an empty result for
-   *      a request.  The default setting of 60 seconds is recommended.
-   *    (Integer) hold - The optional HTTPBIND hold value.  This is the
-   *      number of connections the server will hold at one time.  This
-   *      should almost always be set to 1 (the default).
-   *    (Integer) wind - The optional HTTBIND window value.  This is the
-   *      allowed range of request ids that are valid.  The default is 5.
+   * @param {string} jid - The user's JID.  This may be a bare JID or a full JID.
+   * @param {Function} callback - The connect callback function.
+   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} [wind] - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
    */
   restore(jid, callback, wait, hold, wind) {
+    if (!(this._proto instanceof core.Bosh) || !this._sessionCachingSupported()) {
+      throw new SessionError('The "restore" method can only be used with a BOSH connection.');
+    }
     if (this._sessionCachingSupported()) {
       this._proto._restore(jid, callback, wait, hold, wind);
-    } else {
-      const error = new Error('The "restore" method can only be used with a BOSH connection.');
-      error.name = 'StropheSessionError';
-      throw error;
     }
   }
 
-  /** PrivateFunction: _sessionCachingSupported
+  /**
    * Checks whether sessionStorage and JSON are supported and whether we're
    * using BOSH.
    */
   _sessionCachingSupported() {
-    if (this._proto instanceof Strophe.Bosh) {
+    if (this._proto instanceof core.Bosh) {
       if (!JSON) {
         return false;
       }
@@ -24876,137 +24858,124 @@ class Connection {
     return false;
   }
 
-  /** Function: xmlInput
-   *  User overrideable function that receives XML data coming into the
-   *  connection.
+  /**
+   * User overrideable function that receives XML data coming into the
+   * connection.
    *
-   *  The default function does nothing.  User code can override this with
-   *  > Strophe.Connection.xmlInput = function (elem) {
-   *  >   (user code)
-   *  > };
+   * The default function does nothing.  User code can override this with
+   * > Strophe.Connection.xmlInput = function (elem) {
+   * >   (user code)
+   * > };
    *
-   *  Due to limitations of current Browsers' XML-Parsers the opening and closing
-   *  <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
+   * Due to limitations of current Browsers' XML-Parsers the opening and closing
+   * <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
    *
-   *  BOSH-Connections will have all stanzas wrapped in a <body> tag. See
-   *  <Strophe.Bosh.strip> if you want to strip this tag.
+   * BOSH-Connections will have all stanzas wrapped in a <body> tag. See
+   * <Strophe.Bosh.strip> if you want to strip this tag.
    *
-   *  Parameters:
-   *    (XMLElement) elem - The XML data received by the connection.
+   * @param {Node|MessageEvent} elem - The XML data received by the connection.
    */
   // eslint-disable-next-line no-unused-vars, class-methods-use-this
   xmlInput(elem) {
     return;
   }
 
-  /** Function: xmlOutput
-   *  User overrideable function that receives XML data sent to the
-   *  connection.
+  /**
+   * User overrideable function that receives XML data sent to the
+   * connection.
    *
-   *  The default function does nothing.  User code can override this with
-   *  > Strophe.Connection.xmlOutput = function (elem) {
-   *  >   (user code)
-   *  > };
+   * The default function does nothing.  User code can override this with
+   * > Strophe.Connection.xmlOutput = function (elem) {
+   * >   (user code)
+   * > };
    *
-   *  Due to limitations of current Browsers' XML-Parsers the opening and closing
-   *  <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
+   * Due to limitations of current Browsers' XML-Parsers the opening and closing
+   * <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
    *
-   *  BOSH-Connections will have all stanzas wrapped in a <body> tag. See
-   *  <Strophe.Bosh.strip> if you want to strip this tag.
+   * BOSH-Connections will have all stanzas wrapped in a <body> tag. See
+   * <Strophe.Bosh.strip> if you want to strip this tag.
    *
-   *  Parameters:
-   *    (XMLElement) elem - The XMLdata sent by the connection.
+   * @param {Element} elem - The XMLdata sent by the connection.
    */
   // eslint-disable-next-line no-unused-vars, class-methods-use-this
   xmlOutput(elem) {
     return;
   }
 
-  /** Function: rawInput
-   *  User overrideable function that receives raw data coming into the
-   *  connection.
+  /**
+   * User overrideable function that receives raw data coming into the
+   * connection.
    *
-   *  The default function does nothing.  User code can override this with
-   *  > Strophe.Connection.rawInput = function (data) {
-   *  >   (user code)
-   *  > };
+   * The default function does nothing.  User code can override this with
+   * > Strophe.Connection.rawInput = function (data) {
+   * >   (user code)
+   * > };
    *
-   *  Parameters:
-   *    (String) data - The data received by the connection.
+   * @param {string} data - The data received by the connection.
    */
   // eslint-disable-next-line no-unused-vars, class-methods-use-this
   rawInput(data) {
     return;
   }
 
-  /** Function: rawOutput
-   *  User overrideable function that receives raw data sent to the
-   *  connection.
+  /**
+   * User overrideable function that receives raw data sent to the
+   * connection.
    *
-   *  The default function does nothing.  User code can override this with
-   *  > Strophe.Connection.rawOutput = function (data) {
-   *  >   (user code)
-   *  > };
+   * The default function does nothing.  User code can override this with
+   * > Strophe.Connection.rawOutput = function (data) {
+   * >   (user code)
+   * > };
    *
-   *  Parameters:
-   *    (String) data - The data sent by the connection.
+   * @param {string} data - The data sent by the connection.
    */
   // eslint-disable-next-line no-unused-vars, class-methods-use-this
   rawOutput(data) {
     return;
   }
 
-  /** Function: nextValidRid
-   *  User overrideable function that receives the new valid rid.
+  /**
+   * User overrideable function that receives the new valid rid.
    *
-   *  The default function does nothing. User code can override this with
-   *  > Strophe.Connection.nextValidRid = function (rid) {
-   *  >    (user code)
-   *  > };
+   * The default function does nothing. User code can override this with
+   * > Strophe.Connection.nextValidRid = function (rid) {
+   * >    (user code)
+   * > };
    *
-   *  Parameters:
-   *    (Number) rid - The next valid rid
+   * @param {number} rid - The next valid rid
    */
   // eslint-disable-next-line no-unused-vars, class-methods-use-this
   nextValidRid(rid) {
     return;
   }
 
-  /** Function: send
-   *  Send a stanza.
+  /**
+   * Send a stanza.
    *
-   *  This function is called to push data onto the send queue to
-   *  go out over the wire.  Whenever a request is sent to the BOSH
-   *  server, all pending data is sent and the queue is flushed.
+   * This function is called to push data onto the send queue to
+   * go out over the wire.  Whenever a request is sent to the BOSH
+   * server, all pending data is sent and the queue is flushed.
    *
-   *  Parameters:
-   *    (XMLElement |
-   *     [XMLElement] |
-   *     Strophe.Builder) elem - The stanza to send.
+   * @param {Element|Builder|Element[]|Builder[]} stanza - The stanza to send
    */
-  send(elem) {
-    if (elem === null) {
-      return;
-    }
-    if (typeof elem.sort === 'function') {
-      for (let i = 0; i < elem.length; i++) {
-        this._queueData(elem[i]);
-      }
-    } else if (typeof elem.tree === 'function') {
-      this._queueData(elem.tree());
+  send(stanza) {
+    if (stanza === null) return;
+    if (Array.isArray(stanza)) {
+      stanza.forEach(s => this._queueData(s instanceof builder ? s.tree() : s));
     } else {
-      this._queueData(elem);
+      const el = stanza instanceof builder ? stanza.tree() : stanza;
+      this._queueData(el);
     }
     this._proto._send();
   }
 
-  /** Function: flush
-   *  Immediately send any pending outgoing data.
+  /**
+   * Immediately send any pending outgoing data.
    *
-   *  Normally send() queues outgoing data until the next idle period
-   *  (100ms), which optimizes network use in the common cases when
-   *  several send()s are called in succession. flush() can be used to
-   *  immediately send all pending data.
+   * Normally send() queues outgoing data until the next idle period
+   * (100ms), which optimizes network use in the common cases when
+   * several send()s are called in succession. flush() can be used to
+   * immediately send all pending data.
    */
   flush() {
     // cancel the pending idle period and run the idle function
@@ -25015,43 +24984,36 @@ class Connection {
     this._onIdle();
   }
 
-  /** Function: sendPresence
-   *  Helper function to send presence stanzas. The main benefit is for
-   *  sending presence stanzas for which you expect a responding presence
-   *  stanza with the same id (for example when leaving a chat room).
+  /**
+   * Helper function to send presence stanzas. The main benefit is for
+   * sending presence stanzas for which you expect a responding presence
+   * stanza with the same id (for example when leaving a chat room).
    *
-   *  Parameters:
-   *    (XMLElement) elem - The stanza to send.
-   *    (Function) callback - The callback function for a successful request.
-   *    (Function) errback - The callback function for a failed or timed
-   *      out request.  On timeout, the stanza will be null.
-   *    (Integer) timeout - The time specified in milliseconds for a
-   *      timeout to occur.
-   *
-   *  Returns:
-   *    The id used to send the presence.
+   * @param {Element} stanza - The stanza to send.
+   * @param {Function} [callback] - The callback function for a successful request.
+   * @param {Function} [errback] - The callback function for a failed or timed
+   *    out request.  On timeout, the stanza will be null.
+   * @param {number} [timeout] - The time specified in milliseconds for a
+   *    timeout to occur.
+   * @return {string} The id used to send the presence.
    */
-  sendPresence(elem, callback, errback, timeout) {
+  sendPresence(stanza, callback, errback, timeout) {
+    /** @type {TimedHandler} */
     let timeoutHandler = null;
-    if (typeof elem.tree === 'function') {
-      elem = elem.tree();
-    }
-    let id = elem.getAttribute('id');
+    const el = stanza instanceof builder ? stanza.tree() : stanza;
+    let id = el.getAttribute('id');
     if (!id) {
       // inject id if not found
       id = this.getUniqueId('sendPresence');
-      elem.setAttribute('id', id);
+      el.setAttribute('id', id);
     }
     if (typeof callback === 'function' || typeof errback === 'function') {
-      const handler = this.addHandler(stanza => {
+      const handler = this.addHandler( /** @param {Element} stanza */
+      stanza => {
         // remove timeout handler if there is one
-        if (timeoutHandler) {
-          this.deleteTimedHandler(timeoutHandler);
-        }
+        if (timeoutHandler) this.deleteTimedHandler(timeoutHandler);
         if (stanza.getAttribute('type') === 'error') {
-          if (errback) {
-            errback(stanza);
-          }
+          errback?.(stanza);
         } else if (callback) {
           callback(stanza);
         }
@@ -25063,57 +25025,46 @@ class Connection {
           // get rid of normal handler
           this.deleteHandler(handler);
           // call errback on timeout with null stanza
-          if (errback) {
-            errback(null);
-          }
+          errback?.(null);
           return false;
         });
       }
     }
-    this.send(elem);
+    this.send(el);
     return id;
   }
 
-  /** Function: sendIQ
-   *  Helper function to send IQ stanzas.
+  /**
+   * Helper function to send IQ stanzas.
    *
-   *  Parameters:
-   *    (XMLElement) elem - The stanza to send.
-   *    (Function) callback - The callback function for a successful request.
-   *    (Function) errback - The callback function for a failed or timed
-   *      out request.  On timeout, the stanza will be null.
-   *    (Integer) timeout - The time specified in milliseconds for a
-   *      timeout to occur.
-   *
-   *  Returns:
-   *    The id used to send the IQ.
+   * @param {Element|Builder} stanza - The stanza to send.
+   * @param {Function} [callback] - The callback function for a successful request.
+   * @param {Function} [errback] - The callback function for a failed or timed
+   *     out request.  On timeout, the stanza will be null.
+   * @param {number} [timeout] - The time specified in milliseconds for a
+   *     timeout to occur.
+   * @return {string} The id used to send the IQ.
    */
-  sendIQ(elem, callback, errback, timeout) {
+  sendIQ(stanza, callback, errback, timeout) {
+    /** @type {TimedHandler} */
     let timeoutHandler = null;
-    if (typeof elem.tree === 'function') {
-      elem = elem.tree();
-    }
-    let id = elem.getAttribute('id');
+    const el = stanza instanceof builder ? stanza.tree() : stanza;
+    let id = el.getAttribute('id');
     if (!id) {
       // inject id if not found
       id = this.getUniqueId('sendIQ');
-      elem.setAttribute('id', id);
+      el.setAttribute('id', id);
     }
     if (typeof callback === 'function' || typeof errback === 'function') {
-      const handler = this.addHandler(stanza => {
+      const handler = this.addHandler( /** @param {Element} stanza */
+      stanza => {
         // remove timeout handler if there is one
-        if (timeoutHandler) {
-          this.deleteTimedHandler(timeoutHandler);
-        }
+        if (timeoutHandler) this.deleteTimedHandler(timeoutHandler);
         const iqtype = stanza.getAttribute('type');
         if (iqtype === 'result') {
-          if (callback) {
-            callback(stanza);
-          }
+          callback?.(stanza);
         } else if (iqtype === 'error') {
-          if (errback) {
-            errback(stanza);
-          }
+          errback?.(stanza);
         } else {
           const error = new Error(`Got bad IQ type of ${iqtype}`);
           error.name = 'StropheError';
@@ -25127,20 +25078,20 @@ class Connection {
           // get rid of normal handler
           this.deleteHandler(handler);
           // call errback on timeout with null stanza
-          if (errback) {
-            errback(null);
-          }
+          errback?.(null);
           return false;
         });
       }
     }
-    this.send(elem);
+    this.send(el);
     return id;
   }
 
-  /** PrivateFunction: _queueData
-   *  Queue outgoing data for later sending.  Also ensures that the data
-   *  is a DOMElement.
+  /**
+   * Queue outgoing data for later sending.  Also ensures that the data
+   * is a DOMElement.
+   * @private
+   * @param {Element} element
    */
   _queueData(element) {
     if (element === null || !element.tagName || !element.childNodes) {
@@ -25151,8 +25102,9 @@ class Connection {
     this._data.push(element);
   }
 
-  /** PrivateFunction: _sendRestart
-   *  Send an xmpp:restart stanza.
+  /**
+   * Send an xmpp:restart stanza.
+   * @private
    */
   _sendRestart() {
     this._data.push('restart');
@@ -25160,43 +25112,38 @@ class Connection {
     this._idleTimeout = setTimeout(() => this._onIdle(), 100);
   }
 
-  /** Function: addTimedHandler
-   *  Add a timed handler to the connection.
+  /**
+   * Add a timed handler to the connection.
    *
-   *  This function adds a timed handler.  The provided handler will
-   *  be called every period milliseconds until it returns false,
-   *  the connection is terminated, or the handler is removed.  Handlers
-   *  that wish to continue being invoked should return true.
+   * This function adds a timed handler.  The provided handler will
+   * be called every period milliseconds until it returns false,
+   * the connection is terminated, or the handler is removed.  Handlers
+   * that wish to continue being invoked should return true.
    *
-   *  Because of method binding it is necessary to save the result of
-   *  this function if you wish to remove a handler with
-   *  deleteTimedHandler().
+   * Because of method binding it is necessary to save the result of
+   * this function if you wish to remove a handler with
+   * deleteTimedHandler().
    *
-   *  Note that user handlers are not active until authentication is
-   *  successful.
+   * Note that user handlers are not active until authentication is
+   * successful.
    *
-   *  Parameters:
-   *    (Integer) period - The period of the handler.
-   *    (Function) handler - The callback function.
-   *
-   *  Returns:
-   *    A reference to the handler that can be used to remove it.
+   * @param {number} period - The period of the handler.
+   * @param {Function} handler - The callback function.
+   * @return {TimedHandler} A reference to the handler that can be used to remove it.
    */
   addTimedHandler(period, handler) {
-    const thand = new Strophe.TimedHandler(period, handler);
+    const thand = new core.TimedHandler(period, handler);
     this.addTimeds.push(thand);
     return thand;
   }
 
-  /** Function: deleteTimedHandler
-   *  Delete a timed handler for a connection.
+  /**
+   * Delete a timed handler for a connection.
    *
-   *  This function removes a timed handler from the connection.  The
-   *  handRef parameter is *not* the function passed to addTimedHandler(),
-   *  but is the reference returned from addTimedHandler().
-   *
-   *  Parameters:
-   *    (Strophe.TimedHandler) handRef - The handler reference.
+   * This function removes a timed handler from the connection.  The
+   * handRef parameter is *not* the function passed to addTimedHandler(),
+   * but is the reference returned from addTimedHandler().
+   * @param {TimedHandler} handRef - The handler reference.
    */
   deleteTimedHandler(handRef) {
     // this must be done in the Idle loop so that we don't change
@@ -25204,85 +25151,88 @@ class Connection {
     this.removeTimeds.push(handRef);
   }
 
-  /** Function: addHandler
-   *  Add a stanza handler for the connection.
+  /**
+   * @typedef {Object} HandlerOptions
+   * @property {boolean} [HandlerOptions.matchBareFromJid]
+   * @property {boolean} [HandlerOptions.ignoreNamespaceFragment]
+   */
+
+  /**
+   * Add a stanza handler for the connection.
    *
-   *  This function adds a stanza handler to the connection.  The
-   *  handler callback will be called for any stanza that matches
-   *  the parameters.  Note that if multiple parameters are supplied,
-   *  they must all match for the handler to be invoked.
+   * This function adds a stanza handler to the connection.  The
+   * handler callback will be called for any stanza that matches
+   * the parameters.  Note that if multiple parameters are supplied,
+   * they must all match for the handler to be invoked.
    *
-   *  The handler will receive the stanza that triggered it as its argument.
-   *  *The handler should return true if it is to be invoked again;
-   *  returning false will remove the handler after it returns.*
+   * The handler will receive the stanza that triggered it as its argument.
+   * *The handler should return true if it is to be invoked again;
+   * returning false will remove the handler after it returns.*
    *
-   *  As a convenience, the ns parameters applies to the top level element
-   *  and also any of its immediate children.  This is primarily to make
-   *  matching /iq/query elements easy.
+   * As a convenience, the ns parameters applies to the top level element
+   * and also any of its immediate children.  This is primarily to make
+   * matching /iq/query elements easy.
    *
-   *  Options
-   *  ~~~~~~~
-   *  With the options argument, you can specify boolean flags that affect how
-   *  matches are being done.
+   * ### Options
    *
-   *  Currently two flags exist:
+   * With the options argument, you can specify boolean flags that affect how
+   * matches are being done.
    *
-   *  - matchBareFromJid:
-   *      When set to true, the from parameter and the
-   *      from attribute on the stanza will be matched as bare JIDs instead
-   *      of full JIDs. To use this, pass {matchBareFromJid: true} as the
-   *      value of options. The default value for matchBareFromJid is false.
+   * Currently two flags exist:
    *
-   *  - ignoreNamespaceFragment:
-   *      When set to true, a fragment specified on the stanza's namespace
-   *      URL will be ignored when it's matched with the one configured for
-   *      the handler.
+   * * *matchBareFromJid*:
+   *     When set to true, the from parameter and the
+   *     from attribute on the stanza will be matched as bare JIDs instead
+   *     of full JIDs. To use this, pass {matchBareFromJid: true} as the
+   *     value of options. The default value for matchBareFromJid is false.
    *
-   *      This means that if you register like this:
-   *      >   connection.addHandler(
-   *      >       handler,
-   *      >       'http://jabber.org/protocol/muc',
-   *      >       null, null, null, null,
-   *      >       {'ignoreNamespaceFragment': true}
-   *      >   );
+   * * *ignoreNamespaceFragment*:
+   *     When set to true, a fragment specified on the stanza's namespace
+   *     URL will be ignored when it's matched with the one configured for
+   *     the handler.
    *
-   *      Then a stanza with XML namespace of
-   *      'http://jabber.org/protocol/muc#user' will also be matched. If
-   *      'ignoreNamespaceFragment' is false, then only stanzas with
-   *      'http://jabber.org/protocol/muc' will be matched.
+   *     This means that if you register like this:
    *
-   *  Deleting the handler
-   *  ~~~~~~~~~~~~~~~~~~~~
-   *  The return value should be saved if you wish to remove the handler
-   *  with deleteHandler().
+   *     >   connection.addHandler(
+   *     >       handler,
+   *     >       'http://jabber.org/protocol/muc',
+   *     >       null, null, null, null,
+   *     >       {'ignoreNamespaceFragment': true}
+   *     >   );
    *
-   *  Parameters:
-   *    (Function) handler - The user callback.
-   *    (String) ns - The namespace to match.
-   *    (String) name - The stanza name to match.
-   *    (String|Array) type - The stanza type (or types if an array) to match.
-   *    (String) id - The stanza id attribute to match.
-   *    (String) from - The stanza from attribute to match.
-   *    (String) options - The handler options
+   *     Then a stanza with XML namespace of
+   *     'http://jabber.org/protocol/muc#user' will also be matched. If
+   *     'ignoreNamespaceFragment' is false, then only stanzas with
+   *     'http://jabber.org/protocol/muc' will be matched.
    *
-   *  Returns:
-   *    A reference to the handler that can be used to remove it.
+   * ### Deleting the handler
+   *
+   * The return value should be saved if you wish to remove the handler
+   * with `deleteHandler()`.
+   *
+   * @param {Function} handler - The user callback.
+   * @param {string} ns - The namespace to match.
+   * @param {string} name - The stanza name to match.
+   * @param {string|string[]} type - The stanza type (or types if an array) to match.
+   * @param {string} id - The stanza id attribute to match.
+   * @param {string} [from] - The stanza from attribute to match.
+   * @param {HandlerOptions} [options] - The handler options
+   * @return {Handler} A reference to the handler that can be used to remove it.
    */
   addHandler(handler, ns, name, type, id, from, options) {
-    const hand = new Handler(handler, ns, name, type, id, from, options);
+    const hand = new src_handler(handler, ns, name, type, id, from, options);
     this.addHandlers.push(hand);
     return hand;
   }
 
-  /** Function: deleteHandler
-   *  Delete a stanza handler for a connection.
+  /**
+   * Delete a stanza handler for a connection.
    *
-   *  This function removes a stanza handler from the connection.  The
-   *  handRef parameter is *not* the function passed to addHandler(),
-   *  but is the reference returned from addHandler().
+   * This function removes a stanza handler from the connection.  The
+   * handRef parameter is *not* the function passed to addHandler(),
+   * but is the reference returned from addHandler().
    *
-   *  Parameters:
-   *    (Handler) handRef - The handler reference.
+   * @param {Handler} handRef - The handler reference.
    */
   deleteHandler(handRef) {
     // this must be done in the Idle loop so that we don't change
@@ -25296,63 +25246,53 @@ class Connection {
     }
   }
 
-  /** Function: registerSASLMechanisms
-   *
+  /**
    * Register the SASL mechanisms which will be supported by this instance of
    * Strophe.Connection (i.e. which this XMPP client will support).
-   *
-   *  Parameters:
-   *    (Array) mechanisms - Array of objects with Strophe.SASLMechanism prototypes
-   *
+   * @param {SASLMechanism[]} mechanisms - Array of objects with Strophe.SASLMechanism prototypes
    */
   registerSASLMechanisms(mechanisms) {
     this.mechanisms = {};
-    mechanisms = mechanisms || [Strophe.SASLAnonymous, Strophe.SASLExternal, Strophe.SASLOAuthBearer, Strophe.SASLXOAuth2, Strophe.SASLPlain, Strophe.SASLSHA1, Strophe.SASLSHA256, Strophe.SASLSHA384, Strophe.SASLSHA512];
-    mechanisms.forEach(m => this.registerSASLMechanism(m));
+    (mechanisms || [core.SASLAnonymous, core.SASLExternal, core.SASLOAuthBearer, core.SASLXOAuth2, core.SASLPlain, core.SASLSHA1, core.SASLSHA256, core.SASLSHA384, core.SASLSHA512]).forEach(m => this.registerSASLMechanism(m));
   }
 
-  /** Function: registerSASLMechanism
-   *
+  /**
    * Register a single SASL mechanism, to be supported by this client.
-   *
-   *  Parameters:
-   *    (Object) mechanism - Object with a Strophe.SASLMechanism prototype
-   *
+   * @param {any} Mechanism - Object with a Strophe.SASLMechanism prototype
    */
   registerSASLMechanism(Mechanism) {
     const mechanism = new Mechanism();
     this.mechanisms[mechanism.mechname] = mechanism;
   }
 
-  /** Function: disconnect
-   *  Start the graceful disconnection process.
+  /**
+   * Start the graceful disconnection process.
    *
-   *  This function starts the disconnection process.  This process starts
-   *  by sending unavailable presence and sending BOSH body of type
-   *  terminate.  A timeout handler makes sure that disconnection happens
-   *  even if the BOSH server does not respond.
-   *  If the Connection object isn't connected, at least tries to abort all pending requests
-   *  so the connection object won't generate successful requests (which were already opened).
+   * This function starts the disconnection process.  This process starts
+   * by sending unavailable presence and sending BOSH body of type
+   * terminate.  A timeout handler makes sure that disconnection happens
+   * even if the BOSH server does not respond.
+   * If the Connection object isn't connected, at least tries to abort all pending requests
+   * so the connection object won't generate successful requests (which were already opened).
    *
-   *  The user supplied connection callback will be notified of the
-   *  progress as this process happens.
+   * The user supplied connection callback will be notified of the
+   * progress as this process happens.
    *
-   *  Parameters:
-   *    (String) reason - The reason the disconnect is occuring.
+   * @param {string} [reason] - The reason the disconnect is occuring.
    */
   disconnect(reason) {
     this._changeConnectStatus(Status.DISCONNECTING, reason);
     if (reason) {
-      Strophe.warn('Disconnect was called because: ' + reason);
+      core.warn('Disconnect was called because: ' + reason);
     } else {
-      Strophe.info('Disconnect was called');
+      core.info('Disconnect was called');
     }
     if (this.connected) {
-      let pres = false;
+      let pres = null;
       this.disconnecting = true;
       if (this.authenticated) {
         pres = $pres({
-          'xmlns': Strophe.NS.CLIENT,
+          'xmlns': core.NS.CLIENT,
           'type': 'unavailable'
         });
       }
@@ -25360,32 +25300,31 @@ class Connection {
       this._disconnectTimeout = this._addSysTimedHandler(this.disconnection_timeout, this._onDisconnectTimeout.bind(this));
       this._proto._disconnect(pres);
     } else {
-      Strophe.warn('Disconnect was called before Strophe connected to the server');
+      core.warn('Disconnect was called before Strophe connected to the server');
       this._proto._abortAllRequests();
       this._doDisconnect();
     }
   }
 
-  /** PrivateFunction: _changeConnectStatus
-   *  _Private_ helper function that makes sure plugins and the user's
-   *  callback are notified of connection status changes.
-   *
-   *  Parameters:
-   *    (Integer) status - the new connection status, one of the values
-   *      in Strophe.Status
-   *    (String) condition - the error condition or null
-   *    (XMLElement) elem - The triggering stanza.
+  /**
+   * _Private_ helper function that makes sure plugins and the user's
+   * callback are notified of connection status changes.
+   * @param {number} status - the new connection status, one of the values
+   *     in Strophe.Status
+   * @param {string|null} [condition] - the error condition
+   * @param {Element} [elem] - The triggering stanza.
    */
   _changeConnectStatus(status, condition, elem) {
     // notify all plugins listening for status changes
-    for (const k in Strophe._connectionPlugins) {
-      if (Object.prototype.hasOwnProperty.call(Strophe._connectionPlugins, k)) {
+    for (const k in core._connectionPlugins) {
+      if (Object.prototype.hasOwnProperty.call(core._connectionPlugins, k)) {
+        // @ts-ignore
         const plugin = this[k];
         if (plugin.statusChanged) {
           try {
             plugin.statusChanged(status, condition);
           } catch (err) {
-            Strophe.error(`${k} plugin caused an exception changing status: ${err}`);
+            core.error(`${k} plugin caused an exception changing status: ${err}`);
           }
         }
       }
@@ -25395,17 +25334,18 @@ class Connection {
       try {
         this.connect_callback(status, condition, elem);
       } catch (e) {
-        Strophe._handleError(e);
-        Strophe.error(`User connection callback caused an exception: ${e}`);
+        core._handleError(e);
+        core.error(`User connection callback caused an exception: ${e}`);
       }
     }
   }
 
-  /** PrivateFunction: _doDisconnect
-   *  _Private_ function to disconnect.
+  /**
+   * _Private_ function to disconnect.
    *
-   *  This is the last piece of the disconnection logic.  This resets the
-   *  connection and alerts the user's connection callback.
+   * This is the last piece of the disconnection logic.  This resets the
+   * connection and alerts the user's connection callback.
+   * @param {string|null} [condition] - the error condition
    */
   _doDisconnect(condition) {
     if (typeof this._idleTimeout === 'number') {
@@ -25417,7 +25357,7 @@ class Connection {
       this.deleteTimedHandler(this._disconnectTimeout);
       this._disconnectTimeout = null;
     }
-    Strophe.debug('_doDisconnect was called');
+    core.debug('_doDisconnect was called');
     this._proto._doDisconnect();
     this.authenticated = false;
     this.disconnecting = false;
@@ -25436,35 +25376,34 @@ class Connection {
     this.connected = false;
   }
 
-  /** PrivateFunction: _dataRecv
-   *  _Private_ handler to processes incoming data from the the connection.
+  /**
+   * _Private_ handler to processes incoming data from the the connection.
    *
-   *  Except for _connect_cb handling the initial connection request,
-   *  this function handles the incoming data for all requests.  This
-   *  function also fires stanza handlers that match each incoming
-   *  stanza.
-   *
-   *  Parameters:
-   *    (Strophe.Request) req - The request that has data ready.
-   *    (string) req - The stanza a raw string (optiona).
+   * Except for _connect_cb handling the initial connection request,
+   * this function handles the incoming data for all requests.  This
+   * function also fires stanza handlers that match each incoming
+   * stanza.
+   * @param {Element | Request} req - The request that has data ready.
+   * @param {string} [raw] - The stanza as raw string.
    */
   _dataRecv(req, raw) {
-    const elem = this._proto._reqToData(req);
+    const elem = /** @type {Element} */
+    '_reqToData' in this._proto ? this._proto._reqToData( /** @type {Request} */req) : req;
     if (elem === null) {
       return;
     }
-    if (this.xmlInput !== Strophe.Connection.prototype.xmlInput) {
+    if (this.xmlInput !== core.Connection.prototype.xmlInput) {
       if (elem.nodeName === this._proto.strip && elem.childNodes.length) {
         this.xmlInput(elem.childNodes[0]);
       } else {
         this.xmlInput(elem);
       }
     }
-    if (this.rawInput !== Strophe.Connection.prototype.rawInput) {
+    if (this.rawInput !== core.Connection.prototype.rawInput) {
       if (raw) {
         this.rawInput(raw);
       } else {
-        this.rawInput(Strophe.serialize(elem));
+        this.rawInput(core.serialize(elem));
       }
     }
 
@@ -25502,14 +25441,15 @@ class Connection {
         }
         this._changeConnectStatus(Status.CONNFAIL, cond);
       } else {
-        this._changeConnectStatus(Status.CONNFAIL, Strophe.ErrorCondition.UNKOWN_REASON);
+        this._changeConnectStatus(Status.CONNFAIL, core.ErrorCondition.UNKNOWN_REASON);
       }
       this._doDisconnect(cond);
       return;
     }
 
     // send each incoming stanza through the handler chain
-    Strophe.forEachChild(elem, null, child => {
+    core.forEachChild(elem, null, /** @param {Element} child */
+    child => {
       const matches = [];
       this.handlers = this.handlers.reduce((handlers, handler) => {
         try {
@@ -25523,7 +25463,7 @@ class Connection {
           }
         } catch (e) {
           // if the handler throws an exception, we consider it as false
-          Strophe.warn('Removing Strophe handlers due to uncaught exception: ' + e.message);
+          core.warn('Removing Strophe handlers due to uncaught exception: ' + e.message);
         }
         return handlers;
       }, []);
@@ -25536,50 +25476,56 @@ class Connection {
     });
   }
 
-  /** PrivateFunction: _connect_cb
-   *  _Private_ handler for initial connection request.
+  /**
+   * @callback connectionCallback
+   * @param {Connection} connection
+   */
+
+  /**
+   * _Private_ handler for initial connection request.
    *
-   *  This handler is used to process the initial connection request
-   *  response from the BOSH server. It is used to set up authentication
-   *  handlers and start the authentication process.
+   * This handler is used to process the initial connection request
+   * response from the BOSH server. It is used to set up authentication
+   * handlers and start the authentication process.
    *
-   *  SASL authentication will be attempted if available, otherwise
-   *  the code will fall back to legacy authentication.
+   * SASL authentication will be attempted if available, otherwise
+   * the code will fall back to legacy authentication.
    *
-   *  Parameters:
-   *    (Strophe.Request) req - The current request.
-   *    (Function) _callback - low level (xmpp) connect callback function.
-   *      Useful for plugins with their own xmpp connect callback (when they
-   *      want to do something special).
+   * @param {Element | Request} req - The current request.
+   * @param {connectionCallback} _callback - low level (xmpp) connect callback function.
+   *     Useful for plugins with their own xmpp connect callback (when they
+   *     want to do something special).
+   * @param {string} [raw] - The stanza as raw string.
    */
   _connect_cb(req, _callback, raw) {
-    Strophe.debug('_connect_cb was called');
+    core.debug('_connect_cb was called');
     this.connected = true;
     let bodyWrap;
     try {
-      bodyWrap = this._proto._reqToData(req);
+      bodyWrap = /** @type {Element} */
+      '_reqToData' in this._proto ? this._proto._reqToData( /** @type {Request} */req) : req;
     } catch (e) {
-      if (e.name !== Strophe.ErrorCondition.BAD_FORMAT) {
+      if (e.name !== core.ErrorCondition.BAD_FORMAT) {
         throw e;
       }
-      this._changeConnectStatus(Status.CONNFAIL, Strophe.ErrorCondition.BAD_FORMAT);
-      this._doDisconnect(Strophe.ErrorCondition.BAD_FORMAT);
+      this._changeConnectStatus(Status.CONNFAIL, core.ErrorCondition.BAD_FORMAT);
+      this._doDisconnect(core.ErrorCondition.BAD_FORMAT);
     }
     if (!bodyWrap) {
       return;
     }
-    if (this.xmlInput !== Strophe.Connection.prototype.xmlInput) {
+    if (this.xmlInput !== core.Connection.prototype.xmlInput) {
       if (bodyWrap.nodeName === this._proto.strip && bodyWrap.childNodes.length) {
         this.xmlInput(bodyWrap.childNodes[0]);
       } else {
         this.xmlInput(bodyWrap);
       }
     }
-    if (this.rawInput !== Strophe.Connection.prototype.rawInput) {
+    if (this.rawInput !== core.Connection.prototype.rawInput) {
       if (raw) {
         this.rawInput(raw);
       } else {
-        this.rawInput(Strophe.serialize(bodyWrap));
+        this.rawInput(core.serialize(bodyWrap));
       }
     }
     const conncheck = this._proto._connect_cb(bodyWrap);
@@ -25590,7 +25536,7 @@ class Connection {
     // Check for the stream:features tag
     let hasFeatures;
     if (bodyWrap.getElementsByTagNameNS) {
-      hasFeatures = bodyWrap.getElementsByTagNameNS(Strophe.NS.STREAM, 'features').length > 0;
+      hasFeatures = bodyWrap.getElementsByTagNameNS(core.NS.STREAM, 'features').length > 0;
     } else {
       hasFeatures = bodyWrap.getElementsByTagName('stream:features').length > 0 || bodyWrap.getElementsByTagName('features').length > 0;
     }
@@ -25612,14 +25558,10 @@ class Connection {
     }
   }
 
-  /** Function: sortMechanismsByPriority
-   *
-   *  Sorts an array of objects with prototype SASLMechanism according to
-   *  their priorities.
-   *
-   *  Parameters:
-   *    (Array) mechanisms - Array of SASL mechanisms.
-   *
+  /**
+   * Sorts an array of objects with prototype SASLMechanism according to
+   * their priorities.
+   * @param {SASLMechanism[]} mechanisms - Array of SASL mechanisms.
    */
   // eslint-disable-next-line  class-methods-use-this
   sortMechanismsByPriority(mechanisms) {
@@ -25640,18 +25582,16 @@ class Connection {
     return mechanisms;
   }
 
-  /** Function: authenticate
+  /**
    * Set up authentication
    *
-   *  Continues the initial connection request by setting up authentication
-   *  handlers and starting the authentication process.
+   * Continues the initial connection request by setting up authentication
+   * handlers and starting the authentication process.
    *
-   *  SASL authentication will be attempted if available, otherwise
-   *  the code will fall back to legacy authentication.
+   * SASL authentication will be attempted if available, otherwise
+   * the code will fall back to legacy authentication.
    *
-   *  Parameters:
-   *    (Array) matched - Array of SASL mechanisms supported.
-   *
+   * @param {SASLMechanism[]} matched - Array of SASL mechanisms supported.
    */
   authenticate(matched) {
     if (!this._attemptSASLAuth(matched)) {
@@ -25659,18 +25599,14 @@ class Connection {
     }
   }
 
-  /** PrivateFunction: _attemptSASLAuth
+  /**
+   * Iterate through an array of SASL mechanisms and attempt authentication
+   * with the highest priority (enabled) mechanism.
    *
-   *  Iterate through an array of SASL mechanisms and attempt authentication
-   *  with the highest priority (enabled) mechanism.
-   *
-   *  Parameters:
-   *    (Array) mechanisms - Array of SASL mechanisms.
-   *
-   *  Returns:
-   *    (Boolean) mechanism_found - true or false, depending on whether a
-   *          valid SASL mechanism was found with which authentication could be
-   *          started.
+   * @private
+   * @param {SASLMechanism[]} mechanisms - Array of SASL mechanisms.
+   * @return {Boolean} mechanism_found - true or false, depending on whether a
+   *  valid SASL mechanism was found with which authentication could be started.
    */
   _attemptSASLAuth(mechanisms) {
     mechanisms = this.sortMechanismsByPriority(mechanisms || []);
@@ -25685,12 +25621,12 @@ class Connection {
       this._sasl_mechanism = mechanisms[i];
       this._sasl_mechanism.onStart(this);
       const request_auth_exchange = $build('auth', {
-        'xmlns': Strophe.NS.SASL,
+        'xmlns': core.NS.SASL,
         'mechanism': this._sasl_mechanism.mechname
       });
       if (this._sasl_mechanism.isClientFirst) {
         const response = this._sasl_mechanism.clientChallenge(this);
-        request_auth_exchange.t((0,abab.btoa)(response));
+        request_auth_exchange.t((0,abab.btoa)( /** @type {string} */response));
       }
       this.send(request_auth_exchange.tree());
       mechanism_found = true;
@@ -25699,33 +25635,32 @@ class Connection {
     return mechanism_found;
   }
 
-  /** PrivateFunction: _sasl_challenge_cb
-   *  _Private_ handler for the SASL challenge
-   *
+  /**
+   * _Private_ handler for the SASL challenge
+   * @private
+   * @param {Element} elem
    */
   async _sasl_challenge_cb(elem) {
     const challenge = (0,abab.atob)(getText(elem));
     const response = await this._sasl_mechanism.onChallenge(this, challenge);
     const stanza = $build('response', {
-      'xmlns': Strophe.NS.SASL
+      'xmlns': core.NS.SASL
     });
-    if (response !== '') {
-      stanza.t((0,abab.btoa)(response));
-    }
+    if (response) stanza.t((0,abab.btoa)(response));
     this.send(stanza.tree());
     return true;
   }
 
-  /** PrivateFunction: _attemptLegacyAuth
-   *
-   *  Attempt legacy (i.e. non-SASL) authentication.
+  /**
+   * Attempt legacy (i.e. non-SASL) authentication.
+   * @private
    */
   _attemptLegacyAuth() {
-    if (Strophe.getNodeFromJid(this.jid) === null) {
+    if (core.getNodeFromJid(this.jid) === null) {
       // we don't have a node, which is required for non-anonymous
       // client connections
-      this._changeConnectStatus(Status.CONNFAIL, Strophe.ErrorCondition.MISSING_JID_NODE);
-      this.disconnect(Strophe.ErrorCondition.MISSING_JID_NODE);
+      this._changeConnectStatus(Status.CONNFAIL, core.ErrorCondition.MISSING_JID_NODE);
+      this.disconnect(core.ErrorCondition.MISSING_JID_NODE);
     } else {
       // Fall back to legacy authentication
       this._changeConnectStatus(Status.AUTHENTICATING, null);
@@ -25735,54 +25670,50 @@ class Connection {
         'to': this.domain,
         'id': '_auth_1'
       }).c('query', {
-        xmlns: Strophe.NS.AUTH
-      }).c('username', {}).t(Strophe.getNodeFromJid(this.jid)).tree());
+        xmlns: core.NS.AUTH
+      }).c('username', {}).t(core.getNodeFromJid(this.jid)).tree());
     }
   }
 
-  /** PrivateFunction: _onLegacyAuthIQResult
-   *  _Private_ handler for legacy authentication.
+  /**
+   * _Private_ handler for legacy authentication.
    *
-   *  This handler is called in response to the initial <iq type='get'/>
-   *  for legacy authentication.  It builds an authentication <iq/> and
-   *  sends it, creating a handler (calling back to _auth2_cb()) to
-   *  handle the result
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The stanza that triggered the callback.
-   *
-   *  Returns:
-   *    false to remove the handler.
+   * This handler is called in response to the initial <iq type='get'/>
+   * for legacy authentication.  It builds an authentication <iq/> and
+   * sends it, creating a handler (calling back to _auth2_cb()) to
+   * handle the result
+   * @private
+   * @return {false} `false` to remove the handler.
    */
   // eslint-disable-next-line no-unused-vars
-  _onLegacyAuthIQResult(elem) {
+  //
+  _onLegacyAuthIQResult() {
+    const pass = typeof this.pass === 'string' ? this.pass : '';
+
     // build plaintext auth iq
     const iq = $iq({
       type: 'set',
       id: '_auth_2'
     }).c('query', {
-      xmlns: Strophe.NS.AUTH
-    }).c('username', {}).t(Strophe.getNodeFromJid(this.jid)).up().c('password').t(this.pass);
-    if (!Strophe.getResourceFromJid(this.jid)) {
+      xmlns: core.NS.AUTH
+    }).c('username', {}).t(core.getNodeFromJid(this.jid)).up().c('password').t(pass);
+    if (!core.getResourceFromJid(this.jid)) {
       // since the user has not supplied a resource, we pick
       // a default one here.  unlike other auth methods, the server
       // cannot do this for us.
-      this.jid = Strophe.getBareJidFromJid(this.jid) + '/strophe';
+      this.jid = core.getBareJidFromJid(this.jid) + '/strophe';
     }
-    iq.up().c('resource', {}).t(Strophe.getResourceFromJid(this.jid));
+    iq.up().c('resource', {}).t(core.getResourceFromJid(this.jid));
     this._addSysHandler(this._auth2_cb.bind(this), null, null, null, '_auth_2');
     this.send(iq.tree());
     return false;
   }
 
-  /** PrivateFunction: _sasl_success_cb
-   *  _Private_ handler for succesful SASL authentication.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The matching stanza.
-   *
-   *  Returns:
-   *    false to remove the handler.
+  /**
+   * _Private_ handler for succesful SASL authentication.
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
    */
   _sasl_success_cb(elem) {
     if (this._sasl_data['server-signature']) {
@@ -25805,7 +25736,7 @@ class Connection {
         return this._sasl_failure_cb(null);
       }
     }
-    Strophe.info('SASL authentication succeeded.');
+    core.info('SASL authentication succeeded.');
     if (this._sasl_data.keys) {
       this.scram_keys = this._sasl_data.keys;
     }
@@ -25819,7 +25750,13 @@ class Connection {
       this.deleteHandler(this._sasl_challenge_handler);
       this._sasl_challenge_handler = null;
     }
+    /** @type {Handler[]} */
     const streamfeature_handlers = [];
+
+    /**
+     * @param {Handler[]} handlers
+     * @param {Element} elem
+     */
     const wrapper = (handlers, elem) => {
       while (handlers.length) {
         this.deleteHandler(handlers.pop());
@@ -25827,20 +25764,20 @@ class Connection {
       this._onStreamFeaturesAfterSASL(elem);
       return false;
     };
-    streamfeature_handlers.push(this._addSysHandler(elem => wrapper(streamfeature_handlers, elem), null, 'stream:features', null, null));
-    streamfeature_handlers.push(this._addSysHandler(elem => wrapper(streamfeature_handlers, elem), Strophe.NS.STREAM, 'features', null, null));
+    streamfeature_handlers.push(this._addSysHandler( /** @param {Element} elem */
+    elem => wrapper(streamfeature_handlers, elem), null, 'stream:features', null, null));
+    streamfeature_handlers.push(this._addSysHandler( /** @param {Element} elem */
+    elem => wrapper(streamfeature_handlers, elem), core.NS.STREAM, 'features', null, null));
 
     // we must send an xmpp:restart now
     this._sendRestart();
     return false;
   }
 
-  /** PrivateFunction: _onStreamFeaturesAfterSASL
-   *  Parameters:
-   *    (XMLElement) elem - The matching stanza.
-   *
-   *  Returns:
-   *    false to remove the handler.
+  /**
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
    */
   _onStreamFeaturesAfterSASL(elem) {
     // save stream:features for future usage
@@ -25865,59 +25802,55 @@ class Connection {
     return false;
   }
 
-  /** Function: bind
+  /**
+   * Sends an IQ to the XMPP server to bind a JID resource for this session.
    *
-   *  Sends an IQ to the XMPP server to bind a JID resource for this session.
+   * https://tools.ietf.org/html/rfc6120#section-7.5
    *
-   *  https://tools.ietf.org/html/rfc6120#section-7.5
+   * If `explicitResourceBinding` was set to a truthy value in the options
+   * passed to the Strophe.Connection constructor, then this function needs
+   * to be called explicitly by the client author.
    *
-   *  If `explicitResourceBinding` was set to a truthy value in the options
-   *  passed to the Strophe.Connection constructor, then this function needs
-   *  to be called explicitly by the client author.
-   *
-   *  Otherwise it'll be called automatically as soon as the XMPP server
-   *  advertises the "urn:ietf:params:xml:ns:xmpp-bind" stream feature.
+   * Otherwise it'll be called automatically as soon as the XMPP server
+   * advertises the "urn:ietf:params:xml:ns:xmpp-bind" stream feature.
    */
   bind() {
     if (!this.do_bind) {
-      Strophe.log(Strophe.LogLevel.INFO, `Strophe.Connection.prototype.bind called but "do_bind" is false`);
+      core.log(core.LogLevel.INFO, `Strophe.Connection.prototype.bind called but "do_bind" is false`);
       return;
     }
     this._addSysHandler(this._onResourceBindResultIQ.bind(this), null, null, null, '_bind_auth_2');
-    const resource = Strophe.getResourceFromJid(this.jid);
+    const resource = core.getResourceFromJid(this.jid);
     if (resource) {
       this.send($iq({
         type: 'set',
         id: '_bind_auth_2'
       }).c('bind', {
-        xmlns: Strophe.NS.BIND
+        xmlns: core.NS.BIND
       }).c('resource', {}).t(resource).tree());
     } else {
       this.send($iq({
         type: 'set',
         id: '_bind_auth_2'
       }).c('bind', {
-        xmlns: Strophe.NS.BIND
+        xmlns: core.NS.BIND
       }).tree());
     }
   }
 
-  /** PrivateFunction: _onResourceBindIQ
-   *  _Private_ handler for binding result and session start.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The matching stanza.
-   *
-   *  Returns:
-   *    false to remove the handler.
+  /**
+   * _Private_ handler for binding result and session start.
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
    */
   _onResourceBindResultIQ(elem) {
     if (elem.getAttribute('type') === 'error') {
-      Strophe.warn('Resource binding failed.');
+      core.warn('Resource binding failed.');
       const conflict = elem.getElementsByTagName('conflict');
       let condition;
       if (conflict.length > 0) {
-        condition = Strophe.ErrorCondition.CONFLICT;
+        condition = core.ErrorCondition.CONFLICT;
       }
       this._changeConnectStatus(Status.AUTHFAIL, condition, elem);
       return false;
@@ -25936,50 +25869,48 @@ class Connection {
         }
       }
     } else {
-      Strophe.warn('Resource binding failed.');
+      core.warn('Resource binding failed.');
       this._changeConnectStatus(Status.AUTHFAIL, null, elem);
       return false;
     }
   }
 
-  /** PrivateFunction: _establishSession
-   *  Send IQ request to establish a session with the XMPP server.
+  /**
+   * Send IQ request to establish a session with the XMPP server.
    *
-   *  See https://xmpp.org/rfcs/rfc3921.html#session
+   * See https://xmpp.org/rfcs/rfc3921.html#session
    *
-   *  Note: The protocol for session establishment has been determined as
-   *  unnecessary and removed in RFC-6121.
+   * Note: The protocol for session establishment has been determined as
+   * unnecessary and removed in RFC-6121.
+   * @private
    */
   _establishSession() {
     if (!this.do_session) {
-      throw new Error(`Strophe.Connection.prototype._establishSession ` + `called but apparently ${Strophe.NS.SESSION} wasn't advertised by the server`);
+      throw new Error(`Strophe.Connection.prototype._establishSession ` + `called but apparently ${core.NS.SESSION} wasn't advertised by the server`);
     }
     this._addSysHandler(this._onSessionResultIQ.bind(this), null, null, null, '_session_auth_2');
     this.send($iq({
       type: 'set',
       id: '_session_auth_2'
     }).c('session', {
-      xmlns: Strophe.NS.SESSION
+      xmlns: core.NS.SESSION
     }).tree());
   }
 
-  /** PrivateFunction: _onSessionResultIQ
-   *  _Private_ handler for the server's IQ response to a client's session
-   *  request.
+  /**
+   * _Private_ handler for the server's IQ response to a client's session
+   * request.
    *
-   *  This sets Connection.authenticated to true on success, which
-   *  starts the processing of user handlers.
+   * This sets Connection.authenticated to true on success, which
+   * starts the processing of user handlers.
    *
-   *  See https://xmpp.org/rfcs/rfc3921.html#session
+   * See https://xmpp.org/rfcs/rfc3921.html#session
    *
-   *  Note: The protocol for session establishment has been determined as
-   *  unnecessary and removed in RFC-6121.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The matching stanza.
-   *
-   *  Returns:
-   *    false to remove the handler.
+   * Note: The protocol for session establishment has been determined as
+   * unnecessary and removed in RFC-6121.
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
    */
   _onSessionResultIQ(elem) {
     if (elem.getAttribute('type') === 'result') {
@@ -25987,21 +25918,17 @@ class Connection {
       this._changeConnectStatus(Status.CONNECTED, null);
     } else if (elem.getAttribute('type') === 'error') {
       this.authenticated = false;
-      Strophe.warn('Session creation failed.');
+      core.warn('Session creation failed.');
       this._changeConnectStatus(Status.AUTHFAIL, null, elem);
       return false;
     }
     return false;
   }
 
-  /** PrivateFunction: _sasl_failure_cb
-   *  _Private_ handler for SASL authentication failure.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The matching stanza.
-   *
-   *  Returns:
-   *    false to remove the handler.
+  /**
+   * _Private_ handler for SASL authentication failure.
+   * @param {Element} [elem] - The matching stanza.
+   * @return {false} `false` to remove the handler.
    */
   _sasl_failure_cb(elem) {
     // delete unneeded handlers
@@ -26018,17 +25945,14 @@ class Connection {
     return false;
   }
 
-  /** PrivateFunction: _auth2_cb
-   *  _Private_ handler to finish legacy authentication.
+  /**
+   * _Private_ handler to finish legacy authentication.
    *
-   *  This handler is called when the result from the jabber:iq:auth
-   *  <iq/> stanza is returned.
-   *
-   *  Parameters:
-   *    (XMLElement) elem - The stanza that triggered the callback.
-   *
-   *  Returns:
-   *    false to remove the handler.
+   * This handler is called when the result from the jabber:iq:auth
+   * <iq/> stanza is returned.
+   * @private
+   * @param {Element} elem - The stanza that triggered the callback.
+   * @return {false} `false` to remove the handler.
    */
   _auth2_cb(elem) {
     if (elem.getAttribute('type') === 'result') {
@@ -26041,56 +25965,50 @@ class Connection {
     return false;
   }
 
-  /** PrivateFunction: _addSysTimedHandler
-   *  _Private_ function to add a system level timed handler.
+  /**
+   * _Private_ function to add a system level timed handler.
    *
-   *  This function is used to add a Strophe.TimedHandler for the
-   *  library code.  System timed handlers are allowed to run before
-   *  authentication is complete.
-   *
-   *  Parameters:
-   *    (Integer) period - The period of the handler.
-   *    (Function) handler - The callback function.
+   * This function is used to add a Strophe.TimedHandler for the
+   * library code.  System timed handlers are allowed to run before
+   * authentication is complete.
+   * @param {number} period - The period of the handler.
+   * @param {Function} handler - The callback function.
    */
   _addSysTimedHandler(period, handler) {
-    const thand = new TimedHandler(period, handler);
+    const thand = new timed_handler(period, handler);
     thand.user = false;
     this.addTimeds.push(thand);
     return thand;
   }
 
-  /** PrivateFunction: _addSysHandler
-   *  _Private_ function to add a system level stanza handler.
+  /**
+   * _Private_ function to add a system level stanza handler.
    *
-   *  This function is used to add a Handler for the
-   *  library code.  System stanza handlers are allowed to run before
-   *  authentication is complete.
-   *
-   *  Parameters:
-   *    (Function) handler - The callback function.
-   *    (String) ns - The namespace to match.
-   *    (String) name - The stanza name to match.
-   *    (String) type - The stanza type attribute to match.
-   *    (String) id - The stanza id attribute to match.
+   * This function is used to add a Handler for the
+   * library code.  System stanza handlers are allowed to run before
+   * authentication is complete.
+   * @param {Function} handler - The callback function.
+   * @param {string} ns - The namespace to match.
+   * @param {string} name - The stanza name to match.
+   * @param {string} type - The stanza type attribute to match.
+   * @param {string} id - The stanza id attribute to match.
    */
   _addSysHandler(handler, ns, name, type, id) {
-    const hand = new Handler(handler, ns, name, type, id);
+    const hand = new src_handler(handler, ns, name, type, id);
     hand.user = false;
     this.addHandlers.push(hand);
     return hand;
   }
 
-  /** PrivateFunction: _onDisconnectTimeout
-   *  _Private_ timeout handler for handling non-graceful disconnection.
+  /**
+   * _Private_ timeout handler for handling non-graceful disconnection.
    *
-   *  If the graceful disconnect process does not complete within the
-   *  time allotted, this handler finishes the disconnect anyway.
-   *
-   *  Returns:
-   *    false to remove the handler.
+   * If the graceful disconnect process does not complete within the
+   * time allotted, this handler finishes the disconnect anyway.
+   * @return {false} `false` to remove the handler.
    */
   _onDisconnectTimeout() {
-    Strophe.debug('_onDisconnectTimeout was called');
+    core.debug('_onDisconnectTimeout was called');
     this._changeConnectStatus(Status.CONNTIMEOUT, null);
     this._proto._onDisconnectTimeout();
     // actually disconnect
@@ -26098,11 +26016,11 @@ class Connection {
     return false;
   }
 
-  /** PrivateFunction: _onIdle
-   *  _Private_ handler to process events during idle cycle.
+  /**
+   * _Private_ handler to process events during idle cycle.
    *
-   *  This handler is called every 100ms to fire timed handlers that
-   *  are ready and keep poll requests going.
+   * This handler is called every 100ms to fire timed handlers that
+   * are ready and keep poll requests going.
    */
   _onIdle() {
     // add timed handlers scheduled for addition
@@ -26147,128 +26065,109 @@ class Connection {
     }
   }
 }
+/* harmony default export */ const connection = (Connection);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl.js
-/** Class: Strophe.SASLMechanism
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
+
+/**
+ * Encapsulates an SASL authentication mechanism.
  *
- *  Encapsulates an SASL authentication mechanism.
+ * User code may override the priority for each mechanism or disable it completely.
+ * See <priority> for information about changing priority and <test> for informatian on
+ * how to disable a mechanism.
  *
- *  User code may override the priority for each mechanism or disable it completely.
- *  See <priority> for information about changing priority and <test> for informatian on
- *  how to disable a mechanism.
+ * By default, all mechanisms are enabled and t_he priorities are
  *
- *  By default, all mechanisms are enabled and the priorities are
+ *     SCRAM-SHA-512 - 72
+ *     SCRAM-SHA-384 - 71
+ *     SCRAM-SHA-256 - 70
+ *     SCRAM-SHA-1   - 60
+ *     PLAIN         - 50
+ *     OAUTHBEARER   - 40
+ *     X-OAUTH2      - 30
+ *     ANONYMOUS     - 20
+ *     EXTERNAL      - 10
  *
- *      SCRAM-SHA-512 - 72
- *      SCRAM-SHA-384 - 71
- *      SCRAM-SHA-256 - 70
- *      SCRAM-SHA-1   - 60
- *      PLAIN         - 50
- *      OAUTHBEARER   - 40
- *      X-OAUTH2      - 30
- *      ANONYMOUS     - 20
- *      EXTERNAL      - 10
- *
- *  See: Strophe.Connection.addSupportedSASLMechanisms
+ * See: {@link Strophe.Connection#registerSASLMechanisms}
  */
 class SASLMechanism {
   /**
    * PrivateConstructor: Strophe.SASLMechanism
    * SASL auth mechanism abstraction.
-   *
-   *  Parameters:
-   *    (String) name - SASL Mechanism name.
-   *    (Boolean) isClientFirst - If client should send response first without challenge.
-   *    (Number) priority - Priority.
-   *
-   *  Returns:
-   *    A new Strophe.SASLMechanism object.
+   * @param {String} [name] - SASL Mechanism name.
+   * @param {Boolean} [isClientFirst] - If client should send response first without challenge.
+   * @param {Number} [priority] - Priority.
    */
   constructor(name, isClientFirst, priority) {
-    /** PrivateVariable: mechname
-     *  Mechanism name.
-     */
+    /** Mechanism name. */
     this.mechname = name;
 
-    /** PrivateVariable: isClientFirst
-     *  If client sends response without initial server challenge.
+    /**
+     * If client sends response without initial server challenge.
      */
     this.isClientFirst = isClientFirst;
 
-    /** Variable: priority
-     *  Determines which <SASLMechanism> is chosen for authentication (Higher is better).
-     *  Users may override this to prioritize mechanisms differently.
+    /**
+     * Determines which {@link SASLMechanism} is chosen for authentication (Higher is better).
+     * Users may override this to prioritize mechanisms differently.
      *
-     *  Example: (This will cause Strophe to choose the mechanism that the server sent first)
+     * Example: (This will cause Strophe to choose the mechanism that the server sent first)
      *
-     *  > Strophe.SASLPlain.priority = Strophe.SASLSHA1.priority;
+     * > Strophe.SASLPlain.priority = Strophe.SASLSHA1.priority;
      *
-     *  See <SASL mechanisms> for a list of available mechanisms.
-     *
+     * See <SASL mechanisms> for a list of available mechanisms.
      */
     this.priority = priority;
   }
 
   /**
-   *  Function: test
-   *  Checks if mechanism able to run.
-   *  To disable a mechanism, make this return false;
+   * Checks if mechanism able to run.
+   * To disable a mechanism, make this return false;
    *
-   *  To disable plain authentication run
-   *  > Strophe.SASLPlain.test = function() {
-   *  >   return false;
-   *  > }
+   * To disable plain authentication run
+   * > Strophe.SASLPlain.test = function() {
+   * >   return false;
+   * > }
    *
-   *  See <SASL mechanisms> for a list of available mechanisms.
-   *
-   *  Parameters:
-   *    (Strophe.Connection) connection - Target Connection.
-   *
-   *  Returns:
-   *    (Boolean) If mechanism was able to run.
+   * See <SASL mechanisms> for a list of available mechanisms.
+   * @param {Connection} connection - Target Connection.
+   * @return {boolean} If mechanism was able to run.
    */
-  // eslint-disable-next-line class-methods-use-this
-  test() {
+  // eslint-disable-next-line class-methods-use-this, no-unused-vars
+  test(connection) {
     return true;
   }
 
-  /** PrivateFunction: onStart
-   *  Called before starting mechanism on some connection.
-   *
-   *  Parameters:
-   *    (Strophe.Connection) connection - Target Connection.
+  /**
+   * Called before starting mechanism on some connection.
+   * @param {Connection} connection - Target Connection.
    */
   onStart(connection) {
     this._connection = connection;
   }
 
-  /** PrivateFunction: onChallenge
-   *  Called by protocol implementation on incoming challenge.
+  /**
+   * Called by protocol implementation on incoming challenge.
    *
-   *  By deafult, if the client is expected to send data first (isClientFirst === true),
-   *  this method is called with `challenge` as null on the first call,
-   *  unless `clientChallenge` is overridden in the relevant subclass.
-   *
-   *  Parameters:
-   *    (Strophe.Connection) connection - Target Connection.
-   *    (String) challenge - current challenge to handle.
-   *
-   *  Returns:
-   *    (String) Mechanism response.
+   * By deafult, if the client is expected to send data first (isClientFirst === true),
+   * this method is called with `challenge` as null on the first call,
+   * unless `clientChallenge` is overridden in the relevant subclass.
+   * @param {Connection} connection - Target Connection.
+   * @param {string} [challenge] - current challenge to handle.
+   * @return {string|Promise<string|false>} Mechanism response.
    */
   // eslint-disable-next-line no-unused-vars, class-methods-use-this
   onChallenge(connection, challenge) {
     throw new Error('You should implement challenge handling!');
   }
 
-  /** PrivateFunction: clientChallenge
-   *  Called by the protocol implementation if the client is expected to send
-   *  data first in the authentication exchange (i.e. isClientFirst === true).
-   *
-   *  Parameters:
-   *    (Strophe.Connection) connection - Target Connection.
-   *
-   *  Returns:
-   *    (String) Mechanism response.
+  /**
+   * Called by the protocol implementation if the client is expected to send
+   * data first in the authentication exchange (i.e. isClientFirst === true).
+   * @param {Connection} connection - Target Connection.
+   * @return {string|Promise<string|false>} Mechanism response.
    */
   clientChallenge(connection) {
     if (!this.isClientFirst) {
@@ -26277,28 +26176,29 @@ class SASLMechanism {
     return this.onChallenge(connection);
   }
 
-  /** PrivateFunction: onFailure
-   *  Protocol informs mechanism implementation about SASL failure.
+  /**
+   * Protocol informs mechanism implementation about SASL failure.
    */
   onFailure() {
     this._connection = null;
   }
 
-  /** PrivateFunction: onSuccess
-   *  Protocol informs mechanism implementation about SASL success.
+  /**
+   * Protocol informs mechanism implementation about SASL success.
    */
   onSuccess() {
     this._connection = null;
   }
 }
+/* harmony default export */ const sasl = (SASLMechanism);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-anon.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
-
-// Building SASL callbacks
-
-class SASLAnonymous extends SASLMechanism {
-  /** PrivateConstructor: SASLAnonymous
-   *  SASL ANONYMOUS authentication.
+class SASLAnonymous extends sasl {
+  /**
+   * SASL ANONYMOUS authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'ANONYMOUS';
@@ -26307,21 +26207,29 @@ class SASLAnonymous extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.authcid === null;
   }
 }
+/* harmony default export */ const sasl_anon = (SASLAnonymous);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-external.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
-class SASLExternal extends SASLMechanism {
-  /** PrivateConstructor: SASLExternal
-   *  SASL EXTERNAL authentication.
+
+class SASLExternal extends sasl {
+  /**
+   * SASL EXTERNAL authentication.
    *
-   *  The EXTERNAL mechanism allows a client to request the server to use
-   *  credentials established by means external to the mechanism to
-   *  authenticate the client. The external means may be, for instance,
-   *  TLS services.
+   * The EXTERNAL mechanism allows a client to request the server to use
+   * credentials established by means external to the mechanism to
+   * authenticate the client. The external means may be, for instance,
+   * TLS services.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'EXTERNAL';
@@ -26330,9 +26238,12 @@ class SASLExternal extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   onChallenge(connection) {
-    /** According to XEP-178, an authzid SHOULD NOT be presented when the
+    /* According to XEP-178, an authzid SHOULD NOT be presented when the
      * authcid contained or implied in the client certificate is the JID (i.e.
      * authzid) with which the user wants to log in as.
      *
@@ -26342,12 +26253,16 @@ class SASLExternal extends SASLMechanism {
     return connection.authcid === connection.authzid ? '' : connection.authzid;
   }
 }
+/* harmony default export */ const sasl_external = (SASLExternal);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-oauthbearer.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
 
-class SASLOAuthBearer extends SASLMechanism {
-  /** PrivateConstructor: SASLOAuthBearer
-   *  SASL OAuth Bearer authentication.
+class SASLOAuthBearer extends sasl {
+  /**
+   * SASL OAuth Bearer authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'OAUTHBEARER';
@@ -26356,11 +26271,17 @@ class SASLOAuthBearer extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.pass !== null;
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   onChallenge(connection) {
     let auth_str = 'n,';
@@ -26376,12 +26297,16 @@ class SASLOAuthBearer extends SASLMechanism {
     return utils.utf16to8(auth_str);
   }
 }
+/* harmony default export */ const sasl_oauthbearer = (SASLOAuthBearer);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-plain.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
 
-class SASLPlain extends SASLMechanism {
-  /** PrivateConstructor: SASLPlain
-   *  SASL PLAIN authentication.
+class SASLPlain extends sasl {
+  /**
+   * SASL PLAIN authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'PLAIN';
@@ -26390,11 +26315,17 @@ class SASLPlain extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.authcid !== null;
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   onChallenge(connection) {
     const {
@@ -26416,9 +26347,19 @@ class SASLPlain extends SASLMechanism {
     return utils.utf16to8(auth_str);
   }
 }
+/* harmony default export */ const sasl_plain = (SASLPlain);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/scram.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
 
+
+/**
+ * @param {string} authMessage
+ * @param {ArrayBufferLike} clientKey
+ * @param {string} hashName
+ */
 async function scramClientProof(authMessage, clientKey, hashName) {
   const storedKey = await crypto.subtle.importKey('raw', await crypto.subtle.digest(hashName, clientKey), {
     'name': 'HMAC',
@@ -26428,13 +26369,15 @@ async function scramClientProof(authMessage, clientKey, hashName) {
   return utils.xorArrayBuffers(clientKey, clientSignature);
 }
 
-/* This function parses the information in a SASL SCRAM challenge response,
+/**
+ * This function parses the information in a SASL SCRAM challenge response,
  * into an object of the form
  * { nonce: String,
  *   salt:  ArrayBuffer,
  *   iter:  Int
  * }
  * Returns undefined on failure.
+ * @param {string} challenge
  */
 function scramParseChallenge(challenge) {
   let nonce, salt, iter;
@@ -26452,19 +26395,23 @@ function scramParseChallenge(challenge) {
       case 'i':
         iter = parseInt(matches[2], 10);
         break;
-      default:
+      case 'm':
+        // Mandatory but unknown extension, per RFC 5802 we should abort
         return undefined;
+      default:
+        // Non-mandatory extension, per RFC 5802 we should ignore it
+        break;
     }
   }
 
   // Consider iteration counts less than 4096 insecure, as reccommended by
   // RFC 5802
   if (isNaN(iter) || iter < 4096) {
-    Strophe.warn('Failing SCRAM authentication because server supplied iteration count < 4096.');
+    core.warn('Failing SCRAM authentication because server supplied iteration count < 4096.');
     return undefined;
   }
   if (!salt) {
-    Strophe.warn('Failing SCRAM authentication because server supplied incorrect salt.');
+    core.warn('Failing SCRAM authentication because server supplied incorrect salt.');
     return undefined;
   }
   return {
@@ -26474,12 +26421,18 @@ function scramParseChallenge(challenge) {
   };
 }
 
-/* Derive the client and server keys given a string password,
+/**
+ * Derive the client and server keys given a string password,
  * a hash name, and a bit length.
  * Returns an object of the following form:
  * { ck: ArrayBuffer, the client key
  *   sk: ArrayBuffer, the server key
  * }
+ * @param {string} password
+ * @param {BufferSource} salt
+ * @param {number} iter
+ * @param {string} hashName
+ * @param {number} hashBits
  */
 async function scramDeriveKeys(password, salt, iter, hashName, hashBits) {
   const saltedPasswordBits = await crypto.subtle.deriveBits({
@@ -26499,6 +26452,12 @@ async function scramDeriveKeys(password, salt, iter, hashName, hashBits) {
     'sk': await crypto.subtle.sign('HMAC', saltedPassword, utils.stringToArrayBuf('Server Key'))
   };
 }
+
+/**
+ * @param {string} authMessage
+ * @param {BufferSource} sk
+ * @param {string} hashName
+ */
 async function scramServerSign(authMessage, sk, hashName) {
   const serverKey = await crypto.subtle.importKey('raw', sk, {
     'name': 'HMAC',
@@ -26507,14 +26466,28 @@ async function scramServerSign(authMessage, sk, hashName) {
   return crypto.subtle.sign('HMAC', serverKey, utils.stringToArrayBuf(authMessage));
 }
 
-// Generate an ASCII nonce (not containing the ',' character)
+/**
+ * Generate an ASCII nonce (not containing the ',' character)
+ * @return {string}
+ */
 function generate_cnonce() {
   // generate 16 random bytes of nonce, base64 encoded
   const bytes = new Uint8Array(16);
   return utils.arrayBufToBase64(crypto.getRandomValues(bytes).buffer);
 }
+
+/**
+ * @typedef {Object} Password
+ * @property {string} Password.name
+ * @property {string} Password.ck
+ * @property {string} Password.sk
+ * @property {number} Password.iter
+ * @property {string} salt
+ */
+
 const scram = {
-  /* On success, sets
+  /**
+   * On success, sets
    * connection_sasl_data["server-signature"]
    * and
    * connection._sasl_data.keys
@@ -26522,6 +26495,10 @@ const scram = {
    * The server signature should be verified after this function completes..
    *
    * On failure, returns connection._sasl_failure_cb();
+   * @param {Connection} connection
+   * @param {string} challenge
+   * @param {string} hashName
+   * @param {number} hashBits
    */
   async scramResponse(connection, challenge, hashName, hashBits) {
     const cnonce = connection._sasl_data.cnonce;
@@ -26530,20 +26507,28 @@ const scram = {
     // The RFC requires that we verify the (server) nonce has the client
     // nonce as an initial substring.
     if (!challengeData && challengeData?.nonce.slice(0, cnonce.length) !== cnonce) {
-      Strophe.warn('Failing SCRAM authentication because server supplied incorrect nonce.');
+      core.warn('Failing SCRAM authentication because server supplied incorrect nonce.');
       connection._sasl_data = {};
       return connection._sasl_failure_cb();
     }
     let clientKey, serverKey;
-
-    // Either restore the client key and server key passed in, or derive new ones
-    if (connection.pass?.name === hashName && connection.pass?.salt === utils.arrayBufToBase64(challengeData.salt) && connection.pass?.iter === challengeData.iter) {
-      clientKey = utils.base64ToArrayBuf(connection.pass.ck);
-      serverKey = utils.base64ToArrayBuf(connection.pass.sk);
-    } else if (typeof connection.pass === 'string' || connection.pass instanceof String) {
-      const keys = await scramDeriveKeys(connection.pass, challengeData.salt, challengeData.iter, hashName, hashBits);
+    const {
+      pass
+    } = connection;
+    if (typeof connection.pass === 'string' || connection.pass instanceof String) {
+      const keys = await scramDeriveKeys( /** @type {string} */pass, challengeData.salt, challengeData.iter, hashName, hashBits);
       clientKey = keys.ck;
       serverKey = keys.sk;
+    } else if (
+    // Either restore the client key and server key passed in, or derive new ones
+    /** @type {Password} */
+    pass?.name === hashName && /** @type {Password} */pass?.salt === utils.arrayBufToBase64(challengeData.salt) && /** @type {Password} */pass?.iter === challengeData.iter) {
+      const {
+        ck,
+        sk
+      } = /** @type {Password} */pass;
+      clientKey = utils.base64ToArrayBuf(ck);
+      serverKey = utils.base64ToArrayBuf(sk);
     } else {
       return connection._sasl_failure_cb();
     }
@@ -26563,7 +26548,11 @@ const scram = {
     };
     return `${clientFinalMessageBare},p=${utils.arrayBufToBase64(clientProof)}`;
   },
-  // Returns a string containing the client first message
+  /**
+   * Returns a string containing the client first message
+   * @param {Connection} connection
+   * @param {string} test_cnonce
+   */
   clientChallenge(connection, test_cnonce) {
     const cnonce = test_cnonce || generate_cnonce();
     const client_first_message_bare = `n=${connection.authcid},r=${cnonce}`;
@@ -26574,11 +26563,14 @@ const scram = {
 };
 
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-sha1.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
 
-class SASLSHA1 extends SASLMechanism {
-  /** PrivateConstructor: SASLSHA1
-   *  SASL SCRAM SHA 1 authentication.
+class SASLSHA1 extends sasl {
+  /**
+   * SASL SCRAM SHA 1 authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'SCRAM-SHA-1';
@@ -26587,27 +26579,43 @@ class SASLSHA1 extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.authcid !== null;
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [challenge]
+   * @return {Promise<string|false>} Mechanism response.
+   */
   // eslint-disable-next-line class-methods-use-this
   async onChallenge(connection, challenge) {
     return await scram.scramResponse(connection, challenge, 'SHA-1', 160);
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [test_cnonce]
+   */
   // eslint-disable-next-line class-methods-use-this
   clientChallenge(connection, test_cnonce) {
     return scram.clientChallenge(connection, test_cnonce);
   }
 }
+/* harmony default export */ const sasl_sha1 = (SASLSHA1);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-sha256.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
 
-class SASLSHA256 extends SASLMechanism {
-  /** PrivateConstructor: SASLSHA256
-   *  SASL SCRAM SHA 256 authentication.
+class SASLSHA256 extends sasl {
+  /**
+   * SASL SCRAM SHA 256 authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'SCRAM-SHA-256';
@@ -26616,27 +26624,42 @@ class SASLSHA256 extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.authcid !== null;
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [challenge]
+   */
   // eslint-disable-next-line class-methods-use-this
   async onChallenge(connection, challenge) {
     return await scram.scramResponse(connection, challenge, 'SHA-256', 256);
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [test_cnonce]
+   */
   // eslint-disable-next-line class-methods-use-this
   clientChallenge(connection, test_cnonce) {
     return scram.clientChallenge(connection, test_cnonce);
   }
 }
+/* harmony default export */ const sasl_sha256 = (SASLSHA256);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-sha384.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
 
-class SASLSHA384 extends SASLMechanism {
-  /** PrivateConstructor: SASLSHA384
-   *  SASL SCRAM SHA 384 authentication.
+class SASLSHA384 extends sasl {
+  /**
+   * SASL SCRAM SHA 384 authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'SCRAM-SHA-384';
@@ -26645,27 +26668,42 @@ class SASLSHA384 extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.authcid !== null;
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [challenge]
+   */
   // eslint-disable-next-line class-methods-use-this
   async onChallenge(connection, challenge) {
     return await scram.scramResponse(connection, challenge, 'SHA-384', 384);
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [test_cnonce]
+   */
   // eslint-disable-next-line class-methods-use-this
   clientChallenge(connection, test_cnonce) {
     return scram.clientChallenge(connection, test_cnonce);
   }
 }
+/* harmony default export */ const sasl_sha384 = (SASLSHA384);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-sha512.js
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
 
 
-class SASLSHA512 extends SASLMechanism {
-  /** PrivateConstructor: SASLSHA512
-   *  SASL SCRAM SHA 512 authentication.
+class SASLSHA512 extends sasl {
+  /**
+   * SASL SCRAM SHA 512 authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'SCRAM-SHA-512';
@@ -26674,27 +26712,44 @@ class SASLSHA512 extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.authcid !== null;
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [challenge]
+   */
   // eslint-disable-next-line class-methods-use-this
   async onChallenge(connection, challenge) {
     return await scram.scramResponse(connection, challenge, 'SHA-512', 512);
   }
 
+  /**
+   * @param {Connection} connection
+   * @param {string} [test_cnonce]
+   */
   // eslint-disable-next-line class-methods-use-this
   clientChallenge(connection, test_cnonce) {
     return scram.clientChallenge(connection, test_cnonce);
   }
 }
+/* harmony default export */ const sasl_sha512 = (SASLSHA512);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl-xoauth2.js
 
 
-class SASLXOAuth2 extends SASLMechanism {
-  /** PrivateConstructor: SASLXOAuth2
-   *  SASL X-OAuth2 authentication.
+
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
+
+class SASLXOAuth2 extends sasl {
+  /**
+   * SASL X-OAuth2 authentication.
    */
   constructor() {
     let mechname = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'X-OAUTH2';
@@ -26703,11 +26758,17 @@ class SASLXOAuth2 extends SASLMechanism {
     super(mechname, isClientFirst, priority);
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   test(connection) {
     return connection.pass !== null;
   }
 
+  /**
+   * @param {Connection} connection
+   */
   // eslint-disable-next-line class-methods-use-this
   onChallenge(connection) {
     let auth_str = '\u0000';
@@ -26719,371 +26780,130 @@ class SASLXOAuth2 extends SASLMechanism {
     return utils.utf16to8(auth_str);
   }
 }
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/core.js
-/*
-    This program is distributed under the terms of the MIT license.
-    Please see the LICENSE file for details.
-
-    Copyright 2006-2018, OGG, LLC
-*/
+/* harmony default export */ const sasl_xoauth2 = (SASLXOAuth2);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/request.js
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/** Class: Strophe
- *  An object container for all Strophe library functions.
+/**
+ * Helper class that provides a cross implementation abstraction
+ * for a BOSH related XMLHttpRequest.
  *
- *  This class is just a container for all the objects and constants
- *  used in the library.  It is not meant to be instantiated, but to
- *  provide a namespace for library objects, constants, and functions.
- */
-const Strophe = {
-  /** Constant: VERSION */
-  VERSION: '1.6.1',
-  Builder: Builder,
-  Connection: Connection,
-  ElementType: ElementType,
-  ErrorCondition: ErrorCondition,
-  Handler: Handler,
-  LogLevel: LogLevel,
-  NS: NS,
-  SASLMechanism: SASLMechanism,
-  Status: Status,
-  TimedHandler: TimedHandler,
-  ...utils_namespaceObject,
-  XHTML: {
-    ...XHTML,
-    validTag: validTag,
-    validCSS: validCSS,
-    validAttribute: validAttribute
-  },
-  /** Function: addNamespace
-   *  This function is used to extend the current namespaces in
-   *  Strophe.NS.  It takes a key and a value with the key being the
-   *  name of the new namespace, with its actual value.
-   *  For example:
-   *  Strophe.addNamespace('PUBSUB', "http://jabber.org/protocol/pubsub");
-   *
-   *  Parameters:
-   *    (String) name - The name under which the namespace will be
-   *      referenced under Strophe.NS
-   *    (String) value - The actual namespace.
-   */
-  addNamespace(name, value) {
-    Strophe.NS[name] = value;
-  },
-  /** PrivateFunction: _handleError
-   *  _Private_ function that properly logs an error to the console
-   */
-  _handleError(e) {
-    if (typeof e.stack !== 'undefined') {
-      Strophe.fatal(e.stack);
-    }
-    if (e.sourceURL) {
-      Strophe.fatal('error: ' + this.handler + ' ' + e.sourceURL + ':' + e.line + ' - ' + e.name + ': ' + e.message);
-    } else if (e.fileName) {
-      Strophe.fatal('error: ' + this.handler + ' ' + e.fileName + ':' + e.lineNumber + ' - ' + e.name + ': ' + e.message);
-    } else {
-      Strophe.fatal('error: ' + e.message);
-    }
-  },
-  /** Function: log
-   *  User overrideable logging function.
-   *
-   *  This function is called whenever the Strophe library calls any
-   *  of the logging functions.  The default implementation of this
-   *  function logs only fatal errors.  If client code wishes to handle the logging
-   *  messages, it should override this with
-   *  > Strophe.log = function (level, msg) {
-   *  >   (user code here)
-   *  > };
-   *
-   *  Please note that data sent and received over the wire is logged
-   *  via Strophe.Connection.rawInput() and Strophe.Connection.rawOutput().
-   *
-   *  The different levels and their meanings are
-   *
-   *    DEBUG - Messages useful for debugging purposes.
-   *    INFO - Informational messages.  This is mostly information like
-   *      'disconnect was called' or 'SASL auth succeeded'.
-   *    WARN - Warnings about potential problems.  This is mostly used
-   *      to report transient connection errors like request timeouts.
-   *    ERROR - Some error occurred.
-   *    FATAL - A non-recoverable fatal error occurred.
-   *
-   *  Parameters:
-   *    (Integer) level - The log level of the log message.  This will
-   *      be one of the values in Strophe.LogLevel.
-   *    (String) msg - The log message.
-   */
-  log(level, msg) {
-    if (level === this.LogLevel.FATAL) {
-      console?.error(msg);
-    }
-  },
-  /** Function: debug
-   *  Log a message at the Strophe.LogLevel.DEBUG level.
-   *
-   *  Parameters:
-   *    (String) msg - The log message.
-   */
-  debug(msg) {
-    this.log(this.LogLevel.DEBUG, msg);
-  },
-  /** Function: info
-   *  Log a message at the Strophe.LogLevel.INFO level.
-   *
-   *  Parameters:
-   *    (String) msg - The log message.
-   */
-  info(msg) {
-    this.log(this.LogLevel.INFO, msg);
-  },
-  /** Function: warn
-   *  Log a message at the Strophe.LogLevel.WARN level.
-   *
-   *  Parameters:
-   *    (String) msg - The log message.
-   */
-  warn(msg) {
-    this.log(this.LogLevel.WARN, msg);
-  },
-  /** Function: error
-   *  Log a message at the Strophe.LogLevel.ERROR level.
-   *
-   *  Parameters:
-   *    (String) msg - The log message.
-   */
-  error(msg) {
-    this.log(this.LogLevel.ERROR, msg);
-  },
-  /** Function: fatal
-   *  Log a message at the Strophe.LogLevel.FATAL level.
-   *
-   *  Parameters:
-   *    (String) msg - The log message.
-   */
-  fatal(msg) {
-    this.log(this.LogLevel.FATAL, msg);
-  },
-  /** PrivateVariable: _requestId
-   *  _Private_ variable that keeps track of the request ids for
-   *  connections.
-   */
-  _requestId: 0,
-  /** PrivateVariable: Strophe.connectionPlugins
-   *  _Private_ variable Used to store plugin names that need
-   *  initialization on Strophe.Connection construction.
-   */
-  _connectionPlugins: {},
-  /** Function: addConnectionPlugin
-   *  Extends the Strophe.Connection object with the given plugin.
-   *
-   *  Parameters:
-   *    (String) name - The name of the extension.
-   *    (Object) ptype - The plugin's prototype.
-   */
-  addConnectionPlugin(name, ptype) {
-    Strophe._connectionPlugins[name] = ptype;
-  }
-};
-
-/** Constants: SASL mechanisms
- *  Available authentication mechanisms
+ * The Strophe.Request class is used internally to encapsulate BOSH request
+ * information.  It is not meant to be used from user's code.
  *
- *  Strophe.SASLAnonymous   - SASL ANONYMOUS authentication.
- *  Strophe.SASLPlain       - SASL PLAIN authentication.
- *  Strophe.SASLSHA1        - SASL SCRAM-SHA-1 authentication
- *  Strophe.SASLSHA256      - SASL SCRAM-SHA-256 authentication
- *  Strophe.SASLSHA384      - SASL SCRAM-SHA-384 authentication
- *  Strophe.SASLSHA512      - SASL SCRAM-SHA-512 authentication
- *  Strophe.SASLOAuthBearer - SASL OAuth Bearer authentication
- *  Strophe.SASLExternal    - SASL EXTERNAL authentication
- *  Strophe.SASLXOAuth2     - SASL X-OAuth2 authentication
+ * @property {number} id
+ * @property {number} sends
+ * @property {XMLHttpRequest} xhr
  */
-Strophe.SASLAnonymous = SASLAnonymous;
-Strophe.SASLPlain = SASLPlain;
-Strophe.SASLSHA1 = SASLSHA1;
-Strophe.SASLSHA256 = SASLSHA256;
-Strophe.SASLSHA384 = SASLSHA384;
-Strophe.SASLSHA512 = SASLSHA512;
-Strophe.SASLOAuthBearer = SASLOAuthBearer;
-Strophe.SASLExternal = SASLExternal;
-Strophe.SASLXOAuth2 = SASLXOAuth2;
-
-/* harmony default export */ const core = ({
-  'Strophe': Strophe,
-  '$build': $build,
-  '$iq': $iq,
-  '$msg': $msg,
-  '$pres': $pres
-});
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/bosh.js
-/*
-    This program is distributed under the terms of the MIT license.
-    Please see the LICENSE file for details.
-
-    Copyright 2006-2008, OGG, LLC
-*/
-
-/* global ActiveXObject, XMLHttpRequest, sessionStorage, globalThis */
-
-
-
-
-/** PrivateClass: Strophe.Request
- *  _Private_ helper class that provides a cross implementation abstraction
- *  for a BOSH related XMLHttpRequest.
- *
- *  The Strophe.Request class is used internally to encapsulate BOSH request
- *  information.  It is not meant to be used from user's code.
- */
-Strophe.Request = class Request {
-  /** PrivateConstructor: Strophe.Request
-   *  Create and initialize a new Strophe.Request object.
+class Request {
+  /**
+   * Create and initialize a new Strophe.Request object.
    *
-   *  Parameters:
-   *    (XMLElement) elem - The XML data to be sent in the request.
-   *    (Function) func - The function that will be called when the
-   *      XMLHttpRequest readyState changes.
-   *    (Integer) rid - The BOSH rid attribute associated with this request.
-   *    (Integer) sends - The number of times this same request has been sent.
+   * @param {Element} elem - The XML data to be sent in the request.
+   * @param {Function} func - The function that will be called when the
+   *     XMLHttpRequest readyState changes.
+   * @param {number} rid - The BOSH rid attribute associated with this request.
+   * @param {number} [sends=0] - The number of times this same request has been sent.
    */
-  constructor(elem, func, rid, sends) {
-    this.id = ++Strophe._requestId;
+  constructor(elem, func, rid) {
+    let sends = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+    this.id = ++core._requestId;
     this.xmlData = elem;
-    this.data = Strophe.serialize(elem);
+    this.data = core.serialize(elem);
     // save original function in case we need to make a new request
     // from this one.
     this.origFunc = func;
     this.func = func;
     this.rid = rid;
     this.date = NaN;
-    this.sends = sends || 0;
+    this.sends = sends;
     this.abort = false;
     this.dead = null;
-    this.age = function () {
-      if (!this.date) {
-        return 0;
-      }
-      const now = new Date();
-      return (now - this.date) / 1000;
-    };
-    this.timeDead = function () {
-      if (!this.dead) {
-        return 0;
-      }
-      const now = new Date();
-      return (now - this.dead) / 1000;
-    };
+    this.age = () => this.date ? (new Date().valueOf() - this.date.valueOf()) / 1000 : 0;
+    this.timeDead = () => this.dead ? (new Date().valueOf() - this.dead.valueOf()) / 1000 : 0;
     this.xhr = this._newXHR();
   }
 
-  /** PrivateFunction: getResponse
-   *  Get a response from the underlying XMLHttpRequest.
-   *
-   *  This function attempts to get a response from the request and checks
-   *  for errors.
-   *
-   *  Throws:
-   *    "parsererror" - A parser error occured.
-   *    "bad-format" - The entity has sent XML that cannot be processed.
-   *
-   *  Returns:
-   *    The DOM element tree of the response.
+  /**
+   * Get a response from the underlying XMLHttpRequest.
+   * This function attempts to get a response from the request and checks
+   * for errors.
+   * @throws "parsererror" - A parser error occured.
+   * @throws "bad-format" - The entity has sent XML that cannot be processed.
+   * @return {Element} - The DOM element tree of the response.
    */
   getResponse() {
-    let node = null;
-    if (this.xhr.responseXML && this.xhr.responseXML.documentElement) {
-      node = this.xhr.responseXML.documentElement;
+    let node = this.xhr.responseXML?.documentElement;
+    if (node) {
       if (node.tagName === 'parsererror') {
-        Strophe.error('invalid response received');
-        Strophe.error('responseText: ' + this.xhr.responseText);
-        Strophe.error('responseXML: ' + Strophe.serialize(this.xhr.responseXML));
+        core.error('invalid response received');
+        core.error('responseText: ' + this.xhr.responseText);
+        core.error('responseXML: ' + core.serialize(node));
         throw new Error('parsererror');
       }
     } else if (this.xhr.responseText) {
       // In Node (with xhr2) or React Native, we may get responseText but no responseXML.
       // We can try to parse it manually.
-      Strophe.debug('Got responseText but no responseXML; attempting to parse it with DOMParser...');
+      core.debug('Got responseText but no responseXML; attempting to parse it with DOMParser...');
       node = new DOMParser().parseFromString(this.xhr.responseText, 'application/xml').documentElement;
       const parserError = node?.querySelector('parsererror');
       if (!node || parserError) {
         if (parserError) {
-          Strophe.error('invalid response received: ' + parserError.textContent);
-          Strophe.error('responseText: ' + this.xhr.responseText);
+          core.error('invalid response received: ' + parserError.textContent);
+          core.error('responseText: ' + this.xhr.responseText);
         }
         const error = new Error();
-        error.name = Strophe.ErrorCondition.BAD_FORMAT;
+        error.name = core.ErrorCondition.BAD_FORMAT;
         throw error;
       }
     }
     return node;
   }
 
-  /** PrivateFunction: _newXHR
-   *  _Private_ helper function to create XMLHttpRequests.
-   *
-   *  This function creates XMLHttpRequests across all implementations.
-   *
-   *  Returns:
-   *    A new XMLHttpRequest.
+  /**
+   * _Private_ helper function to create XMLHttpRequests.
+   * This function creates XMLHttpRequests across all implementations.
+   * @private
+   * @return {XMLHttpRequest}
    */
   _newXHR() {
-    let xhr = null;
-    if (globalThis.XMLHttpRequest) {
-      xhr = new XMLHttpRequest();
-      if (xhr.overrideMimeType) {
-        xhr.overrideMimeType('text/xml; charset=utf-8');
-      }
-    } else if (globalThis.ActiveXObject) {
-      xhr = new ActiveXObject('Microsoft.XMLHTTP');
+    const xhr = new XMLHttpRequest();
+    if (xhr.overrideMimeType) {
+      xhr.overrideMimeType('text/xml; charset=utf-8');
     }
     // use Function.bind() to prepend ourselves as an argument
     xhr.onreadystatechange = this.func.bind(null, this);
     return xhr;
   }
-};
-
-/** Class: Strophe.Bosh
- *  _Private_ helper class that handles BOSH Connections
+}
+/* harmony default export */ const request = (Request);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/bosh.js
+/**
+ * A JavaScript library to enable BOSH in Strophejs.
  *
- *  The Strophe.Bosh class is used internally by Strophe.Connection
- *  to encapsulate BOSH sessions. It is not meant to be used from user's code.
+ * this library uses Bidirectional-streams Over Synchronous HTTP (BOSH)
+ * to emulate a persistent, stateful, two-way connection to an XMPP server.
+ * More information on BOSH can be found in XEP 124.
  */
 
-/** File: bosh.js
- *  A JavaScript library to enable BOSH in Strophejs.
- *
- *  this library uses Bidirectional-streams Over Synchronous HTTP (BOSH)
- *  to emulate a persistent, stateful, two-way connection to an XMPP server.
- *  More information on BOSH can be found in XEP 124.
+/**
+ * @typedef {import("./connection.js").default} Connection
+ * @typedef {import("./request.js").default} Request
  */
 
-/** PrivateConstructor: Strophe.Bosh
- *  Create and initialize a Strophe.Bosh object.
- *
- *  Parameters:
- *    (Strophe.Connection) connection - The Strophe.Connection that will use BOSH.
- *
- *  Returns:
- *    A new Strophe.Bosh object.
+
+
+
+/**
+ * _Private_ helper class that handles BOSH Connections
+ * The Strophe.Bosh class is used internally by Strophe.Connection
+ * to encapsulate BOSH sessions. It is not meant to be used from user's code.
  */
-Strophe.Bosh = class Bosh {
+class Bosh {
+  /**
+   * @param {Connection} connection - The Strophe.Connection that will use BOSH.
+   */
   constructor(connection) {
     this._conn = connection;
     /* request id for body tags */
@@ -27097,20 +26917,39 @@ Strophe.Bosh = class Bosh {
     this.window = 5;
     this.errors = 0;
     this.inactivity = null;
+
+    /**
+     * BOSH-Connections will have all stanzas wrapped in a <body> tag when
+     * passed to {@link Strophe.Connection#xmlInput|xmlInput()} or {@link Strophe.Connection#xmlOutput|xmlOutput()}.
+     * To strip this tag, User code can set {@link Strophe.Bosh#strip|strip} to `true`:
+     *
+     * > // You can set `strip` on the prototype
+     * > Strophe.Bosh.prototype.strip = true;
+     *
+     * > // Or you can set it on the Bosh instance (which is `._proto` on the connection instance.
+     * > const conn = new Strophe.Connection();
+     * > conn._proto.strip = true;
+     *
+     * This will enable stripping of the body tag in both
+     * {@link Strophe.Connection#xmlInput|xmlInput} and {@link Strophe.Connection#xmlOutput|xmlOutput}.
+     *
+     * @property {boolean} [strip=false]
+     */
+    this.strip = Bosh.prototype.strip ?? false;
     this.lastResponseHeaders = null;
+    /** @type {Request[]} */
     this._requests = [];
   }
 
-  /** PrivateFunction: _buildBody
-   *  _Private_ helper function to generate the <body/> wrapper for BOSH.
-   *
-   *  Returns:
-   *    A Strophe.Builder with a <body/> element.
+  /**
+   * _Private_ helper function to generate the <body/> wrapper for BOSH.
+   * @private
+   * @return {Builder} - A Strophe.Builder with a <body/> element.
    */
   _buildBody() {
     const bodyWrap = $build('body', {
       'rid': this.rid++,
-      'xmlns': Strophe.NS.HTTPBIND
+      'xmlns': core.NS.HTTPBIND
     });
     if (this.sid !== null) {
       bodyWrap.attrs({
@@ -27123,10 +26962,9 @@ Strophe.Bosh = class Bosh {
     return bodyWrap;
   }
 
-  /** PrivateFunction: _reset
-   *  Reset the connection.
-   *
-   *  This function is called by the reset function of the Strophe Connection
+  /**
+   * Reset the connection.
+   * This function is called by the reset function of the Strophe Connection
    */
   _reset() {
     this.rid = Math.floor(Math.random() * 4294967295);
@@ -27138,10 +26976,17 @@ Strophe.Bosh = class Bosh {
     this._conn.nextValidRid(this.rid);
   }
 
-  /** PrivateFunction: _connect
-   *  _Private_ function that initializes the BOSH connection.
-   *
-   *  Creates and sends the Request that initializes the BOSH connection.
+  /**
+   * _Private_ function that initializes the BOSH connection.
+   * Creates and sends the Request that initializes the BOSH connection.
+   * @param {number} wait - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} hold - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {string} route
    */
   _connect(wait, hold, route) {
     this.wait = wait || this.wait;
@@ -27155,81 +27000,79 @@ Strophe.Bosh = class Bosh {
       'content': 'text/xml; charset=utf-8',
       'ver': '1.6',
       'xmpp:version': '1.0',
-      'xmlns:xmpp': Strophe.NS.BOSH
+      'xmlns:xmpp': core.NS.BOSH
     });
     if (route) {
       body.attrs({
-        'route': route
+        route
       });
     }
     const _connect_cb = this._conn._connect_cb;
-    this._requests.push(new Strophe.Request(body.tree(), this._onRequestStateChange.bind(this, _connect_cb.bind(this._conn)), body.tree().getAttribute('rid')));
+    this._requests.push(new core.Request(body.tree(), this._onRequestStateChange.bind(this, _connect_cb.bind(this._conn)), Number(body.tree().getAttribute('rid'))));
     this._throttledRequestHandler();
   }
 
-  /** PrivateFunction: _attach
-   *  Attach to an already created and authenticated BOSH session.
+  /**
+   * Attach to an already created and authenticated BOSH session.
    *
-   *  This function is provided to allow Strophe to attach to BOSH
-   *  sessions which have been created externally, perhaps by a Web
-   *  application.  This is often used to support auto-login type features
-   *  without putting user credentials into the page.
+   * This function is provided to allow Strophe to attach to BOSH
+   * sessions which have been created externally, perhaps by a Web
+   * application.  This is often used to support auto-login type features
+   * without putting user credentials into the page.
    *
-   *  Parameters:
-   *    (String) jid - The full JID that is bound by the session.
-   *    (String) sid - The SID of the BOSH session.
-   *    (String) rid - The current RID of the BOSH session.  This RID
-   *      will be used by the next request.
-   *    (Function) callback The connect callback function.
-   *    (Integer) wait - The optional HTTPBIND wait value.  This is the
-   *      time the server will wait before returning an empty result for
-   *      a request.  The default setting of 60 seconds is recommended.
-   *      Other settings will require tweaks to the Strophe.TIMEOUT value.
-   *    (Integer) hold - The optional HTTPBIND hold value.  This is the
-   *      number of connections the server will hold at one time.  This
-   *      should almost always be set to 1 (the default).
-   *    (Integer) wind - The optional HTTBIND window value.  This is the
-   *      allowed range of request ids that are valid.  The default is 5.
+   * @param {string} jid - The full JID that is bound by the session.
+   * @param {string} sid - The SID of the BOSH session.
+   * @param {number} rid - The current RID of the BOSH session.  This RID
+   *     will be used by the next request.
+   * @param {Function} callback The connect callback function.
+   * @param {number} wait - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} hold - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} wind - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
    */
   _attach(jid, sid, rid, callback, wait, hold, wind) {
     this._conn.jid = jid;
     this.sid = sid;
     this.rid = rid;
     this._conn.connect_callback = callback;
-    this._conn.domain = Strophe.getDomainFromJid(this._conn.jid);
+    this._conn.domain = core.getDomainFromJid(this._conn.jid);
     this._conn.authenticated = true;
     this._conn.connected = true;
     this.wait = wait || this.wait;
     this.hold = hold || this.hold;
     this.window = wind || this.window;
-    this._conn._changeConnectStatus(Strophe.Status.ATTACHED, null);
+    this._conn._changeConnectStatus(core.Status.ATTACHED, null);
   }
 
-  /** PrivateFunction: _restore
-   *  Attempt to restore a cached BOSH session
+  /**
+   * Attempt to restore a cached BOSH session
    *
-   *  Parameters:
-   *    (String) jid - The full JID that is bound by the session.
-   *      This parameter is optional but recommended, specifically in cases
-   *      where prebinded BOSH sessions are used where it's important to know
-   *      that the right session is being restored.
-   *    (Function) callback The connect callback function.
-   *    (Integer) wait - The optional HTTPBIND wait value.  This is the
-   *      time the server will wait before returning an empty result for
-   *      a request.  The default setting of 60 seconds is recommended.
-   *      Other settings will require tweaks to the Strophe.TIMEOUT value.
-   *    (Integer) hold - The optional HTTPBIND hold value.  This is the
-   *      number of connections the server will hold at one time.  This
-   *      should almost always be set to 1 (the default).
-   *    (Integer) wind - The optional HTTBIND window value.  This is the
-   *      allowed range of request ids that are valid.  The default is 5.
+   * @param {string} jid - The full JID that is bound by the session.
+   *     This parameter is optional but recommended, specifically in cases
+   *     where prebinded BOSH sessions are used where it's important to know
+   *     that the right session is being restored.
+   * @param {Function} callback The connect callback function.
+   * @param {number} wait - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} hold - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} wind - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
    */
   _restore(jid, callback, wait, hold, wind) {
     const session = JSON.parse(sessionStorage.getItem('strophe-bosh-session'));
-    if (typeof session !== 'undefined' && session !== null && session.rid && session.sid && session.jid && (typeof jid === 'undefined' || jid === null || Strophe.getBareJidFromJid(session.jid) === Strophe.getBareJidFromJid(jid) ||
+    if (typeof session !== 'undefined' && session !== null && session.rid && session.sid && session.jid && (typeof jid === 'undefined' || jid === null || core.getBareJidFromJid(session.jid) === core.getBareJidFromJid(jid) ||
     // If authcid is null, then it's an anonymous login, so
     // we compare only the domains:
-    Strophe.getNodeFromJid(jid) === null && Strophe.getDomainFromJid(session.jid) === jid)) {
+    core.getNodeFromJid(jid) === null && core.getDomainFromJid(session.jid) === jid)) {
       this._conn.restored = true;
       this._attach(session.jid, session.sid, session.rid, callback, wait, hold, wind);
     } else {
@@ -27239,12 +27082,10 @@ Strophe.Bosh = class Bosh {
     }
   }
 
-  /** PrivateFunction: _cacheSession
-   *  _Private_ handler for the beforeunload event.
-   *
-   *  This handler is used to process the Bosh-part of the initial request.
-   *  Parameters:
-   *    (Strophe.Request) bodyWrap - The received stanza.
+  /**
+   * _Private_ handler for the beforeunload event.
+   * This handler is used to process the Bosh-part of the initial request.
+   * @private
    */
   _cacheSession() {
     if (this._conn.authenticated) {
@@ -27260,30 +27101,28 @@ Strophe.Bosh = class Bosh {
     }
   }
 
-  /** PrivateFunction: _connect_cb
-   *  _Private_ handler for initial connection request.
-   *
-   *  This handler is used to process the Bosh-part of the initial request.
-   *  Parameters:
-   *    (Strophe.Request) bodyWrap - The received stanza.
+  /**
+   * _Private_ handler for initial connection request.
+   * This handler is used to process the Bosh-part of the initial request.
+   * @param {Element} bodyWrap - The received stanza.
    */
   _connect_cb(bodyWrap) {
     const typ = bodyWrap.getAttribute('type');
     if (typ !== null && typ === 'terminate') {
       // an error occurred
       let cond = bodyWrap.getAttribute('condition');
-      Strophe.error('BOSH-Connection failed: ' + cond);
+      core.error('BOSH-Connection failed: ' + cond);
       const conflict = bodyWrap.getElementsByTagName('conflict');
       if (cond !== null) {
         if (cond === 'remote-stream-error' && conflict.length > 0) {
           cond = 'conflict';
         }
-        this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, cond);
+        this._conn._changeConnectStatus(core.Status.CONNFAIL, cond);
       } else {
-        this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, 'unknown');
+        this._conn._changeConnectStatus(core.Status.CONNFAIL, 'unknown');
       }
       this._conn._doDisconnect(cond);
-      return Strophe.Status.CONNFAIL;
+      return core.Status.CONNFAIL;
     }
 
     // check to make sure we don't overwrite these if _connect_cb is
@@ -27309,20 +27148,17 @@ Strophe.Bosh = class Bosh {
     }
   }
 
-  /** PrivateFunction: _disconnect
-   *  _Private_ part of Connection.disconnect for Bosh
-   *
-   *  Parameters:
-   *    (Request) pres - This stanza will be sent before disconnecting.
+  /**
+   * _Private_ part of Connection.disconnect for Bosh
+   * @param {Element|Builder} pres - This stanza will be sent before disconnecting.
    */
   _disconnect(pres) {
     this._sendTerminate(pres);
   }
 
-  /** PrivateFunction: _doDisconnect
-   *  _Private_ function to disconnect.
-   *
-   *  Resets the SID and RID.
+  /**
+   * _Private_ function to disconnect.
+   * Resets the SID and RID.
    */
   _doDisconnect() {
     this.sid = null;
@@ -27333,21 +27169,18 @@ Strophe.Bosh = class Bosh {
     this._conn.nextValidRid(this.rid);
   }
 
-  /** PrivateFunction: _emptyQueue
+  /**
    * _Private_ function to check if the Request queue is empty.
-   *
-   *  Returns:
-   *    True, if there are no Requests queued, False otherwise.
+   * @return {boolean} - True, if there are no Requests queued, False otherwise.
    */
   _emptyQueue() {
     return this._requests.length === 0;
   }
 
-  /** PrivateFunction: _callProtocolErrorHandlers
-   *  _Private_ function to call error handlers registered for HTTP errors.
-   *
-   *  Parameters:
-   *    (Strophe.Request) req - The request that is changing readyState.
+  /**
+   * _Private_ function to call error handlers registered for HTTP errors.
+   * @private
+   * @param {Request} req - The request that is changing readyState.
    */
   _callProtocolErrorHandlers(req) {
     const reqStatus = Bosh._getRequestStatus(req);
@@ -27357,52 +27190,55 @@ Strophe.Bosh = class Bosh {
     }
   }
 
-  /** PrivateFunction: _hitError
-   *  _Private_ function to handle the error count.
+  /**
+   * _Private_ function to handle the error count.
    *
-   *  Requests are resent automatically until their error count reaches
-   *  5.  Each time an error is encountered, this function is called to
-   *  increment the count and disconnect if the count is too high.
-   *
-   *  Parameters:
-   *    (Integer) reqStatus - The request status.
+   * Requests are resent automatically until their error count reaches
+   * 5.  Each time an error is encountered, this function is called to
+   * increment the count and disconnect if the count is too high.
+   * @private
+   * @param {number} reqStatus - The request status.
    */
   _hitError(reqStatus) {
     this.errors++;
-    Strophe.warn('request errored, status: ' + reqStatus + ', number of errors: ' + this.errors);
+    core.warn('request errored, status: ' + reqStatus + ', number of errors: ' + this.errors);
     if (this.errors > 4) {
       this._conn._onDisconnectTimeout();
     }
   }
 
-  /** PrivateFunction: _no_auth_received
-   *
+  /**
+   * @callback connectionCallback
+   * @param {Connection} connection
+   */
+
+  /**
    * Called on stream start/restart when no stream:features
    * has been received and sends a blank poll request.
+   * @param {connectionCallback} callback
    */
   _no_auth_received(callback) {
-    Strophe.warn('Server did not yet offer a supported authentication ' + 'mechanism. Sending a blank poll request.');
+    core.warn('Server did not yet offer a supported authentication ' + 'mechanism. Sending a blank poll request.');
     if (callback) {
       callback = callback.bind(this._conn);
     } else {
       callback = this._conn._connect_cb.bind(this._conn);
     }
     const body = this._buildBody();
-    this._requests.push(new Strophe.Request(body.tree(), this._onRequestStateChange.bind(this, callback), body.tree().getAttribute('rid')));
+    this._requests.push(new core.Request(body.tree(), this._onRequestStateChange.bind(this, callback), Number(body.tree().getAttribute('rid'))));
     this._throttledRequestHandler();
   }
 
-  /** PrivateFunction: _onDisconnectTimeout
-   *  _Private_ timeout handler for handling non-graceful disconnection.
-   *
-   *  Cancels all remaining Requests and clears the queue.
+  /**
+   * _Private_ timeout handler for handling non-graceful disconnection.
+   * Cancels all remaining Requests and clears the queue.
    */
   _onDisconnectTimeout() {
     this._abortAllRequests();
   }
 
-  /** PrivateFunction: _abortAllRequests
-   *  _Private_ helper function that makes sure all pending requests are aborted.
+  /**
+   * _Private_ helper function that makes sure all pending requests are aborted.
    */
   _abortAllRequests() {
     while (this._requests.length > 0) {
@@ -27413,16 +27249,15 @@ Strophe.Bosh = class Bosh {
     }
   }
 
-  /** PrivateFunction: _onIdle
-   *  _Private_ handler called by Strophe.Connection._onIdle
-   *
-   *  Sends all queued Requests or polls with empty Request if there are none.
+  /**
+   * _Private_ handler called by {@link Strophe.Connection#_onIdle|Strophe.Connection._onIdle()}.
+   * Sends all queued Requests or polls with empty Request if there are none.
    */
   _onIdle() {
     const data = this._conn._data;
     // if no requests are in progress, poll
     if (this._conn.authenticated && this._requests.length === 0 && data.length === 0 && !this._conn.disconnecting) {
-      Strophe.debug('no requests during idle cycle, sending blank request');
+      core.debug('no requests during idle cycle, sending blank request');
       data.push(null);
     }
     if (this._conn.paused) {
@@ -27437,40 +27272,37 @@ Strophe.Bosh = class Bosh {
               'to': this._conn.domain,
               'xml:lang': 'en',
               'xmpp:restart': 'true',
-              'xmlns:xmpp': Strophe.NS.BOSH
+              'xmlns:xmpp': core.NS.BOSH
             });
           } else {
-            body.cnode(data[i]).up();
+            body.cnode( /** @type {Element} */data[i]).up();
           }
         }
       }
       delete this._conn._data;
       this._conn._data = [];
-      this._requests.push(new Strophe.Request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), body.tree().getAttribute('rid')));
+      this._requests.push(new core.Request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), Number(body.tree().getAttribute('rid'))));
       this._throttledRequestHandler();
     }
     if (this._requests.length > 0) {
       const time_elapsed = this._requests[0].age();
       if (this._requests[0].dead !== null) {
-        if (this._requests[0].timeDead() > Math.floor(Strophe.SECONDARY_TIMEOUT * this.wait)) {
+        if (this._requests[0].timeDead() > Math.floor(core.SECONDARY_TIMEOUT * this.wait)) {
           this._throttledRequestHandler();
         }
       }
-      if (time_elapsed > Math.floor(Strophe.TIMEOUT * this.wait)) {
-        Strophe.warn('Request ' + this._requests[0].id + ' timed out, over ' + Math.floor(Strophe.TIMEOUT * this.wait) + ' seconds since last activity');
+      if (time_elapsed > Math.floor(core.TIMEOUT * this.wait)) {
+        core.warn('Request ' + this._requests[0].id + ' timed out, over ' + Math.floor(core.TIMEOUT * this.wait) + ' seconds since last activity');
         this._throttledRequestHandler();
       }
     }
   }
 
-  /** PrivateFunction: _getRequestStatus
-   *
-   *  Returns the HTTP status code from a Strophe.Request
-   *
-   *  Parameters:
-   *    (Strophe.Request) req - The Strophe.Request instance.
-   *    (Integer) def - The default value that should be returned if no
-   *          status value was found.
+  /**
+   * Returns the HTTP status code from a {@link Strophe.Request}
+   * @private
+   * @param {Request} req - The {@link Strophe.Request} instance.
+   * @param {number} [def] - The default value that should be returned if no status value was found.
    */
   static _getRequestStatus(req, def) {
     let reqStatus;
@@ -27480,7 +27312,7 @@ Strophe.Bosh = class Bosh {
       } catch (e) {
         // ignore errors from undefined status attribute. Works
         // around a browser bug
-        Strophe.error("Caught an error while retrieving a request's status, " + 'reqStatus: ' + reqStatus);
+        core.error("Caught an error while retrieving a request's status, " + 'reqStatus: ' + reqStatus);
       }
     }
     if (typeof reqStatus === 'undefined') {
@@ -27489,20 +27321,20 @@ Strophe.Bosh = class Bosh {
     return reqStatus;
   }
 
-  /** PrivateFunction: _onRequestStateChange
-   *  _Private_ handler for Strophe.Request state changes.
+  /**
+   * _Private_ handler for {@link Strophe.Request} state changes.
    *
-   *  This function is called when the XMLHttpRequest readyState changes.
-   *  It contains a lot of error handling logic for the many ways that
-   *  requests can fail, and calls the request callback when requests
-   *  succeed.
+   * This function is called when the XMLHttpRequest readyState changes.
+   * It contains a lot of error handling logic for the many ways that
+   * requests can fail, and calls the request callback when requests
+   * succeed.
+   * @private
    *
-   *  Parameters:
-   *    (Function) func - The handler for the request.
-   *    (Strophe.Request) req - The request that is changing readyState.
+   * @param {Function} func - The handler for the request.
+   * @param {Request} req - The request that is changing readyState.
    */
   _onRequestStateChange(func, req) {
-    Strophe.debug('request id ' + req.id + '.' + req.sends + ' state changed to ' + req.xhr.readyState);
+    core.debug('request id ' + req.id + '.' + req.sends + ' state changed to ' + req.xhr.readyState);
     if (req.abort) {
       req.abort = false;
       return;
@@ -27525,7 +27357,7 @@ Strophe.Bosh = class Bosh {
     if (valid_request || too_many_retries) {
       // remove from internal queue
       this._removeRequest(req);
-      Strophe.debug('request id ' + req.id + ' should now be removed');
+      core.debug('request id ' + req.id + ' should now be removed');
     }
     if (reqStatus === 200) {
       // request succeeded
@@ -27533,40 +27365,40 @@ Strophe.Bosh = class Bosh {
       // 1 is over Strophe.SECONDARY_TIMEOUT seconds old, we need to
       // restart the other - both will be in the first spot, as the
       // completed request has been removed from the queue already
-      if (reqIs1 || reqIs0 && this._requests.length > 0 && this._requests[0].age() > Math.floor(Strophe.SECONDARY_TIMEOUT * this.wait)) {
+      if (reqIs1 || reqIs0 && this._requests.length > 0 && this._requests[0].age() > Math.floor(core.SECONDARY_TIMEOUT * this.wait)) {
         this._restartRequest(0);
       }
-      this._conn.nextValidRid(Number(req.rid) + 1);
-      Strophe.debug('request id ' + req.id + '.' + req.sends + ' got 200');
+      this._conn.nextValidRid(req.rid + 1);
+      core.debug('request id ' + req.id + '.' + req.sends + ' got 200');
       func(req); // call handler
       this.errors = 0;
     } else if (reqStatus === 0 || reqStatus >= 400 && reqStatus < 600 || reqStatus >= 12000) {
       // request failed
-      Strophe.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
+      core.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
       this._hitError(reqStatus);
       this._callProtocolErrorHandlers(req);
       if (reqStatus >= 400 && reqStatus < 500) {
-        this._conn._changeConnectStatus(Strophe.Status.DISCONNECTING, null);
+        this._conn._changeConnectStatus(core.Status.DISCONNECTING, null);
         this._conn._doDisconnect();
       }
     } else {
-      Strophe.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
+      core.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
     }
     if (!valid_request && !too_many_retries) {
       this._throttledRequestHandler();
     } else if (too_many_retries && !this._conn.connected) {
-      this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, 'giving-up');
+      this._conn._changeConnectStatus(core.Status.CONNFAIL, 'giving-up');
     }
   }
 
-  /** PrivateFunction: _processRequest
-   *  _Private_ function to process a request in the queue.
+  /**
+   * _Private_ function to process a request in the queue.
    *
-   *  This function takes requests off the queue and sends them and
-   *  restarts dead requests.
+   * This function takes requests off the queue and sends them and
+   * restarts dead requests.
+   * @private
    *
-   *  Parameters:
-   *    (Integer) i - The index of the request in the queue.
+   * @param {number} i - The index of the request in the queue.
    */
   _processRequest(i) {
     let req = this._requests[i];
@@ -27578,22 +27410,22 @@ Strophe.Bosh = class Bosh {
       return;
     }
     const time_elapsed = req.age();
-    const primary_timeout = !isNaN(time_elapsed) && time_elapsed > Math.floor(Strophe.TIMEOUT * this.wait);
-    const secondary_timeout = req.dead !== null && req.timeDead() > Math.floor(Strophe.SECONDARY_TIMEOUT * this.wait);
+    const primary_timeout = !isNaN(time_elapsed) && time_elapsed > Math.floor(core.TIMEOUT * this.wait);
+    const secondary_timeout = req.dead !== null && req.timeDead() > Math.floor(core.SECONDARY_TIMEOUT * this.wait);
     const server_error = req.xhr.readyState === 4 && (reqStatus < 1 || reqStatus >= 500);
     if (primary_timeout || secondary_timeout || server_error) {
       if (secondary_timeout) {
-        Strophe.error(`Request ${this._requests[i].id} timed out (secondary), restarting`);
+        core.error(`Request ${this._requests[i].id} timed out (secondary), restarting`);
       }
       req.abort = true;
       req.xhr.abort();
       // setting to null fails on IE6, so set to empty function
       req.xhr.onreadystatechange = function () {};
-      this._requests[i] = new Strophe.Request(req.xmlData, req.origFunc, req.rid, req.sends);
+      this._requests[i] = new core.Request(req.xmlData, req.origFunc, req.rid, req.sends);
       req = this._requests[i];
     }
     if (req.xhr.readyState === 0) {
-      Strophe.debug('request id ' + req.id + '.' + req.sends + ' posting');
+      core.debug('request id ' + req.id + '.' + req.sends + ' posting');
       try {
         const content_type = this._conn.options.contentType || 'text/xml; charset=utf-8';
         req.xhr.open('POST', this._conn.service, this._conn.options.sync ? false : true);
@@ -27605,9 +27437,9 @@ Strophe.Bosh = class Bosh {
           req.xhr.withCredentials = true;
         }
       } catch (e2) {
-        Strophe.error('XHR open failed: ' + e2.toString());
+        core.error('XHR open failed: ' + e2.toString());
         if (!this._conn.connected) {
-          this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, 'bad-service');
+          this._conn._changeConnectStatus(core.Status.CONNFAIL, 'bad-service');
         }
         this._conn.disconnect();
         return;
@@ -27616,7 +27448,7 @@ Strophe.Bosh = class Bosh {
       // Fires the XHR request -- may be invoked immediately
       // or on a gradually expanding retry window for reconnects
       const sendFunc = () => {
-        req.date = new Date();
+        req.date = new Date().valueOf();
         if (this._conn.options.customHeaders) {
           const headers = this._conn.options.customHeaders;
           for (const header in headers) {
@@ -27633,7 +27465,7 @@ Strophe.Bosh = class Bosh {
       if (req.sends > 1) {
         // Using a cube of the retry number creates a nicely
         // expanding retry window
-        const backoff = Math.min(Math.floor(Strophe.TIMEOUT * this.wait), Math.pow(req.sends, 3)) * 1000;
+        const backoff = Math.min(Math.floor(core.TIMEOUT * this.wait), Math.pow(req.sends, 3)) * 1000;
         setTimeout(function () {
           // XXX: setTimeout should be called only with function expressions (23974bc1)
           sendFunc();
@@ -27642,29 +27474,24 @@ Strophe.Bosh = class Bosh {
         sendFunc();
       }
       req.sends++;
-      if (this._conn.xmlOutput !== Strophe.Connection.prototype.xmlOutput) {
-        if (req.xmlData.nodeName === this.strip && req.xmlData.childNodes.length) {
-          this._conn.xmlOutput(req.xmlData.childNodes[0]);
-        } else {
-          this._conn.xmlOutput(req.xmlData);
-        }
+      if (this.strip && req.xmlData.nodeName === 'body' && req.xmlData.childNodes.length) {
+        this._conn.xmlOutput?.(req.xmlData.children[0]);
+      } else {
+        this._conn.xmlOutput?.(req.xmlData);
       }
-      if (this._conn.rawOutput !== Strophe.Connection.prototype.rawOutput) {
-        this._conn.rawOutput(req.data);
-      }
+      this._conn.rawOutput?.(req.data);
     } else {
-      Strophe.debug('_processRequest: ' + (i === 0 ? 'first' : 'second') + ' request has readyState of ' + req.xhr.readyState);
+      core.debug('_processRequest: ' + (i === 0 ? 'first' : 'second') + ' request has readyState of ' + req.xhr.readyState);
     }
   }
 
-  /** PrivateFunction: _removeRequest
-   *  _Private_ function to remove a request from the queue.
-   *
-   *  Parameters:
-   *    (Strophe.Request) req - The request to remove.
+  /**
+   * _Private_ function to remove a request from the queue.
+   * @private
+   * @param {Request} req - The request to remove.
    */
   _removeRequest(req) {
-    Strophe.debug('removing request');
+    core.debug('removing request');
     for (let i = this._requests.length - 1; i >= 0; i--) {
       if (req === this._requests[i]) {
         this._requests.splice(i, 1);
@@ -27675,11 +27502,11 @@ Strophe.Bosh = class Bosh {
     this._throttledRequestHandler();
   }
 
-  /** PrivateFunction: _restartRequest
-   *  _Private_ function to restart a request that is presumed dead.
+  /**
+   * _Private_ function to restart a request that is presumed dead.
+   * @private
    *
-   *  Parameters:
-   *    (Integer) i - The index of the request in the queue.
+   * @param {number} i - The index of the request in the queue.
    */
   _restartRequest(i) {
     const req = this._requests[i];
@@ -27689,17 +27516,13 @@ Strophe.Bosh = class Bosh {
     this._processRequest(i);
   }
 
-  /** PrivateFunction: _reqToData
+  /**
    * _Private_ function to get a stanza out of a request.
-   *
    * Tries to extract a stanza out of a Request Object.
    * When this fails the current connection will be disconnected.
    *
-   *  Parameters:
-   *    (Object) req - The Request.
-   *
-   *  Returns:
-   *    The stanza that was passed.
+   * @param {Request} req - The Request.
+   * @return {Element} - The stanza that was passed.
    */
   _reqToData(req) {
     try {
@@ -27712,29 +27535,31 @@ Strophe.Bosh = class Bosh {
     }
   }
 
-  /** PrivateFunction: _sendTerminate
-   *  _Private_ function to send initial disconnect sequence.
+  /**
+   * _Private_ function to send initial disconnect sequence.
    *
-   *  This is the first step in a graceful disconnect.  It sends
-   *  the BOSH server a terminate body and includes an unavailable
-   *  presence if authentication has completed.
+   * This is the first step in a graceful disconnect.  It sends
+   * the BOSH server a terminate body and includes an unavailable
+   * presence if authentication has completed.
+   * @private
+   * @param {Element|Builder} [pres]
    */
   _sendTerminate(pres) {
-    Strophe.debug('_sendTerminate was called');
+    core.debug('_sendTerminate was called');
     const body = this._buildBody().attrs({
       type: 'terminate'
     });
+    const el = pres instanceof builder ? pres.tree() : pres;
     if (pres) {
-      body.cnode(pres.tree());
+      body.cnode(el);
     }
-    const req = new Strophe.Request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), body.tree().getAttribute('rid'));
+    const req = new core.Request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), Number(body.tree().getAttribute('rid')));
     this._requests.push(req);
     this._throttledRequestHandler();
   }
 
-  /** PrivateFunction: _send
-   *  _Private_ part of the Connection.send function for BOSH
-   *
+  /**
+   * _Private_ part of the Connection.send function for BOSH
    * Just triggers the RequestHandler to send the messages that are in the queue
    */
   _send() {
@@ -27743,27 +27568,27 @@ Strophe.Bosh = class Bosh {
     this._conn._idleTimeout = setTimeout(() => this._conn._onIdle(), 100);
   }
 
-  /** PrivateFunction: _sendRestart
-   *
-   *  Send an xmpp:restart stanza.
+  /**
+   * Send an xmpp:restart stanza.
    */
   _sendRestart() {
     this._throttledRequestHandler();
     clearTimeout(this._conn._idleTimeout);
   }
 
-  /** PrivateFunction: _throttledRequestHandler
-   *  _Private_ function to throttle requests to the connection window.
+  /**
+   * _Private_ function to throttle requests to the connection window.
    *
-   *  This function makes sure we don't send requests so fast that the
-   *  request ids overflow the connection window in the case that one
-   *  request died.
+   * This function makes sure we don't send requests so fast that the
+   * request ids overflow the connection window in the case that one
+   * request died.
+   * @private
    */
   _throttledRequestHandler() {
     if (!this._requests) {
-      Strophe.debug('_throttledRequestHandler called with ' + 'undefined requests');
+      core.debug('_throttledRequestHandler called with ' + 'undefined requests');
     } else {
-      Strophe.debug('_throttledRequestHandler called with ' + this._requests.length + ' requests');
+      core.debug('_throttledRequestHandler called with ' + this._requests.length + ' requests');
     }
     if (!this._requests || this._requests.length === 0) {
       return;
@@ -27775,61 +27600,43 @@ Strophe.Bosh = class Bosh {
       this._processRequest(1);
     }
   }
-};
-
-/** Variable: strip
- *
- *  BOSH-Connections will have all stanzas wrapped in a <body> tag when
- *  passed to <Strophe.Connection.xmlInput> or <Strophe.Connection.xmlOutput>.
- *  To strip this tag, User code can set <Strophe.Bosh.strip> to "body":
- *
- *  > Strophe.Bosh.prototype.strip = "body";
- *
- *  This will enable stripping of the body tag in both
- *  <Strophe.Connection.xmlInput> and <Strophe.Connection.xmlOutput>.
- */
-Strophe.Bosh.prototype.strip = null;
+}
+/* harmony default export */ const bosh = (Bosh);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/websocket.js
-/*
-    This program is distributed under the terms of the MIT license.
-    Please see the LICENSE file for details.
-
-    Copyright 2006-2008, OGG, LLC
-*/
+/**
+ * A JavaScript library to enable XMPP over Websocket in Strophejs.
+ *
+ * This file implements XMPP over WebSockets for Strophejs.
+ * If a Connection is established with a Websocket url (ws://...)
+ * Strophe will use WebSockets.
+ * For more information on XMPP-over-WebSocket see RFC 7395:
+ * http://tools.ietf.org/html/rfc7395
+ *
+ * WebSocket support implemented by Andreas Guth (andreas.guth@rwth-aachen.de)
+ */
 
 /* global clearTimeout, location */
 
-
-
-
-/** Class: Strophe.WebSocket
- *  _Private_ helper class that handles WebSocket Connections
- *
- *  The Strophe.WebSocket class is used internally by Strophe.Connection
- *  to encapsulate WebSocket sessions. It is not meant to be used from user's code.
+/**
+ * @typedef {import("./builder.js").default} Builder
+ * @typedef {import("./connection.js").default} Connection
  */
 
-/** File: websocket.js
- *  A JavaScript library to enable XMPP over Websocket in Strophejs.
+
+
+
+
+/**
+ * Helper class that handles WebSocket Connections
  *
- *  This file implements XMPP over WebSockets for Strophejs.
- *  If a Connection is established with a Websocket url (ws://...)
- *  Strophe will use WebSockets.
- *  For more information on XMPP-over-WebSocket see RFC 7395:
- *  http://tools.ietf.org/html/rfc7395
- *
- *  WebSocket support implemented by Andreas Guth (andreas.guth@rwth-aachen.de)
+ * The Strophe.WebSocket class is used internally by Strophe.Connection
+ * to encapsulate WebSocket sessions. It is not meant to be used from user's code.
  */
-Strophe.Websocket = class Websocket {
-  /** PrivateConstructor: Strophe.Websocket
-   *  Create and initialize a Strophe.WebSocket object.
-   *  Currently only sets the connection Object.
-   *
-   *  Parameters:
-   *    (Strophe.Connection) connection - The Strophe.Connection that will use WebSockets.
-   *
-   *  Returns:
-   *    A new Strophe.WebSocket object.
+class Websocket {
+  /**
+   * Create and initialize a Strophe.WebSocket object.
+   * Currently only sets the connection Object.
+   * @param {Connection} connection - The Strophe.Connection that will use WebSockets.
    */
   constructor(connection) {
     this._conn = connection;
@@ -27854,33 +27661,30 @@ Strophe.Websocket = class Websocket {
     }
   }
 
-  /** PrivateFunction: _buildStream
-   *  _Private_ helper function to generate the <stream> start tag for WebSockets
-   *
-   *  Returns:
-   *    A Strophe.Builder with a <stream> element.
+  /**
+   * _Private_ helper function to generate the <stream> start tag for WebSockets
+   * @private
+   * @return {Builder} - A Strophe.Builder with a <stream> element.
    */
   _buildStream() {
     return $build('open', {
-      'xmlns': Strophe.NS.FRAMING,
+      'xmlns': core.NS.FRAMING,
       'to': this._conn.domain,
       'version': '1.0'
     });
   }
 
-  /** PrivateFunction: _checkStreamError
+  /**
    * _Private_ checks a message for stream:error
-   *
-   *  Parameters:
-   *    (Strophe.Request) bodyWrap - The received stanza.
-   *    connectstatus - The ConnectStatus that will be set on error.
-   *  Returns:
-   *     true if there was a streamerror, false otherwise.
+   * @private
+   * @param {Element} bodyWrap - The received stanza.
+   * @param {number} connectstatus - The ConnectStatus that will be set on error.
+   * @return {boolean} - true if there was a streamerror, false otherwise.
    */
   _checkStreamError(bodyWrap, connectstatus) {
     let errors;
     if (bodyWrap.getElementsByTagNameNS) {
-      errors = bodyWrap.getElementsByTagNameNS(Strophe.NS.STREAM, 'error');
+      errors = bodyWrap.getElementsByTagNameNS(core.NS.STREAM, 'error');
     } else {
       errors = bodyWrap.getElementsByTagName('stream:error');
     }
@@ -27892,7 +27696,7 @@ Strophe.Websocket = class Websocket {
     let text = '';
     const ns = 'urn:ietf:params:xml:ns:xmpp-streams';
     for (let i = 0; i < error.childNodes.length; i++) {
-      const e = error.childNodes[i];
+      const e = error.children[i];
       if (e.getAttribute('xmlns') !== ns) {
         break;
       }
@@ -27911,7 +27715,7 @@ Strophe.Websocket = class Websocket {
     if (text) {
       errorString += ' - ' + text;
     }
-    Strophe.error(errorString);
+    core.error(errorString);
 
     // close the connection on stream_error
     this._conn._changeConnectStatus(connectstatus, condition);
@@ -27919,65 +27723,79 @@ Strophe.Websocket = class Websocket {
     return true;
   }
 
-  /** PrivateFunction: _reset
-   *  Reset the connection.
+  /**
+   * Reset the connection.
    *
-   *  This function is called by the reset function of the Strophe Connection.
-   *  Is not needed by WebSockets.
+   * This function is called by the reset function of the Strophe Connection.
+   * Is not needed by WebSockets.
    */
   // eslint-disable-next-line class-methods-use-this
   _reset() {
     return;
   }
 
-  /** PrivateFunction: _connect
-   *  _Private_ function called by Strophe.Connection.connect
+  /**
+   * _Private_ function called by Strophe.Connection.connect
    *
-   *  Creates a WebSocket for a connection and assigns Callbacks to it.
-   *  Does nothing if there already is a WebSocket.
+   * Creates a WebSocket for a connection and assigns Callbacks to it.
+   * Does nothing if there already is a WebSocket.
    */
   _connect() {
     // Ensure that there is no open WebSocket from a previous Connection.
     this._closeSocket();
+
+    /**
+     * @typedef {Object} WebsocketLike
+     * @property {(str: string) => void} WebsocketLike.send
+     * @property {function(): void} WebsocketLike.close
+     * @property {function(): void} WebsocketLike.onopen
+     * @property {(e: ErrorEvent) => void} WebsocketLike.onerror
+     * @property {(e: CloseEvent) => void} WebsocketLike.onclose
+     * @property {(message: MessageEvent) => void} WebsocketLike.onmessage
+     * @property {string} WebsocketLike.readyState
+     */
+
+    /** @type {import('ws')|WebSocket|WebsocketLike} */
     this.socket = new WebSocket(this._conn.service, 'xmpp');
     this.socket.onopen = () => this._onOpen();
+    /** @param {ErrorEvent} e */
     this.socket.onerror = e => this._onError(e);
+    /** @param {CloseEvent} e */
     this.socket.onclose = e => this._onClose(e);
-    // Gets replaced with this._onMessage once _onInitialMessage is called
+    /**
+     * Gets replaced with this._onMessage once _onInitialMessage is called
+     * @param {MessageEvent} message
+     */
     this.socket.onmessage = message => this._onInitialMessage(message);
   }
 
-  /** PrivateFunction: _connect_cb
-   *  _Private_ function called by Strophe.Connection._connect_cb
-   *
+  /**
+   * _Private_ function called by Strophe.Connection._connect_cb
    * checks for stream:error
-   *
-   *  Parameters:
-   *    (Strophe.Request) bodyWrap - The received stanza.
+   * @param {Element} bodyWrap - The received stanza.
    */
   _connect_cb(bodyWrap) {
-    const error = this._checkStreamError(bodyWrap, Strophe.Status.CONNFAIL);
+    const error = this._checkStreamError(bodyWrap, core.Status.CONNFAIL);
     if (error) {
-      return Strophe.Status.CONNFAIL;
+      return core.Status.CONNFAIL;
     }
   }
 
-  /** PrivateFunction: _handleStreamStart
+  /**
    * _Private_ function that checks the opening <open /> tag for errors.
    *
    * Disconnects if there is an error and returns false, true otherwise.
-   *
-   *  Parameters:
-   *    (Node) message - Stanza containing the <open /> tag.
+   * @private
+   * @param {Element} message - Stanza containing the <open /> tag.
    */
   _handleStreamStart(message) {
-    let error = false;
+    let error = null;
 
     // Check for errors in the <open /> tag
     const ns = message.getAttribute('xmlns');
     if (typeof ns !== 'string') {
       error = 'Missing xmlns in <open />';
-    } else if (ns !== Strophe.NS.FRAMING) {
+    } else if (ns !== core.NS.FRAMING) {
       error = 'Wrong xmlns in <open />: ' + ns;
     }
     const ver = message.getAttribute('version');
@@ -27987,18 +27805,19 @@ Strophe.Websocket = class Websocket {
       error = 'Wrong version in <open />: ' + ver;
     }
     if (error) {
-      this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, error);
+      this._conn._changeConnectStatus(core.Status.CONNFAIL, error);
       this._conn._doDisconnect();
       return false;
     }
     return true;
   }
 
-  /** PrivateFunction: _onInitialMessage
+  /**
    * _Private_ function that handles the first connection messages.
    *
    * On receiving an opening stream tag this callback replaces itself with the real
    * message handler. On receiving a stream error the connection is terminated.
+   * @param {MessageEvent} message
    */
   _onInitialMessage(message) {
     if (message.data.indexOf('<open ') === 0 || message.data.indexOf('<?xml') === 0) {
@@ -28027,13 +27846,13 @@ Strophe.Websocket = class Websocket {
         // Valid scenarios: WSS->WSS, WS->ANY
         const isSecureRedirect = service.indexOf('wss:') >= 0 && see_uri.indexOf('wss:') >= 0 || service.indexOf('ws:') >= 0;
         if (isSecureRedirect) {
-          this._conn._changeConnectStatus(Strophe.Status.REDIRECT, 'Received see-other-uri, resetting connection');
+          this._conn._changeConnectStatus(core.Status.REDIRECT, 'Received see-other-uri, resetting connection');
           this._conn.reset();
           this._conn.service = see_uri;
           this._connect();
         }
       } else {
-        this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, 'Received closing stream');
+        this._conn._changeConnectStatus(core.Status.CONNFAIL, 'Received closing stream');
         this._conn._doDisconnect();
       }
     } else {
@@ -28044,24 +27863,21 @@ Strophe.Websocket = class Websocket {
     }
   }
 
-  /** PrivateFunction: _replaceMessageHandler
-   *
+  /**
    * Called by _onInitialMessage in order to replace itself with the general message handler.
    * This method is overridden by Strophe.WorkerWebsocket, which manages a
    * websocket connection via a service worker and doesn't have direct access
    * to the socket.
    */
   _replaceMessageHandler() {
+    /** @param {MessageEvent} m */
     this.socket.onmessage = m => this._onMessage(m);
   }
 
-  /** PrivateFunction: _disconnect
-   *  _Private_ function called by Strophe.Connection.disconnect
-   *
-   *  Disconnects and sends a last stanza if one is given
-   *
-   *  Parameters:
-   *    (Request) pres - This stanza will be sent before disconnecting.
+  /**
+   * _Private_ function called by Strophe.Connection.disconnect
+   * Disconnects and sends a last stanza if one is given
+   * @param {Element|Builder} [pres] - This stanza will be sent before disconnecting.
    */
   _disconnect(pres) {
     if (this.socket && this.socket.readyState !== WebSocket.CLOSED) {
@@ -28069,43 +27885,44 @@ Strophe.Websocket = class Websocket {
         this._conn.send(pres);
       }
       const close = $build('close', {
-        'xmlns': Strophe.NS.FRAMING
+        'xmlns': core.NS.FRAMING
       });
       this._conn.xmlOutput(close.tree());
-      const closeString = Strophe.serialize(close);
+      const closeString = core.serialize(close);
       this._conn.rawOutput(closeString);
       try {
         this.socket.send(closeString);
       } catch (e) {
-        Strophe.warn("Couldn't send <close /> tag.");
+        core.warn("Couldn't send <close /> tag.");
       }
     }
     setTimeout(() => this._conn._doDisconnect(), 0);
   }
 
-  /** PrivateFunction: _doDisconnect
-   *  _Private_ function to disconnect.
-   *
-   *  Just closes the Socket for WebSockets
+  /**
+   * _Private_ function to disconnect.
+   * Just closes the Socket for WebSockets
    */
   _doDisconnect() {
-    Strophe.debug('WebSockets _doDisconnect was called');
+    core.debug('WebSockets _doDisconnect was called');
     this._closeSocket();
   }
 
-  /** PrivateFunction _streamWrap
-   *  _Private_ helper function to wrap a stanza in a <stream> tag.
-   *  This is used so Strophe can process stanzas from WebSockets like BOSH
+  /**
+   * PrivateFunction _streamWrap
+   * _Private_ helper function to wrap a stanza in a <stream> tag.
+   * This is used so Strophe can process stanzas from WebSockets like BOSH
+   * @param {string} stanza
    */
   // eslint-disable-next-line class-methods-use-this
   _streamWrap(stanza) {
     return '<wrapper>' + stanza + '</wrapper>';
   }
 
-  /** PrivateFunction: _closeSocket
-   *  _Private_ function to close the WebSocket.
+  /**
+   * _Private_ function to close the WebSocket.
    *
-   *  Closes the socket if it is still open and deletes it
+   * Closes the socket if it is still open and deletes it
    */
   _closeSocket() {
     if (this.socket) {
@@ -28115,98 +27932,93 @@ Strophe.Websocket = class Websocket {
         this.socket.onmessage = null;
         this.socket.close();
       } catch (e) {
-        Strophe.debug(e.message);
+        core.debug(e.message);
       }
     }
     this.socket = null;
   }
 
-  /** PrivateFunction: _emptyQueue
+  /**
    * _Private_ function to check if the message queue is empty.
-   *
-   *  Returns:
-   *    True, because WebSocket messages are send immediately after queueing.
+   * @return {true} - True, because WebSocket messages are send immediately after queueing.
    */
   // eslint-disable-next-line class-methods-use-this
   _emptyQueue() {
     return true;
   }
 
-  /** PrivateFunction: _onClose
+  /**
    * _Private_ function to handle websockets closing.
+   * @param {CloseEvent} [e]
    */
   _onClose(e) {
     if (this._conn.connected && !this._conn.disconnecting) {
-      Strophe.error('Websocket closed unexpectedly');
+      core.error('Websocket closed unexpectedly');
       this._conn._doDisconnect();
     } else if (e && e.code === 1006 && !this._conn.connected && this.socket) {
       // in case the onError callback was not called (Safari 10 does not
       // call onerror when the initial connection fails) we need to
       // dispatch a CONNFAIL status update to be consistent with the
       // behavior on other browsers.
-      Strophe.error('Websocket closed unexcectedly');
-      this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
+      core.error('Websocket closed unexcectedly');
+      this._conn._changeConnectStatus(core.Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
       this._conn._doDisconnect();
     } else {
-      Strophe.debug('Websocket closed');
+      core.debug('Websocket closed');
     }
   }
 
-  /** PrivateFunction: _no_auth_received
-   *
+  /**
+   * @callback connectionCallback
+   * @param {Connection} connection
+   */
+
+  /**
    * Called on stream start/restart when no stream:features
    * has been received.
+   * @param {connectionCallback} callback
    */
   _no_auth_received(callback) {
-    Strophe.error('Server did not offer a supported authentication mechanism');
-    this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, Strophe.ErrorCondition.NO_AUTH_MECH);
-    if (callback) {
-      callback.call(this._conn);
-    }
+    core.error('Server did not offer a supported authentication mechanism');
+    this._conn._changeConnectStatus(core.Status.CONNFAIL, core.ErrorCondition.NO_AUTH_MECH);
+    callback?.call(this._conn);
     this._conn._doDisconnect();
   }
 
-  /** PrivateFunction: _onDisconnectTimeout
-   *  _Private_ timeout handler for handling non-graceful disconnection.
+  /**
+   * _Private_ timeout handler for handling non-graceful disconnection.
    *
-   *  This does nothing for WebSockets
+   * This does nothing for WebSockets
    */
   _onDisconnectTimeout() {} // eslint-disable-line class-methods-use-this
 
-  /** PrivateFunction: _abortAllRequests
-   *  _Private_ helper function that makes sure all pending requests are aborted.
+  /**
+   * _Private_ helper function that makes sure all pending requests are aborted.
    */
   _abortAllRequests() {} // eslint-disable-line class-methods-use-this
 
-  /** PrivateFunction: _onError
+  /**
    * _Private_ function to handle websockets errors.
-   *
-   * Parameters:
-   * (Object) error - The websocket error.
+   * @param {Object} error - The websocket error.
    */
   _onError(error) {
-    Strophe.error('Websocket error ' + JSON.stringify(error));
-    this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
+    core.error('Websocket error ' + JSON.stringify(error));
+    this._conn._changeConnectStatus(core.Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
     this._disconnect();
   }
 
-  /** PrivateFunction: _onIdle
-   *  _Private_ function called by Strophe.Connection._onIdle
-   *
-   *  sends all queued stanzas
+  /**
+   * _Private_ function called by Strophe.Connection._onIdle
+   * sends all queued stanzas
    */
   _onIdle() {
     const data = this._conn._data;
     if (data.length > 0 && !this._conn.paused) {
       for (let i = 0; i < data.length; i++) {
         if (data[i] !== null) {
-          let stanza;
-          if (data[i] === 'restart') {
-            stanza = this._buildStream().tree();
-          } else {
-            stanza = data[i];
-          }
-          const rawStanza = Strophe.serialize(stanza);
+          const stanza = data[i] === 'restart' ? this._buildStream().tree() : data[i];
+          if (stanza === 'restart') throw new Error('Wrong type for stanza'); // Shut up tsc
+          const rawStanza = core.serialize(stanza);
           this._conn.xmlOutput(stanza);
           this._conn.rawOutput(rawStanza);
           this.socket.send(rawStanza);
@@ -28216,19 +28028,19 @@ Strophe.Websocket = class Websocket {
     }
   }
 
-  /** PrivateFunction: _onMessage
+  /**
    * _Private_ function to handle websockets messages.
    *
    * This function parses each of the messages as if they are full documents.
    * [TODO : We may actually want to use a SAX Push parser].
    *
    * Since all XMPP traffic starts with
-   *  <stream:stream version='1.0'
-   *                 xml:lang='en'
-   *                 xmlns='jabber:client'
-   *                 xmlns:stream='http://etherx.jabber.org/streams'
-   *                 id='3697395463'
-   *                 from='SERVER'>
+   * <stream:stream version='1.0'
+   *                xml:lang='en'
+   *                xmlns='jabber:client'
+   *                xmlns:stream='http://etherx.jabber.org/streams'
+   *                id='3697395463'
+   *                from='SERVER'>
    *
    * The first stanza will always fail to be parsed.
    *
@@ -28236,8 +28048,7 @@ Strophe.Websocket = class Websocket {
    * the stream NS defined in the previous stanza, so we need to 'force'
    * the inclusion of the NS in this stanza.
    *
-   * Parameters:
-   * (string) message - The websocket message.
+   * @param {MessageEvent} message - The websocket message event
    */
   _onMessage(message) {
     let elem;
@@ -28260,14 +28071,14 @@ Strophe.Websocket = class Websocket {
       const data = this._streamWrap(message.data);
       elem = new DOMParser().parseFromString(data, 'text/xml').documentElement;
     }
-    if (this._checkStreamError(elem, Strophe.Status.ERROR)) {
+    if (this._checkStreamError(elem, core.Status.ERROR)) {
       return;
     }
 
     //handle unavailable presence stanza before disconnecting
-    if (this._conn.disconnecting && elem.firstChild.nodeName === 'presence' && elem.firstChild.getAttribute('type') === 'unavailable') {
+    if (this._conn.disconnecting && elem.firstElementChild.nodeName === 'presence' && elem.firstElementChild.getAttribute('type') === 'unavailable') {
       this._conn.xmlInput(elem);
-      this._conn.rawInput(Strophe.serialize(elem));
+      this._conn.rawInput(core.serialize(elem));
       // if we are already disconnecting we will ignore the unavailable stanza and
       // wait for the </stream:stream> tag before we close the connection
       return;
@@ -28275,83 +28086,57 @@ Strophe.Websocket = class Websocket {
     this._conn._dataRecv(elem, message.data);
   }
 
-  /** PrivateFunction: _onOpen
+  /**
    * _Private_ function to handle websockets connection setup.
-   *
    * The opening stream tag is sent here.
+   * @private
    */
   _onOpen() {
-    Strophe.debug('Websocket open');
+    core.debug('Websocket open');
     const start = this._buildStream();
     this._conn.xmlOutput(start.tree());
-    const startString = Strophe.serialize(start);
+    const startString = core.serialize(start);
     this._conn.rawOutput(startString);
     this.socket.send(startString);
   }
 
-  /** PrivateFunction: _reqToData
-   * _Private_ function to get a stanza out of a request.
-   *
-   * WebSockets don't use requests, so the passed argument is just returned.
-   *
-   *  Parameters:
-   *    (Object) stanza - The stanza.
-   *
-   *  Returns:
-   *    The stanza that was passed.
-   */
-  // eslint-disable-next-line class-methods-use-this
-  _reqToData(stanza) {
-    return stanza;
-  }
-
-  /** PrivateFunction: _send
-   *  _Private_ part of the Connection.send function for WebSocket
-   *
+  /**
+   * _Private_ part of the Connection.send function for WebSocket
    * Just flushes the messages that are in the queue
    */
   _send() {
     this._conn.flush();
   }
 
-  /** PrivateFunction: _sendRestart
-   *
-   *  Send an xmpp:restart stanza.
+  /**
+   * Send an xmpp:restart stanza.
    */
   _sendRestart() {
     clearTimeout(this._conn._idleTimeout);
     this._conn._onIdle.bind(this._conn)();
   }
-};
+}
+/* harmony default export */ const websocket = (Websocket);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/worker-websocket.js
-/*
-    This program is distributed under the terms of the MIT license.
-    Please see the LICENSE file for details.
-
-    Copyright 2020, JC Brand
-*/
-
-
-
-const lmap = {};
-lmap['debug'] = Strophe.LogLevel.DEBUG;
-lmap['info'] = Strophe.LogLevel.INFO;
-lmap['warn'] = Strophe.LogLevel.WARN;
-lmap['error'] = Strophe.LogLevel.ERROR;
-lmap['fatal'] = Strophe.LogLevel.FATAL;
-
-/** Class: Strophe.WorkerWebsocket
- *  _Private_ helper class that handles a websocket connection inside a shared worker.
+/**
+ * @license MIT
+ * @copyright JC Brand
+ *
+ * @typedef {import("./connection.js").default} Connection
+ * @typedef {import("./builder.js").default} Builder
  */
-Strophe.WorkerWebsocket = class WorkerWebsocket extends Strophe.Websocket {
-  /** PrivateConstructor: Strophe.WorkerWebsocket
-   *  Create and initialize a Strophe.WorkerWebsocket object.
-   *
-   *  Parameters:
-   *    (Strophe.Connection) connection - The Strophe.Connection
-   *
-   *  Returns:
-   *    A new Strophe.WorkerWebsocket object.
+
+
+
+
+
+/**
+ * Helper class that handles a websocket connection inside a shared worker.
+ */
+class WorkerWebsocket extends websocket {
+  /**
+   * Create and initialize a Strophe.WorkerWebsocket object.
+   * @param {Connection} connection - The Strophe.Connection
    */
   constructor(connection) {
     super(connection);
@@ -28359,87 +28144,110 @@ Strophe.WorkerWebsocket = class WorkerWebsocket extends Strophe.Websocket {
     this.worker = new SharedWorker(this._conn.options.worker, 'Strophe XMPP Connection');
     this.worker.onerror = e => {
       console?.error(e);
-      Strophe.log(Strophe.LogLevel.ERROR, `Shared Worker Error: ${e}`);
+      core.log(core.LogLevel.ERROR, `Shared Worker Error: ${e}`);
     };
   }
-  get socket() {
-    return {
-      'send': str => this.worker.port.postMessage(['send', str])
+
+  /**
+   * @private
+   */
+  _setSocket() {
+    this.socket = {
+      /** @param {string} str */
+      send: str => this.worker.port.postMessage(['send', str]),
+      close: () => this.worker.port.postMessage(['_closeSocket']),
+      onopen: () => {},
+      /** @param {ErrorEvent} e */
+      onerror: e => this._onError(e),
+      /** @param {CloseEvent} e */
+      onclose: e => this._onClose(e),
+      onmessage: () => {},
+      readyState: null
     };
   }
   _connect() {
+    this._setSocket();
+    /** @param {MessageEvent} m */
     this._messageHandler = m => this._onInitialMessage(m);
     this.worker.port.start();
     this.worker.port.onmessage = ev => this._onWorkerMessage(ev);
     this.worker.port.postMessage(['_connect', this._conn.service, this._conn.jid]);
   }
+
+  /**
+   * @param {Function} callback
+   */
   _attach(callback) {
+    this._setSocket();
+    /** @param {MessageEvent} m */
     this._messageHandler = m => this._onMessage(m);
     this._conn.connect_callback = callback;
     this.worker.port.start();
     this.worker.port.onmessage = ev => this._onWorkerMessage(ev);
     this.worker.port.postMessage(['_attach', this._conn.service]);
   }
+
+  /**
+   * @param {number} status
+   * @param {string} jid
+   */
   _attachCallback(status, jid) {
-    if (status === Strophe.Status.ATTACHED) {
+    if (status === core.Status.ATTACHED) {
       this._conn.jid = jid;
       this._conn.authenticated = true;
       this._conn.connected = true;
       this._conn.restored = true;
-      this._conn._changeConnectStatus(Strophe.Status.ATTACHED);
-    } else if (status === Strophe.Status.ATTACHFAIL) {
+      this._conn._changeConnectStatus(core.Status.ATTACHED);
+    } else if (status === core.Status.ATTACHFAIL) {
       this._conn.authenticated = false;
       this._conn.connected = false;
       this._conn.restored = false;
-      this._conn._changeConnectStatus(Strophe.Status.ATTACHFAIL);
+      this._conn._changeConnectStatus(core.Status.ATTACHFAIL);
     }
   }
-  _disconnect(readyState, pres) {
+
+  /**
+   * @param {Element|Builder} pres - This stanza will be sent before disconnecting.
+   */
+  _disconnect(pres) {
     pres && this._conn.send(pres);
     const close = $build('close', {
-      'xmlns': Strophe.NS.FRAMING
+      'xmlns': core.NS.FRAMING
     });
     this._conn.xmlOutput(close.tree());
-    const closeString = Strophe.serialize(close);
+    const closeString = core.serialize(close);
     this._conn.rawOutput(closeString);
     this.worker.port.postMessage(['send', closeString]);
     this._conn._doDisconnect();
   }
-  _onClose(e) {
-    if (this._conn.connected && !this._conn.disconnecting) {
-      Strophe.error('Websocket closed unexpectedly');
-      this._conn._doDisconnect();
-    } else if (e && e.code === 1006 && !this._conn.connected) {
-      // in case the onError callback was not called (Safari 10 does not
-      // call onerror when the initial connection fails) we need to
-      // dispatch a CONNFAIL status update to be consistent with the
-      // behavior on other browsers.
-      Strophe.error('Websocket closed unexcectedly');
-      this._conn._changeConnectStatus(Strophe.Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
-      this._conn._doDisconnect();
-    } else {
-      Strophe.debug('Websocket closed');
-    }
-  }
   _closeSocket() {
-    this.worker.port.postMessage(['_closeSocket']);
+    this.socket.close();
   }
 
-  /** PrivateFunction: _replaceMessageHandler
-   *
+  /**
    * Called by _onInitialMessage in order to replace itself with the general message handler.
-   * This method is overridden by Strophe.WorkerWebsocket, which manages a
+   * This method is overridden by WorkerWebsocket, which manages a
    * websocket connection via a service worker and doesn't have direct access
    * to the socket.
    */
   _replaceMessageHandler() {
+    /** @param {MessageEvent} m */
     this._messageHandler = m => this._onMessage(m);
   }
 
-  /** PrivateFunction: _onWorkerMessage
-   * _Private_ function that handles messages received from the service worker
+  /**
+   * function that handles messages received from the service worker
+   * @private
+   * @param {MessageEvent} ev
    */
   _onWorkerMessage(ev) {
+    /** @type {Object.<string, number>} */
+    const lmap = {};
+    lmap['debug'] = core.LogLevel.DEBUG;
+    lmap['info'] = core.LogLevel.INFO;
+    lmap['warn'] = core.LogLevel.WARN;
+    lmap['error'] = core.LogLevel.ERROR;
+    lmap['fatal'] = core.LogLevel.FATAL;
     const {
       data
     } = ev;
@@ -28448,38 +28256,323 @@ Strophe.WorkerWebsocket = class WorkerWebsocket extends Strophe.Websocket {
       this._messageHandler(data[1]);
     } else if (method_name in this) {
       try {
-        this[method_name].apply(this, ev.data.slice(1));
+        this[/** @type {'_attachCallback'|'_onOpen'|'_onClose'|'_onError'} */
+        method_name].apply(this, ev.data.slice(1));
       } catch (e) {
-        Strophe.log(Strophe.LogLevel.ERROR, e);
+        core.log(core.LogLevel.ERROR, e);
       }
     } else if (method_name === 'log') {
       const level = data[1];
       const msg = data[2];
-      Strophe.log(lmap[level], msg);
+      core.log(lmap[level], msg);
     } else {
-      Strophe.log(Strophe.LogLevel.ERROR, `Found unhandled service worker message: ${data}`);
+      core.log(core.LogLevel.ERROR, `Found unhandled service worker message: ${data}`);
     }
   }
+}
+/* harmony default export */ const worker_websocket = (WorkerWebsocket);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/core.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * A container for all Strophe library functions.
+ *
+ * This object is a container for all the objects and constants
+ * used in the library.  It is not meant to be instantiated, but to
+ * provide a namespace for library objects, constants, and functions.
+ *
+ * @namespace Strophe
+ * @property {Handler} Handler
+ * @property {Builder} Builder
+ * @property {Request} Request Represents HTTP Requests made for a BOSH connection
+ * @property {Bosh} Bosh Support for XMPP-over-HTTP via XEP-0124 (BOSH)
+ * @property {Websocket} Websocket Support for XMPP over websocket
+ * @property {WorkerWebsocket} WorkerWebsocket Support for XMPP over websocket in a shared worker
+ * @property {number} TIMEOUT=1.1 Timeout multiplier. A waiting BOSH HTTP request
+ *  will be considered failed after Math.floor(TIMEOUT * wait) seconds have elapsed.
+ *  This defaults to 1.1, and with default wait, 66 seconds.
+ * @property {number} SECONDARY_TIMEOUT=0.1 Secondary timeout multiplier.
+ *  In cases where Strophe can detect early failure, it will consider the request
+ *  failed if it doesn't return after `Math.floor(SECONDARY_TIMEOUT * wait)`
+ *  seconds have elapsed. This defaults to 0.1, and with default wait, 6 seconds.
+ * @property {SASLAnonymous} SASLAnonymous SASL ANONYMOUS authentication.
+ * @property {SASLPlain} SASLPlain SASL PLAIN authentication
+ * @property {SASLSHA1} SASLSHA1 SASL SCRAM-SHA-1 authentication
+ * @property {SASLSHA256} SASLSHA256 SASL SCRAM-SHA-256 authentication
+ * @property {SASLSHA384} SASLSHA384 SASL SCRAM-SHA-384 authentication
+ * @property {SASLSHA512} SASLSHA512 SASL SCRAM-SHA-512 authentication
+ * @property {SASLOAuthBearer} SASLOAuthBearer SASL OAuth Bearer authentication
+ * @property {SASLExternal} SASLExternal SASL EXTERNAL authentication
+ * @property {SASLXOAuth2} SASLXOAuth2 SASL X-OAuth2 authentication
+ * @property {Status} Status
+ * @property {Object.<string, string>} NS
+ * @property {XHTML} XHTML
+ */
+const core_Strophe = {
+  /** @constant: VERSION */
+  VERSION: '1.6.1',
+  TIMEOUT: 1.1,
+  SECONDARY_TIMEOUT: 0.1,
+  shims: strophe_shims_namespaceObject,
+  Request: request,
+  // Transports
+  Bosh: bosh,
+  Websocket: websocket,
+  WorkerWebsocket: worker_websocket,
+  // Available authentication mechanisms
+  SASLAnonymous: sasl_anon,
+  SASLPlain: sasl_plain,
+  SASLSHA1: sasl_sha1,
+  SASLSHA256: sasl_sha256,
+  SASLSHA384: sasl_sha384,
+  SASLSHA512: sasl_sha512,
+  SASLOAuthBearer: sasl_oauthbearer,
+  SASLExternal: sasl_external,
+  SASLXOAuth2: sasl_xoauth2,
+  Builder: builder,
+  Connection: connection,
+  ElementType: ElementType,
+  ErrorCondition: ErrorCondition,
+  Handler: src_handler,
+  LogLevel: LogLevel,
+  /** @type {Object.<string, string>} */
+  NS: NS,
+  SASLMechanism: sasl,
+  /** @type {Status} */
+  Status: Status,
+  TimedHandler: timed_handler,
+  ...utils_namespaceObject,
+  XHTML: {
+    ...XHTML,
+    validTag: validTag,
+    validCSS: validCSS,
+    validAttribute: validAttribute
+  },
+  /**
+   * This function is used to extend the current namespaces in
+   * Strophe.NS. It takes a key and a value with the key being the
+   * name of the new namespace, with its actual value.
+   * @example: Strophe.addNamespace('PUBSUB', "http://jabber.org/protocol/pubsub");
+   *
+   * @param {string} name - The name under which the namespace will be
+   *     referenced under Strophe.NS
+   * @param {string} value - The actual namespace.
+   */
+  addNamespace(name, value) {
+    core_Strophe.NS[name] = value;
+  },
+  /**
+   * _Private_ function that properly logs an error to the console
+   * @private
+   * @param {Error} e
+   */
+  _handleError(e) {
+    if (typeof e.stack !== 'undefined') {
+      core_Strophe.fatal(e.stack);
+    }
+    core_Strophe.fatal('error: ' + e.message);
+  },
+  /**
+   * User overrideable logging function.
+   *
+   * This function is called whenever the Strophe library calls any
+   * of the logging functions.  The default implementation of this
+   * function logs only fatal errors.  If client code wishes to handle the logging
+   * messages, it should override this with
+   * > Strophe.log = function (level, msg) {
+   * >   (user code here)
+   * > };
+   *
+   * Please note that data sent and received over the wire is logged
+   * via {@link Strophe.Connection#rawInput|Strophe.Connection.rawInput()}
+   * and {@link Strophe.Connection#rawOutput|Strophe.Connection.rawOutput()}.
+   *
+   * The different levels and their meanings are
+   *
+   *   DEBUG - Messages useful for debugging purposes.
+   *   INFO - Informational messages.  This is mostly information like
+   *     'disconnect was called' or 'SASL auth succeeded'.
+   *   WARN - Warnings about potential problems.  This is mostly used
+   *     to report transient connection errors like request timeouts.
+   *   ERROR - Some error occurred.
+   *   FATAL - A non-recoverable fatal error occurred.
+   *
+   * @param {number} level - The log level of the log message.
+   *     This will be one of the values in Strophe.LogLevel.
+   * @param {string} msg - The log message.
+   */
+  log(level, msg) {
+    if (level === this.LogLevel.FATAL) {
+      console?.error(msg);
+    }
+  },
+  /**
+   * Log a message at the Strophe.LogLevel.DEBUG level.
+   * @param {string} msg - The log message.
+   */
+  debug(msg) {
+    this.log(this.LogLevel.DEBUG, msg);
+  },
+  /**
+   * Log a message at the Strophe.LogLevel.INFO level.
+   * @param {string} msg - The log message.
+   */
+  info(msg) {
+    this.log(this.LogLevel.INFO, msg);
+  },
+  /**
+   * Log a message at the Strophe.LogLevel.WARN level.
+   * @param {string} msg - The log message.
+   */
+  warn(msg) {
+    this.log(this.LogLevel.WARN, msg);
+  },
+  /**
+   * Log a message at the Strophe.LogLevel.ERROR level.
+   * @param {string} msg - The log message.
+   */
+  error(msg) {
+    this.log(this.LogLevel.ERROR, msg);
+  },
+  /**
+   * Log a message at the Strophe.LogLevel.FATAL level.
+   * @param {string} msg - The log message.
+   */
+  fatal(msg) {
+    this.log(this.LogLevel.FATAL, msg);
+  },
+  /**
+   * _Private_ variable that keeps track of the request ids for connections.
+   * @private
+   */
+  _requestId: 0,
+  /**
+   * _Private_ variable Used to store plugin names that need
+   * initialization on Strophe.Connection construction.
+   * @private
+   * @type {Object.<string, Object>}
+   */
+  _connectionPlugins: {},
+  /**
+   * Extends the Strophe.Connection object with the given plugin.
+   * @param {string} name - The name of the extension.
+   * @param {Object} ptype - The plugin's prototype.
+   */
+  addConnectionPlugin(name, ptype) {
+    core_Strophe._connectionPlugins[name] = ptype;
+  }
 };
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/strophe.js
-/*global global*/
+/* harmony default export */ const core = (core_Strophe);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/stanza.js
+
+const PARSE_ERROR_NS = 'http://www.w3.org/1999/xhtml';
+
+/**
+ * @param { string } string
+ * @param { boolean } [throwErrorIfInvalidNS]
+ * @return { Element }
+ */
+function toStanza(string, throwErrorIfInvalidNS) {
+  const doc = Strophe.xmlHtmlNode(string);
+  if (doc.getElementsByTagNameNS(PARSE_ERROR_NS, 'parsererror').length) {
+    throw new Error(`Parser Error: ${string}`);
+  }
+  const node = doc.firstElementChild;
+  if (['message', 'iq', 'presence'].includes(node.nodeName.toLowerCase()) && node.namespaceURI !== 'jabber:client' && node.namespaceURI !== 'jabber:server') {
+    const err_msg = `Invalid namespaceURI ${node.namespaceURI}`;
+    if (throwErrorIfInvalidNS) {
+      throw new Error(err_msg);
+    } else {
+      Strophe.log(Strophe.LogLevel.ERROR, err_msg);
+    }
+  }
+  return node;
+}
+
+/**
+ * A Stanza represents a XML element used in XMPP (commonly referred to as
+ * stanzas).
+ */
+class Stanza {
+  /**
+   * @param { string[] } strings
+   * @param { any[] } values
+   */
+  constructor(strings, values) {
+    this.strings = strings;
+    this.values = values;
+  }
+
+  /**
+   * @return { string }
+   */
+  toString() {
+    this.string = this.string || this.strings.reduce((acc, str) => {
+      const idx = this.strings.indexOf(str);
+      const value = this.values.length > idx ? this.values[idx].toString() : '';
+      return acc + str + value;
+    }, '');
+    return this.string;
+  }
+
+  /**
+   * @return { Element }
+   */
+  tree() {
+    this.node = this.node ?? toStanza(this.toString(), true);
+    return this.node;
+  }
+}
+
+/**
+ * Tagged template literal function which generates {@link Stanza } objects
+ * @example stx`<presence type="${type}" xmlns="jabber:client"><show>${show}</show></presence>`
+ *
+ * @param { string[] } strings
+ * @param { ...any } values
+ */
+function stx(strings) {
+  for (var _len = arguments.length, values = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    values[_key - 1] = arguments[_key];
+  }
+  return new Stanza(strings, values);
+}
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/index.js
+/*global globalThis*/
 
 
 
 
-
-
-__webpack_require__.g.$build = core.$build;
-__webpack_require__.g.$iq = core.$iq;
-__webpack_require__.g.$msg = core.$msg;
-__webpack_require__.g.$pres = core.$pres;
-__webpack_require__.g.Strophe = core.Strophe;
-__webpack_require__.g.Strophe.shims = strophe_shims_namespaceObject;
+globalThis.$build = $build;
+globalThis.$iq = $iq;
+globalThis.$msg = $msg;
+globalThis.$pres = $pres;
+globalThis.Strophe = core;
 
 ;// CONCATENATED MODULE: ./src/headless/shared/constants.js
 
 const BOSH_WAIT = 59;
-const VERSION_NAME = "v10.1.6";
+const VERSION_NAME = "v10.1.7";
 const STATUS_WEIGHTS = {
   offline: 6,
   unavailable: 5,
@@ -28518,54 +28611,54 @@ const CHATROOMS_TYPE = 'chatroom';
 const HEADLINES_TYPE = 'headline';
 const CONTROLBOX_TYPE = 'controlbox';
 const CONNECTION_STATUS = {};
-CONNECTION_STATUS[Strophe.Status.ATTACHED] = 'ATTACHED';
-CONNECTION_STATUS[Strophe.Status.AUTHENTICATING] = 'AUTHENTICATING';
-CONNECTION_STATUS[Strophe.Status.AUTHFAIL] = 'AUTHFAIL';
-CONNECTION_STATUS[Strophe.Status.CONNECTED] = 'CONNECTED';
-CONNECTION_STATUS[Strophe.Status.CONNECTING] = 'CONNECTING';
-CONNECTION_STATUS[Strophe.Status.CONNFAIL] = 'CONNFAIL';
-CONNECTION_STATUS[Strophe.Status.DISCONNECTED] = 'DISCONNECTED';
-CONNECTION_STATUS[Strophe.Status.DISCONNECTING] = 'DISCONNECTING';
-CONNECTION_STATUS[Strophe.Status.ERROR] = 'ERROR';
-CONNECTION_STATUS[Strophe.Status.RECONNECTING] = 'RECONNECTING';
-CONNECTION_STATUS[Strophe.Status.REDIRECT] = 'REDIRECT';
+CONNECTION_STATUS[core.Status.ATTACHED] = 'ATTACHED';
+CONNECTION_STATUS[core.Status.AUTHENTICATING] = 'AUTHENTICATING';
+CONNECTION_STATUS[core.Status.AUTHFAIL] = 'AUTHFAIL';
+CONNECTION_STATUS[core.Status.CONNECTED] = 'CONNECTED';
+CONNECTION_STATUS[core.Status.CONNECTING] = 'CONNECTING';
+CONNECTION_STATUS[core.Status.CONNFAIL] = 'CONNFAIL';
+CONNECTION_STATUS[core.Status.DISCONNECTED] = 'DISCONNECTED';
+CONNECTION_STATUS[core.Status.DISCONNECTING] = 'DISCONNECTING';
+CONNECTION_STATUS[core.Status.ERROR] = 'ERROR';
+CONNECTION_STATUS[core.Status.RECONNECTING] = 'RECONNECTING';
+CONNECTION_STATUS[core.Status.REDIRECT] = 'REDIRECT';
 
 // Add Strophe Namespaces
-Strophe.addNamespace('ACTIVITY', 'http://jabber.org/protocol/activity');
-Strophe.addNamespace('CARBONS', 'urn:xmpp:carbons:2');
-Strophe.addNamespace('CHATSTATES', 'http://jabber.org/protocol/chatstates');
-Strophe.addNamespace('CSI', 'urn:xmpp:csi:0');
-Strophe.addNamespace('DELAY', 'urn:xmpp:delay');
-Strophe.addNamespace('EME', 'urn:xmpp:eme:0');
-Strophe.addNamespace('FASTEN', 'urn:xmpp:fasten:0');
-Strophe.addNamespace('FORWARD', 'urn:xmpp:forward:0');
-Strophe.addNamespace('HINTS', 'urn:xmpp:hints');
-Strophe.addNamespace('HTTPUPLOAD', 'urn:xmpp:http:upload:0');
-Strophe.addNamespace('MAM', 'urn:xmpp:mam:2');
-Strophe.addNamespace('MARKERS', 'urn:xmpp:chat-markers:0');
-Strophe.addNamespace('MENTIONS', 'urn:xmpp:mmn:0');
-Strophe.addNamespace('MESSAGE_CORRECT', 'urn:xmpp:message-correct:0');
-Strophe.addNamespace('MODERATE', 'urn:xmpp:message-moderate:0');
-Strophe.addNamespace('NICK', 'http://jabber.org/protocol/nick');
-Strophe.addNamespace('OCCUPANTID', 'urn:xmpp:occupant-id:0');
-Strophe.addNamespace('OMEMO', 'eu.siacs.conversations.axolotl');
-Strophe.addNamespace('OUTOFBAND', 'jabber:x:oob');
-Strophe.addNamespace('PUBSUB', 'http://jabber.org/protocol/pubsub');
-Strophe.addNamespace('RAI', 'urn:xmpp:rai:0');
-Strophe.addNamespace('RECEIPTS', 'urn:xmpp:receipts');
-Strophe.addNamespace('REFERENCE', 'urn:xmpp:reference:0');
-Strophe.addNamespace('REGISTER', 'jabber:iq:register');
-Strophe.addNamespace('RETRACT', 'urn:xmpp:message-retract:0');
-Strophe.addNamespace('ROSTERX', 'http://jabber.org/protocol/rosterx');
-Strophe.addNamespace('RSM', 'http://jabber.org/protocol/rsm');
-Strophe.addNamespace('SID', 'urn:xmpp:sid:0');
-Strophe.addNamespace('SPOILER', 'urn:xmpp:spoiler:0');
-Strophe.addNamespace('STANZAS', 'urn:ietf:params:xml:ns:xmpp-stanzas');
-Strophe.addNamespace('STYLING', 'urn:xmpp:styling:0');
-Strophe.addNamespace('VCARD', 'vcard-temp');
-Strophe.addNamespace('VCARDUPDATE', 'vcard-temp:x:update');
-Strophe.addNamespace('XFORM', 'jabber:x:data');
-Strophe.addNamespace('XHTML', 'http://www.w3.org/1999/xhtml');
+core.addNamespace('ACTIVITY', 'http://jabber.org/protocol/activity');
+core.addNamespace('CARBONS', 'urn:xmpp:carbons:2');
+core.addNamespace('CHATSTATES', 'http://jabber.org/protocol/chatstates');
+core.addNamespace('CSI', 'urn:xmpp:csi:0');
+core.addNamespace('DELAY', 'urn:xmpp:delay');
+core.addNamespace('EME', 'urn:xmpp:eme:0');
+core.addNamespace('FASTEN', 'urn:xmpp:fasten:0');
+core.addNamespace('FORWARD', 'urn:xmpp:forward:0');
+core.addNamespace('HINTS', 'urn:xmpp:hints');
+core.addNamespace('HTTPUPLOAD', 'urn:xmpp:http:upload:0');
+core.addNamespace('MAM', 'urn:xmpp:mam:2');
+core.addNamespace('MARKERS', 'urn:xmpp:chat-markers:0');
+core.addNamespace('MENTIONS', 'urn:xmpp:mmn:0');
+core.addNamespace('MESSAGE_CORRECT', 'urn:xmpp:message-correct:0');
+core.addNamespace('MODERATE', 'urn:xmpp:message-moderate:0');
+core.addNamespace('NICK', 'http://jabber.org/protocol/nick');
+core.addNamespace('OCCUPANTID', 'urn:xmpp:occupant-id:0');
+core.addNamespace('OMEMO', 'eu.siacs.conversations.axolotl');
+core.addNamespace('OUTOFBAND', 'jabber:x:oob');
+core.addNamespace('PUBSUB', 'http://jabber.org/protocol/pubsub');
+core.addNamespace('RAI', 'urn:xmpp:rai:0');
+core.addNamespace('RECEIPTS', 'urn:xmpp:receipts');
+core.addNamespace('REFERENCE', 'urn:xmpp:reference:0');
+core.addNamespace('REGISTER', 'jabber:iq:register');
+core.addNamespace('RETRACT', 'urn:xmpp:message-retract:0');
+core.addNamespace('ROSTERX', 'http://jabber.org/protocol/rosterx');
+core.addNamespace('RSM', 'http://jabber.org/protocol/rsm');
+core.addNamespace('SID', 'urn:xmpp:sid:0');
+core.addNamespace('SPOILER', 'urn:xmpp:spoiler:0');
+core.addNamespace('STANZAS', 'urn:ietf:params:xml:ns:xmpp-stanzas');
+core.addNamespace('STYLING', 'urn:xmpp:styling:0');
+core.addNamespace('VCARD', 'vcard-temp');
+core.addNamespace('VCARDUPDATE', 'vcard-temp:x:update');
+core.addNamespace('XFORM', 'jabber:x:data');
+core.addNamespace('XHTML', 'http://www.w3.org/1999/xhtml');
 
 // Core plugins are whitelisted automatically
 // These are just the @converse/headless plugins, for the full converse,
@@ -28592,7 +28685,7 @@ const KEYCODES = {
   META_RIGHT: 93
 };
 // EXTERNAL MODULE: ./node_modules/sprintf-js/src/sprintf.js
-var sprintf = __webpack_require__(6293);
+var sprintf = __webpack_require__(1149);
 ;// CONCATENATED MODULE: ./src/headless/shared/i18n.js
 
 
@@ -28620,7 +28713,7 @@ var sprintf = __webpack_require__(6293);
   }
 });
 // EXTERNAL MODULE: ./node_modules/dompurify/dist/purify.js
-var purify = __webpack_require__(1199);
+var purify = __webpack_require__(929);
 var purify_default = /*#__PURE__*/__webpack_require__.n(purify);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/compact.js
 /**
@@ -28653,7 +28746,7 @@ function compact(array) {
 }
 /* harmony default export */ const lodash_es_compact = (compact);
 // EXTERNAL MODULE: ./node_modules/sizzle/dist/sizzle.js
-var sizzle = __webpack_require__(3568);
+var sizzle = __webpack_require__(7620);
 var sizzle_default = /*#__PURE__*/__webpack_require__.n(sizzle);
 ;// CONCATENATED MODULE: ./node_modules/@converse/openpromise/openpromise.js
 function getOpenPromise() {
@@ -28753,7 +28846,7 @@ const DEFAULT_SETTINGS = {
   whitelisted_plugins: []
 };
 // EXTERNAL MODULE: ./node_modules/localforage-driver-memory/_bundle/umd.js
-var umd = __webpack_require__(8747);
+var umd = __webpack_require__(9149);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/cloneDeep.js
 
 
@@ -28902,7 +28995,7 @@ function createBlob(parts, properties) {
 if (typeof Promise === 'undefined') {
   // In the "nopromises" build this will just throw if you don't have
   // a global promise object, but it would throw anyway later.
-  __webpack_require__(3449);
+  __webpack_require__(8250);
 }
 /* harmony default export */ const utils_promise = (Promise);
 ;// CONCATENATED MODULE: ./node_modules/localforage/src/utils/executeCallback.js
@@ -31841,9 +31934,9 @@ const sessionStorageWrapper = {
 };
 /* harmony default export */ const drivers_sessionStorage = (sessionStorageWrapper);
 // EXTERNAL MODULE: ./node_modules/localforage-setitems/dist/localforage-setitems.js
-var localforage_setitems = __webpack_require__(6883);
+var localforage_setitems = __webpack_require__(6550);
 // EXTERNAL MODULE: ./node_modules/@converse/localforage-getitems/dist/localforage-getitems.js
-var localforage_getitems = __webpack_require__(8487);
+var localforage_getitems = __webpack_require__(1588);
 ;// CONCATENATED MODULE: ./node_modules/@converse/skeletor/src/storage.js
 /**
  * IndexedDB, localStorage and sessionStorage adapter
@@ -32392,10 +32485,10 @@ const user_settings_api = {
 ;// CONCATENATED MODULE: ./src/headless/utils/stanza.js
 
 
-const PARSE_ERROR_NS = 'http://www.w3.org/1999/xhtml';
-function toStanza(string, throwErrorIfInvalidNS) {
-  const doc = Strophe.xmlHtmlNode(string);
-  if (doc.getElementsByTagNameNS(PARSE_ERROR_NS, 'parsererror').length) {
+const stanza_PARSE_ERROR_NS = 'http://www.w3.org/1999/xhtml';
+function stanza_toStanza(string, throwErrorIfInvalidNS) {
+  const doc = core.xmlHtmlNode(string);
+  if (doc.getElementsByTagNameNS(stanza_PARSE_ERROR_NS, 'parsererror').length) {
     throw new Error(`Parser Error: ${string}`);
   }
   const node = doc.firstElementChild;
@@ -32411,7 +32504,7 @@ function toStanza(string, throwErrorIfInvalidNS) {
  * A Stanza represents a XML element used in XMPP (commonly referred to as
  * stanzas).
  */
-class Stanza {
+class stanza_Stanza {
   constructor(strings, values) {
     this.strings = strings;
     this.values = values;
@@ -32425,7 +32518,7 @@ class Stanza {
     return this.string;
   }
   tree() {
-    this.node = this.node ?? toStanza(this.toString(), true);
+    this.node = this.node ?? stanza_toStanza(this.toString(), true);
     return this.node;
   }
 }
@@ -32437,11 +32530,11 @@ class Stanza {
  *
  * @example stx`<presence type="${type}"><show>${show}</show></presence>`
  */
-function stx(strings) {
+function stanza_stx(strings) {
   for (var _len = arguments.length, values = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
     values[_key - 1] = arguments[_key];
   }
-  return new Stanza(strings, values);
+  return new stanza_Stanza(strings, values);
 }
 ;// CONCATENATED MODULE: ./src/headless/utils/core.js
 /**
@@ -32546,7 +32639,7 @@ u.isTagEqual = function (stanza, name) {
   } else if (!(stanza instanceof Element)) {
     throw Error("isTagEqual called with value which isn't " + "an element or Strophe.Builder instance");
   } else {
-    return Strophe.isTagEqual(stanza, name);
+    return core.isTagEqual(stanza, name);
   }
 };
 u.getJIDFromURI = function (jid) {
@@ -32579,20 +32672,20 @@ u.isSameBareJID = function (jid1, jid2) {
   if (typeof jid1 !== 'string' || typeof jid2 !== 'string') {
     return false;
   }
-  return Strophe.getBareJidFromJid(jid1).toLowerCase() === Strophe.getBareJidFromJid(jid2).toLowerCase();
+  return core.getBareJidFromJid(jid1).toLowerCase() === core.getBareJidFromJid(jid2).toLowerCase();
 };
 u.isSameDomain = function (jid1, jid2) {
   if (typeof jid1 !== 'string' || typeof jid2 !== 'string') {
     return false;
   }
-  return Strophe.getDomainFromJid(jid1).toLowerCase() === Strophe.getDomainFromJid(jid2).toLowerCase();
+  return core.getDomainFromJid(jid1).toLowerCase() === core.getDomainFromJid(jid2).toLowerCase();
 };
 u.isNewMessage = function (message) {
   /* Given a stanza, determine whether it's a new
    * message, i.e. not a MAM archived one.
    */
   if (message instanceof Element) {
-    return !(sizzle_default()(`result[xmlns="${Strophe.NS.MAM}"]`, message).length && sizzle_default()(`delay[xmlns="${Strophe.NS.DELAY}"]`, message).length);
+    return !(sizzle_default()(`result[xmlns="${core.NS.MAM}"]`, message).length && sizzle_default()(`delay[xmlns="${core.NS.DELAY}"]`, message).length);
   } else if (message instanceof Model) {
     message = message.attributes;
   }
@@ -32622,13 +32715,13 @@ u.isForbiddenError = function (stanza) {
   if (!isElement(stanza)) {
     return false;
   }
-  return sizzle_default()(`error[type="auth"] forbidden[xmlns="${Strophe.NS.STANZAS}"]`, stanza).length > 0;
+  return sizzle_default()(`error[type="auth"] forbidden[xmlns="${core.NS.STANZAS}"]`, stanza).length > 0;
 };
 u.isServiceUnavailableError = function (stanza) {
   if (!isElement(stanza)) {
     return false;
   }
-  return sizzle_default()(`error[type="cancel"] service-unavailable[xmlns="${Strophe.NS.STANZAS}"]`, stanza).length > 0;
+  return sizzle_default()(`error[type="cancel"] service-unavailable[xmlns="${core.NS.STANZAS}"]`, stanza).length > 0;
 };
 
 /**
@@ -33015,8 +33108,8 @@ function saveWindowState(ev) {
   merge: core_merge,
   prefixMentions,
   saveWindowState,
-  stx: stx,
-  toStanza: toStanza
+  stx: stanza_stx,
+  toStanza: stanza_toStanza
 }, u));
 ;// CONCATENATED MODULE: ./src/headless/log.js
 
@@ -34019,7 +34112,7 @@ Object.assign(_converse, Events);
 pluggable.enable(_converse, '_converse', 'pluggable');
 /* harmony default export */ const shared_converse = (_converse);
 // EXTERNAL MODULE: ./node_modules/dayjs/plugin/advancedFormat.js
-var advancedFormat = __webpack_require__(2455);
+var advancedFormat = __webpack_require__(9437);
 var advancedFormat_default = /*#__PURE__*/__webpack_require__.n(advancedFormat);
 ;// CONCATENATED MODULE: ./src/headless/shared/connection/api.js
 
@@ -34073,7 +34166,7 @@ var advancedFormat_default = /*#__PURE__*/__webpack_require__.n(advancedFormat);
       __,
       connection
     } = shared_converse;
-    connection.setConnectionStatus(Strophe.Status.RECONNECTING, __('The connection has dropped, attempting to reconnect.'));
+    connection.setConnectionStatus(core.Status.RECONNECTING, __('The connection has dropped, attempting to reconnect.'));
     if (connection?.reconnecting) {
       return connection.debouncedReconnect();
     } else {
@@ -34318,11 +34411,11 @@ class TimeoutError extends Error {}
     } = shared_converse;
     if (!api.connection.connected()) {
       log.warn("Not sending stanza because we're not connected!");
-      log.warn(Strophe.serialize(stanza));
+      log.warn(core.serialize(stanza));
       return;
     }
     if (typeof stanza === 'string') {
-      stanza = toStanza(stanza);
+      stanza = stanza_toStanza(stanza);
     } else if (stanza?.tree) {
       stanza = stanza.tree();
     }
@@ -34360,7 +34453,7 @@ class TimeoutError extends Error {}
         promise = new Promise((resolve, reject) => connection.sendIQ(stanza, resolve, reject, timeout));
         promise.catch(e => {
           if (e === null) {
-            throw new TimeoutError(`Timeout error after ${timeout}ms for the following IQ stanza: ${Strophe.serialize(stanza)}`);
+            throw new TimeoutError(`Timeout error after ${timeout}ms for the following IQ stanza: ${core.serialize(stanza)}`);
           }
         });
       } else {
@@ -34582,9 +34675,9 @@ function debounce(func, wait, options) {
 }
 /* harmony default export */ const lodash_es_debounce = (debounce);
 // EXTERNAL MODULE: ./node_modules/localforage-webextensionstorage-driver/local.js
-var local = __webpack_require__(5914);
+var local = __webpack_require__(3484);
 // EXTERNAL MODULE: ./node_modules/localforage-webextensionstorage-driver/sync.js
-var localforage_webextensionstorage_driver_sync = __webpack_require__(5848);
+var localforage_webextensionstorage_driver_sync = __webpack_require__(8146);
 ;// CONCATENATED MODULE: ./src/headless/shared/connection/index.js
 
 
@@ -34596,15 +34689,15 @@ var localforage_webextensionstorage_driver_sync = __webpack_require__(5848);
 
 
 
-const i = Object.keys(Strophe.Status).reduce((max, k) => Math.max(max, Strophe.Status[k]), 0);
-Strophe.Status.RECONNECTING = i + 1;
+const i = Object.keys(core.Status).reduce((max, k) => Math.max(max, core.Status[k]), 0);
+core.Status.RECONNECTING = i + 1;
 
 /**
  * The Connection class manages the connection to the XMPP server. It's
  * agnostic concerning the underlying protocol (i.e. websocket, long-polling
  * via BOSH or websocket inside a shared worker).
  */
-class connection_Connection extends Strophe.Connection {
+class connection_Connection extends core.Connection {
   constructor(service, options) {
     super(service, options);
     this.debouncedReconnect = lodash_es_debounce(this.reconnect, 3000);
@@ -34685,7 +34778,7 @@ class connection_Connection extends Strophe.Connection {
    */
   async connect(jid, password, callback) {
     if (shared_api.settings.get("discover_connection_methods")) {
-      const domain = Strophe.getDomainFromJid(jid);
+      const domain = core.getDomainFromJid(jid);
       await this.discoverConnectionMethods(domain);
     }
     if (!shared_api.settings.get('bosh_service_url') && !shared_api.settings.get("websocket_url")) {
@@ -34708,7 +34801,7 @@ class connection_Connection extends Strophe.Connection {
     if (shared_api.connection.isType('websocket') && shared_api.settings.get('bosh_service_url')) {
       await setUserJID(shared_converse.bare_jid);
       this._proto._doDisconnect();
-      this._proto = new Strophe.Bosh(this);
+      this._proto = new core.Bosh(this);
       this.service = shared_api.settings.get('bosh_service_url');
     } else if (shared_api.connection.isType('bosh') && shared_api.settings.get("websocket_url")) {
       if (shared_api.settings.get("authentication") === ANONYMOUS) {
@@ -34720,7 +34813,7 @@ class connection_Connection extends Strophe.Connection {
         await setUserJID(shared_converse.bare_jid);
       }
       this._proto._doDisconnect();
-      this._proto = new Strophe.Websocket(this);
+      this._proto = new core.Websocket(this);
       this.service = shared_api.settings.get("websocket_url");
     }
   }
@@ -34729,9 +34822,9 @@ class connection_Connection extends Strophe.Connection {
     this.reconnecting = true;
     await tearDown();
     const conn_status = shared_converse.connfeedback.get('connection_status');
-    if (conn_status === Strophe.Status.CONNFAIL) {
+    if (conn_status === core.Status.CONNFAIL) {
       this.switchTransport();
-    } else if (conn_status === Strophe.Status.AUTHFAIL && shared_api.settings.get("authentication") === ANONYMOUS) {
+    } else if (conn_status === core.Status.AUTHFAIL && shared_api.settings.get("authentication") === ANONYMOUS) {
       // When reconnecting anonymously, we need to connect with only
       // the domain, not the full JID that we had in our previous
       // (now failed) session.
@@ -34846,7 +34939,7 @@ class connection_Connection extends Strophe.Connection {
   onDisconnected() {
     if (shared_api.settings.get("auto_reconnect")) {
       const reason = this.disconnection_reason;
-      if (this.disconnection_cause === Strophe.Status.AUTHFAIL) {
+      if (this.disconnection_cause === core.Status.AUTHFAIL) {
         if (shared_api.settings.get("credentials_url") || shared_api.settings.get("authentication") === ANONYMOUS) {
           // If `credentials_url` is set, we reconnect, because we might
           // be receiving expirable tokens from the credentials_url.
@@ -34858,16 +34951,16 @@ class connection_Connection extends Strophe.Connection {
         } else {
           return this.finishDisconnection();
         }
-      } else if (this.status === Strophe.Status.CONNECTING) {
+      } else if (this.status === core.Status.CONNECTING) {
         // Don't try to reconnect if we were never connected to begin
         // with, otherwise an infinite loop can occur (e.g. when the
         // BOSH service URL returns a 404).
         const {
           __
         } = shared_converse;
-        this.setConnectionStatus(Strophe.Status.CONNFAIL, __('An error occurred while connecting to the chat server.'));
+        this.setConnectionStatus(core.Status.CONNFAIL, __('An error occurred while connecting to the chat server.'));
         return this.finishDisconnection();
-      } else if (this.disconnection_cause === LOGOUT || reason === Strophe.ErrorCondition.NO_AUTH_MECH || reason === "host-unknown" || reason === "remote-connection-failed") {
+      } else if (this.disconnection_cause === LOGOUT || reason === core.ErrorCondition.NO_AUTH_MECH || reason === "host-unknown" || reason === "remote-connection-failed") {
         return this.finishDisconnection();
       }
       shared_api.connection.reconnect();
@@ -34888,11 +34981,11 @@ class connection_Connection extends Strophe.Connection {
       __
     } = shared_converse;
     log.debug(`Status changed to: ${CONNECTION_STATUS[status]}`);
-    if (status === Strophe.Status.ATTACHFAIL) {
+    if (status === core.Status.ATTACHFAIL) {
       this.setConnectionStatus(status);
       this.worker_attach_promise?.resolve(false);
-    } else if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
-      if (this.worker_attach_promise?.isResolved && this.status === Strophe.Status.ATTACHED) {
+    } else if (status === core.Status.CONNECTED || status === core.Status.ATTACHED) {
+      if (this.worker_attach_promise?.isResolved && this.status === core.Status.ATTACHED) {
         // A different tab must have attached, so nothing to do for us here.
         return;
       }
@@ -34903,10 +34996,10 @@ class connection_Connection extends Strophe.Connection {
       shared_converse.send_initial_presence = true;
       this.setDisconnectionCause();
       if (this.reconnecting) {
-        log.debug(status === Strophe.Status.CONNECTED ? 'Reconnected' : 'Reattached');
+        log.debug(status === core.Status.CONNECTED ? 'Reconnected' : 'Reattached');
         this.onConnected(true);
       } else {
-        log.debug(status === Strophe.Status.CONNECTED ? 'Connected' : 'Attached');
+        log.debug(status === core.Status.CONNECTED ? 'Connected' : 'Attached');
         if (this.restored) {
           // No need to send an initial presence stanza when
           // we're restoring an existing session.
@@ -34914,47 +35007,47 @@ class connection_Connection extends Strophe.Connection {
         }
         this.onConnected();
       }
-    } else if (status === Strophe.Status.DISCONNECTED) {
+    } else if (status === core.Status.DISCONNECTED) {
       this.setDisconnectionCause(status, message);
       this.onDisconnected();
-    } else if (status === Strophe.Status.BINDREQUIRED) {
+    } else if (status === core.Status.BINDREQUIRED) {
       this.bind();
-    } else if (status === Strophe.Status.ERROR) {
+    } else if (status === core.Status.ERROR) {
       this.setConnectionStatus(status, __('An error occurred while connecting to the chat server.'));
-    } else if (status === Strophe.Status.CONNECTING) {
+    } else if (status === core.Status.CONNECTING) {
       this.setConnectionStatus(status);
-    } else if (status === Strophe.Status.AUTHENTICATING) {
+    } else if (status === core.Status.AUTHENTICATING) {
       this.setConnectionStatus(status);
-    } else if (status === Strophe.Status.AUTHFAIL) {
+    } else if (status === core.Status.AUTHFAIL) {
       if (!message) {
         message = __('Your XMPP address and/or password is incorrect. Please try again.');
       }
       this.setConnectionStatus(status, message);
       this.setDisconnectionCause(status, message, true);
       this.onDisconnected();
-    } else if (status === Strophe.Status.CONNFAIL) {
+    } else if (status === core.Status.CONNFAIL) {
       let feedback = message;
       if (message === "host-unknown" || message == "remote-connection-failed") {
-        feedback = __("Sorry, we could not connect to the XMPP host with domain: %1$s", `\"${Strophe.getDomainFromJid(this.jid)}\"`);
-      } else if (message !== undefined && message === Strophe?.ErrorCondition?.NO_AUTH_MECH) {
+        feedback = __("Sorry, we could not connect to the XMPP host with domain: %1$s", `\"${core.getDomainFromJid(this.jid)}\"`);
+      } else if (message !== undefined && message === core?.ErrorCondition?.NO_AUTH_MECH) {
         feedback = __("The XMPP server did not offer a supported authentication mechanism");
       }
       this.setConnectionStatus(status, feedback);
       this.setDisconnectionCause(status, message);
-    } else if (status === Strophe.Status.DISCONNECTING) {
+    } else if (status === core.Status.DISCONNECTING) {
       this.setDisconnectionCause(status, message);
     }
   }
   isType(type) {
     if (type.toLowerCase() === 'websocket') {
-      return this._proto instanceof Strophe.Websocket;
+      return this._proto instanceof core.Websocket;
     } else if (type.toLowerCase() === 'bosh') {
-      return Strophe.Bosh && this._proto instanceof Strophe.Bosh;
+      return core.Bosh && this._proto instanceof core.Bosh;
     }
   }
   hasResumed() {
     if (shared_api.settings.get("connection_options")?.worker || this.isType('bosh')) {
-      return shared_converse.connfeedback.get('connection_status') === Strophe.Status.ATTACHED;
+      return shared_converse.connfeedback.get('connection_status') === core.Status.ATTACHED;
     } else {
       // Not binding means that the session was resumed.
       return !this.do_bind;
@@ -34977,7 +35070,7 @@ class MockConnection extends connection_Connection {
     this.sent_stanzas = [];
     this.IQ_stanzas = [];
     this.IQ_ids = [];
-    this.features = Strophe.xmlHtmlNode('<stream:features xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">' + '<ver xmlns="urn:xmpp:features:rosterver"/>' + '<csi xmlns="urn:xmpp:csi:0"/>' + '<this xmlns="http://jabber.org/protocol/caps" ver="UwBpfJpEt3IoLYfWma/o/p3FFRo=" hash="sha-1" node="http://prosody.im"/>' + '<bind xmlns="urn:ietf:params:xml:ns:xmpp-bind">' + '<required/>' + '</bind>' + `<sm xmlns='urn:xmpp:sm:3'/>` + '<session xmlns="urn:ietf:params:xml:ns:xmpp-session">' + '<optional/>' + '</session>' + '</stream:features>').firstChild;
+    this.features = core.xmlHtmlNode('<stream:features xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">' + '<ver xmlns="urn:xmpp:features:rosterver"/>' + '<csi xmlns="urn:xmpp:csi:0"/>' + '<this xmlns="http://jabber.org/protocol/caps" ver="UwBpfJpEt3IoLYfWma/o/p3FFRo=" hash="sha-1" node="http://prosody.im"/>' + '<bind xmlns="urn:ietf:params:xml:ns:xmpp-bind">' + '<required/>' + '</bind>' + `<sm xmlns='urn:xmpp:sm:3'/>` + '<session xmlns="urn:ietf:params:xml:ns:xmpp-session">' + '<optional/>' + '</session>' + '</stream:features>').firstChild;
     this._proto._processRequest = () => {};
     this._proto._disconnect = () => this._onDisconnectTimeout();
     this._proto._onDisconnectTimeout = () => {};
@@ -34985,7 +35078,7 @@ class MockConnection extends connection_Connection {
       this.connected = true;
       this.mock = true;
       this.jid = 'romeo@montague.lit/orchard';
-      this._changeConnectStatus(Strophe.Status.BINDREQUIRED);
+      this._changeConnectStatus(core.Status.BINDREQUIRED);
     };
   }
   _processRequest() {// eslint-disable-line class-methods-use-this
@@ -35009,7 +35102,7 @@ class MockConnection extends connection_Connection {
     });
     this.authenticated = true;
     if (!shared_converse.no_connection_on_bind) {
-      this._changeConnectStatus(Strophe.Status.CONNECTED);
+      this._changeConnectStatus(core.Status.CONNECTED);
     }
   }
 }
@@ -35028,13 +35121,13 @@ class MockConnection extends connection_Connection {
 
 function setUpXMLLogging() {
   const lmap = {};
-  lmap[Strophe.LogLevel.DEBUG] = 'debug';
-  lmap[Strophe.LogLevel.INFO] = 'info';
-  lmap[Strophe.LogLevel.WARN] = 'warn';
-  lmap[Strophe.LogLevel.ERROR] = 'error';
-  lmap[Strophe.LogLevel.FATAL] = 'fatal';
-  Strophe.log = (level, msg) => log.log(msg, lmap[level]);
-  Strophe.error = msg => log.error(msg);
+  lmap[core.LogLevel.DEBUG] = 'debug';
+  lmap[core.LogLevel.INFO] = 'info';
+  lmap[core.LogLevel.WARN] = 'warn';
+  lmap[core.LogLevel.ERROR] = 'error';
+  lmap[core.LogLevel.FATAL] = 'fatal';
+  core.log = (level, msg) => log.log(msg, lmap[level]);
+  core.error = msg => log.error(msg);
   shared_converse.connection.xmlInput = body => log.debug(body.outerHTML, 'color: darkgoldenrod');
   shared_converse.connection.xmlOutput = body => log.debug(body.outerHTML, 'color: darkcyan');
 }
@@ -35165,13 +35258,13 @@ function initPersistentStorage(_converse, store_name) {
 }
 function saveJIDtoSession(_converse, jid) {
   jid = _converse.session.get('jid') || jid;
-  if (_converse.api.settings.get("authentication") !== ANONYMOUS && !Strophe.getResourceFromJid(jid)) {
+  if (_converse.api.settings.get("authentication") !== ANONYMOUS && !core.getResourceFromJid(jid)) {
     jid = jid.toLowerCase() + connection_Connection.generateResource();
   }
   _converse.jid = jid;
-  _converse.bare_jid = Strophe.getBareJidFromJid(jid);
-  _converse.resource = Strophe.getResourceFromJid(jid);
-  _converse.domain = Strophe.getDomainFromJid(jid);
+  _converse.bare_jid = core.getBareJidFromJid(jid);
+  _converse.resource = core.getResourceFromJid(jid);
+  _converse.domain = core.getDomainFromJid(jid);
   _converse.session.save({
     'jid': jid,
     'bare_jid': _converse.bare_jid,
@@ -35212,7 +35305,7 @@ async function setUserJID(jid) {
 }
 async function initSession(_converse, jid) {
   const is_shared_session = _converse.api.settings.get('connection_options').worker;
-  const bare_jid = Strophe.getBareJidFromJid(jid).toLowerCase();
+  const bare_jid = core.getBareJidFromJid(jid).toLowerCase();
   const id = `converse.session-${bare_jid}`;
   if (_converse.session?.get('id') !== id) {
     initPersistentStorage(_converse, bare_jid);
@@ -35411,7 +35504,7 @@ async function attemptNonPreboundSession(credentials, automatic) {
  *  used login keys.
  */
 async function savedLoginInfo(jid) {
-  const id = `converse.scram-keys-${Strophe.getBareJidFromJid(jid)}`;
+  const id = `converse.scram-keys-${core.getBareJidFromJid(jid)}`;
   const login_info = new Model({
     id
   });
@@ -35448,7 +35541,7 @@ async function connect(credentials) {
       if (api.settings.get("auto_login")) {
         throw new Error("autoLogin: If you use auto_login and " + "authentication='login' then you also need to provide a password.");
       }
-      shared_converse.connection.setDisconnectionCause(Strophe.Status.AUTHFAIL, undefined, true);
+      shared_converse.connection.setDisconnectionCause(core.Status.AUTHFAIL, undefined, true);
       api.connection.disconnect();
       return;
     }
@@ -35626,7 +35719,7 @@ const api_api = shared_converse.api = {
 };
 /* harmony default export */ const shared_api = (api_api);
 // EXTERNAL MODULE: ./node_modules/dayjs/dayjs.min.js
-var dayjs_min = __webpack_require__(7076);
+var dayjs_min = __webpack_require__(2028);
 var dayjs_min_default = /*#__PURE__*/__webpack_require__.n(dayjs_min);
 ;// CONCATENATED MODULE: ./src/headless/shared/connection/feedback.js
 
@@ -35634,7 +35727,7 @@ var dayjs_min_default = /*#__PURE__*/__webpack_require__.n(dayjs_min);
 
 /* harmony default export */ const feedback = (Model.extend({
   defaults: {
-    'connection_status': Strophe.Status.DISCONNECTED,
+    'connection_status': core.Status.DISCONNECTED,
     'message': ''
   },
   initialize() {
@@ -35645,7 +35738,7 @@ var dayjs_min_default = /*#__PURE__*/__webpack_require__.n(dayjs_min);
   }
 }));
 // EXTERNAL MODULE: ./node_modules/urijs/src/URI.js
-var URI = __webpack_require__(9988);
+var URI = __webpack_require__(5168);
 var URI_default = /*#__PURE__*/__webpack_require__.n(URI);
 ;// CONCATENATED MODULE: ./node_modules/lodash-es/_arrayAggregator.js
 /**
@@ -38338,7 +38431,7 @@ const public_converse = Object.assign(window.converse || {}, {
     Collection: Collection,
     Model: Model,
     Promise,
-    Strophe: Strophe,
+    Strophe: core,
     TimeoutError: TimeoutError,
     URI: (URI_default()),
     VERSION_NAME: VERSION_NAME,
@@ -38348,7 +38441,7 @@ const public_converse = Object.assign(window.converse || {}, {
     log: log,
     sizzle: (sizzle_default()),
     sprintf: sprintf.sprintf,
-    stx: stx,
+    stx: stanza_stx,
     u: utils_core
   }
 });
@@ -38579,7 +38672,7 @@ function sendMarker(to_jid, id, type, msg_type) {
     'to': to_jid,
     'type': msg_type ? msg_type : 'chat'
   }).c(type, {
-    'xmlns': Strophe.NS.MARKERS,
+    'xmlns': core.NS.MARKERS,
     'id': id
   });
   shared_api.send(stanza);
@@ -38724,7 +38817,7 @@ Object.assign(url_u, {
 
 const {
   NS: parsers_NS
-} = Strophe;
+} = core;
 class StanzaParseError extends Error {
   constructor(message, stanza) {
     super(message, stanza);
@@ -38743,7 +38836,7 @@ class StanzaParseError extends Error {
 function getStanzaIDs(stanza, original_stanza) {
   const attrs = {};
   // Store generic stanza ids
-  const sids = sizzle_default()(`stanza-id[xmlns="${Strophe.NS.SID}"]`, stanza);
+  const sids = sizzle_default()(`stanza-id[xmlns="${core.NS.SID}"]`, stanza);
   const sid_attrs = sids.reduce((acc, s) => {
     acc[`stanza_id ${s.getAttribute('by')}`] = s.getAttribute('id');
     return acc;
@@ -38751,29 +38844,29 @@ function getStanzaIDs(stanza, original_stanza) {
   Object.assign(attrs, sid_attrs);
 
   // Store the archive id
-  const result = sizzle_default()(`message > result[xmlns="${Strophe.NS.MAM}"]`, original_stanza).pop();
+  const result = sizzle_default()(`message > result[xmlns="${core.NS.MAM}"]`, original_stanza).pop();
   if (result) {
     const by_jid = original_stanza.getAttribute('from') || shared_converse.bare_jid;
     attrs[`stanza_id ${by_jid}`] = result.getAttribute('id');
   }
 
   // Store the origin id
-  const origin_id = sizzle_default()(`origin-id[xmlns="${Strophe.NS.SID}"]`, stanza).pop();
+  const origin_id = sizzle_default()(`origin-id[xmlns="${core.NS.SID}"]`, stanza).pop();
   if (origin_id) {
     attrs['origin_id'] = origin_id.getAttribute('id');
   }
   return attrs;
 }
 function getEncryptionAttributes(stanza) {
-  const eme_tag = sizzle_default()(`encryption[xmlns="${Strophe.NS.EME}"]`, stanza).pop();
+  const eme_tag = sizzle_default()(`encryption[xmlns="${core.NS.EME}"]`, stanza).pop();
   const namespace = eme_tag?.getAttribute('namespace');
   const attrs = {};
   if (namespace) {
     attrs.is_encrypted = true;
     attrs.encryption_namespace = namespace;
-  } else if (sizzle_default()(`encrypted[xmlns="${Strophe.NS.OMEMO}"]`, stanza).pop()) {
+  } else if (sizzle_default()(`encrypted[xmlns="${core.NS.OMEMO}"]`, stanza).pop()) {
     attrs.is_encrypted = true;
-    attrs.encryption_namespace = Strophe.NS.OMEMO;
+    attrs.encryption_namespace = core.NS.OMEMO;
   }
   return attrs;
 }
@@ -38786,12 +38879,12 @@ function getEncryptionAttributes(stanza) {
  * @returns { Object }
  */
 function getRetractionAttributes(stanza, original_stanza) {
-  const fastening = sizzle_default()(`> apply-to[xmlns="${Strophe.NS.FASTEN}"]`, stanza).pop();
+  const fastening = sizzle_default()(`> apply-to[xmlns="${core.NS.FASTEN}"]`, stanza).pop();
   if (fastening) {
     const applies_to_id = fastening.getAttribute('id');
-    const retracted = sizzle_default()(`> retract[xmlns="${Strophe.NS.RETRACT}"]`, fastening).pop();
+    const retracted = sizzle_default()(`> retract[xmlns="${core.NS.RETRACT}"]`, fastening).pop();
     if (retracted) {
-      const delay = sizzle_default()(`delay[xmlns="${Strophe.NS.DELAY}"]`, original_stanza).pop();
+      const delay = sizzle_default()(`delay[xmlns="${core.NS.DELAY}"]`, original_stanza).pop();
       const time = delay ? dayjs_min_default()(delay.getAttribute('stamp')).toISOString() : new Date().toISOString();
       return {
         'editable': false,
@@ -38800,7 +38893,7 @@ function getRetractionAttributes(stanza, original_stanza) {
       };
     }
   } else {
-    const tombstone = sizzle_default()(`> retracted[xmlns="${Strophe.NS.RETRACT}"]`, stanza).pop();
+    const tombstone = sizzle_default()(`> retracted[xmlns="${core.NS.RETRACT}"]`, stanza).pop();
     if (tombstone) {
       return {
         'editable': false,
@@ -38812,11 +38905,11 @@ function getRetractionAttributes(stanza, original_stanza) {
   return {};
 }
 function getCorrectionAttributes(stanza, original_stanza) {
-  const el = sizzle_default()(`replace[xmlns="${Strophe.NS.MESSAGE_CORRECT}"]`, stanza).pop();
+  const el = sizzle_default()(`replace[xmlns="${core.NS.MESSAGE_CORRECT}"]`, stanza).pop();
   if (el) {
     const replace_id = el.getAttribute('id');
     if (replace_id) {
-      const delay = sizzle_default()(`delay[xmlns="${Strophe.NS.DELAY}"]`, original_stanza).pop();
+      const delay = sizzle_default()(`delay[xmlns="${core.NS.DELAY}"]`, original_stanza).pop();
       const time = delay ? dayjs_min_default()(delay.getAttribute('stamp')).toISOString() : new Date().toISOString();
       return {
         replace_id,
@@ -38827,10 +38920,10 @@ function getCorrectionAttributes(stanza, original_stanza) {
   return {};
 }
 function getOpenGraphMetadata(stanza) {
-  const fastening = sizzle_default()(`> apply-to[xmlns="${Strophe.NS.FASTEN}"]`, stanza).pop();
+  const fastening = sizzle_default()(`> apply-to[xmlns="${core.NS.FASTEN}"]`, stanza).pop();
   if (fastening) {
     const applies_to_id = fastening.getAttribute('id');
-    const meta = sizzle_default()(`> meta[xmlns="${Strophe.NS.XHTML}"]`, fastening);
+    const meta = sizzle_default()(`> meta[xmlns="${core.NS.XHTML}"]`, fastening);
     if (meta.length) {
       const msg_limit = shared_api.settings.get('message_limit');
       const data = meta.reduce((acc, el) => {
@@ -38903,14 +38996,14 @@ function getMediaURLsMetadata(text) {
   } : {};
 }
 function getSpoilerAttributes(stanza) {
-  const spoiler = sizzle_default()(`spoiler[xmlns="${Strophe.NS.SPOILER}"]`, stanza).pop();
+  const spoiler = sizzle_default()(`spoiler[xmlns="${core.NS.SPOILER}"]`, stanza).pop();
   return {
     'is_spoiler': !!spoiler,
     'spoiler_hint': spoiler?.textContent
   };
 }
 function getOutOfBandAttributes(stanza) {
-  const xform = sizzle_default()(`x[xmlns="${Strophe.NS.OUTOFBAND}"]`, stanza).pop();
+  const xform = sizzle_default()(`x[xmlns="${core.NS.OUTOFBAND}"]`, stanza).pop();
   if (xform) {
     return {
       'oob_url': xform.querySelector('url')?.textContent,
@@ -38928,7 +39021,7 @@ function getOutOfBandAttributes(stanza) {
 function getErrorAttributes(stanza) {
   if (stanza.getAttribute('type') === 'error') {
     const error = stanza.querySelector('error');
-    const text = sizzle_default()(`text[xmlns="${Strophe.NS.STANZAS}"]`, error).pop();
+    const text = sizzle_default()(`text[xmlns="${core.NS.STANZAS}"]`, error).pop();
     return {
       'is_error': true,
       'error_text': text?.textContent,
@@ -38945,7 +39038,7 @@ function getErrorAttributes(stanza) {
  * @returns { Reference }
  */
 function getReferences(stanza) {
-  return sizzle_default()(`reference[xmlns="${Strophe.NS.REFERENCE}"]`, stanza).map(ref => {
+  return sizzle_default()(`reference[xmlns="${core.NS.REFERENCE}"]`, stanza).map(ref => {
     const anchor = ref.getAttribute('anchor');
     const text = stanza.querySelector(anchor ? `#${anchor}` : 'body')?.textContent;
     if (!text) {
@@ -38973,7 +39066,7 @@ function getReferences(stanza) {
   }).filter(r => r);
 }
 function getReceiptId(stanza) {
-  const receipt = sizzle_default()(`received[xmlns="${Strophe.NS.RECEIPTS}"]`, stanza).pop();
+  const receipt = sizzle_default()(`received[xmlns="${core.NS.RECEIPTS}"]`, stanza).pop();
   return receipt?.getAttribute('id');
 }
 
@@ -38984,7 +39077,7 @@ function getReceiptId(stanza) {
  * @returns { Boolean }
  */
 function isCarbon(stanza) {
-  const xmlns = Strophe.NS.CARBONS;
+  const xmlns = core.NS.CARBONS;
   return sizzle_default()(`message > received[xmlns="${xmlns}"]`, stanza).length > 0 || sizzle_default()(`message > sent[xmlns="${xmlns}"]`, stanza).length > 0;
 }
 
@@ -39002,7 +39095,7 @@ function getChatState(stanza) {
         gone[xmlns="${parsers_NS.CHATSTATES}"]`, stanza).pop()?.nodeName;
 }
 function isValidReceiptRequest(stanza, attrs) {
-  return attrs.sender !== 'me' && !attrs.is_carbon && !attrs.is_archived && sizzle_default()(`request[xmlns="${Strophe.NS.RECEIPTS}"]`, stanza).length;
+  return attrs.sender !== 'me' && !attrs.is_carbon && !attrs.is_archived && sizzle_default()(`request[xmlns="${core.NS.RECEIPTS}"]`, stanza).length;
 }
 
 /**
@@ -39011,7 +39104,7 @@ function isValidReceiptRequest(stanza, attrs) {
  * @param { Element } stanza
  */
 function throwErrorIfInvalidForward(stanza) {
-  const bare_forward = sizzle_default()(`message > forwarded[xmlns="${Strophe.NS.FORWARD}"]`, stanza).length;
+  const bare_forward = sizzle_default()(`message > forwarded[xmlns="${core.NS.FORWARD}"]`, stanza).length;
   if (bare_forward) {
     rejectMessage(stanza, 'Forwarded messages not part of an encapsulating protocol are not supported');
     const from_jid = stanza.getAttribute('from');
@@ -39030,15 +39123,15 @@ function getChatMarker(stanza) {
   // If we receive more than one marker (which shouldn't happen), we take
   // the highest level of acknowledgement.
   return sizzle_default()(`
-        acknowledged[xmlns="${Strophe.NS.MARKERS}"],
-        displayed[xmlns="${Strophe.NS.MARKERS}"],
-        received[xmlns="${Strophe.NS.MARKERS}"]`, stanza).pop();
+        acknowledged[xmlns="${core.NS.MARKERS}"],
+        displayed[xmlns="${core.NS.MARKERS}"],
+        received[xmlns="${core.NS.MARKERS}"]`, stanza).pop();
 }
 function isHeadline(stanza) {
   return stanza.getAttribute('type') === 'headline';
 }
 function isServerMessage(stanza) {
-  if (sizzle_default()(`mentions[xmlns="${Strophe.NS.MENTIONS}"]`, stanza).pop()) {
+  if (sizzle_default()(`mentions[xmlns="${core.NS.MENTIONS}"]`, stanza).pop()) {
     return false;
   }
   const from_jid = stanza.getAttribute('from');
@@ -39060,7 +39153,7 @@ function isServerMessage(stanza) {
  * @returns { Boolean }
  */
 function isArchived(original_stanza) {
-  return !!sizzle_default()(`message > result[xmlns="${Strophe.NS.MAM}"]`, original_stanza).pop();
+  return !!sizzle_default()(`message > result[xmlns="${core.NS.MAM}"]`, original_stanza).pop();
 }
 
 /**
@@ -39071,7 +39164,7 @@ function isArchived(original_stanza) {
  */
 function getAttributes(stanza) {
   return stanza.getAttributeNames().reduce((acc, name) => {
-    acc[name] = Strophe.xmlunescape(stanza.getAttribute(name));
+    acc[name] = core.xmlunescape(stanza.getAttribute(name));
     return acc;
   }, {});
 }
@@ -42304,7 +42397,7 @@ const ChatRoomMessageMixin = {
       if (occupant.get('occupant_id') !== this.get('occupant_id')) {
         return;
       }
-    } else if (occupant.get('nick') !== Strophe.getResourceFromJid(this.get('from'))) {
+    } else if (occupant.get('nick') !== core.getResourceFromJid(this.get('from'))) {
       return;
     }
     this.occupant = occupant;
@@ -42324,7 +42417,7 @@ const ChatRoomMessageMixin = {
     if (this.get('type') !== 'groupchat' || this.isEphemeral() || this.occupant) {
       return;
     }
-    const nick = Strophe.getResourceFromJid(this.get('from'));
+    const nick = core.getResourceFromJid(this.get('from'));
     const occupant_id = this.get('occupant_id');
     this.occupant = this.chatbox.occupants.findOccupant({
       nick,
@@ -43237,13 +43330,13 @@ const ChatRoomMixin = {
       'from': shared_converse.connection.jid,
       'to': this.getRoomJIDAndNick()
     }).c('x', {
-      'xmlns': Strophe.NS.MUC
+      'xmlns': core.NS.MUC
     }).c('history', {
       'maxstanzas': this.features.get('mam_enabled') ? 0 : shared_api.settings.get('muc_history_max_stanzas')
     }).up();
     password = password || this.get('password');
     if (password) {
-      stanza.cnode(Strophe.xmlElement('password', [], password));
+      stanza.cnode(core.xmlElement('password', [], password));
     }
     stanza.up(); // Go one level up, out of the `x` element.
     /**
@@ -43284,7 +43377,7 @@ const ChatRoomMixin = {
         log.error(`Can't send marker for message without stanza ID: ${key}`);
         return;
       }
-      const from_jid = Strophe.getBareJidFromJid(msg.get('from'));
+      const from_jid = core.getBareJidFromJid(msg.get('from'));
       sendMarker(from_jid, id, type, msg.get('type'));
     }
   },
@@ -43300,9 +43393,9 @@ const ChatRoomMixin = {
    */
   enableRAI() {
     if (shared_api.settings.get('muc_subscribe_to_rai')) {
-      const muc_domain = Strophe.getDomainFromJid(this.get('jid'));
+      const muc_domain = core.getDomainFromJid(this.get('jid'));
       shared_api.user.presence.send(null, muc_domain, null, $build('rai', {
-        'xmlns': Strophe.NS.RAI
+        'xmlns': core.NS.RAI
       }));
     }
   },
@@ -43361,7 +43454,7 @@ const ChatRoomMixin = {
      * @example _converse.api.listen.on('enteredNewRoom', model => { ... });
      */
     shared_api.trigger('enteredNewRoom', this);
-    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(Strophe.NS.MUC_REGISTER, this.get('jid')))) {
+    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(core.NS.MUC_REGISTER, this.get('jid')))) {
       this.registerNickname();
     }
   },
@@ -43433,7 +43526,7 @@ const ChatRoomMixin = {
     return this.occupants.fetched;
   },
   handleAffiliationChangedMessage(stanza) {
-    const item = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] item`, stanza).pop();
+    const item = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] item`, stanza).pop();
     if (item) {
       const from = stanza.getAttribute('from');
       const type = stanza.getAttribute('type');
@@ -43446,8 +43539,8 @@ const ChatRoomMixin = {
         'states': [],
         'show': type == 'unavailable' ? 'offline' : 'online',
         'role': item.getAttribute('role'),
-        'jid': Strophe.getBareJidFromJid(jid),
-        'resource': Strophe.getResourceFromJid(jid)
+        'jid': core.getBareJidFromJid(jid),
+        'resource': core.getResourceFromJid(jid)
       };
       const occupant = this.occupants.findOccupant({
         'jid': data.jid
@@ -43515,7 +43608,7 @@ const ChatRoomMixin = {
       // We're not interested in activity indicators when already joined to the room
       return;
     }
-    const rai = sizzle_default()(`rai[xmlns="${Strophe.NS.RAI}"]`, stanza).pop();
+    const rai = sizzle_default()(`rai[xmlns="${core.NS.RAI}"]`, stanza).pop();
     const active_mucs = Array.from(rai?.querySelectorAll('activity') || []).map(m => m.textContent);
     if (active_mucs.includes(this.get('jid'))) {
       this.save({
@@ -43536,9 +43629,9 @@ const ChatRoomMixin = {
       // Avoid counting mentions twice
       return;
     }
-    const msgs = sizzle_default()(`mentions[xmlns="${Strophe.NS.MENTIONS}"] forwarded[xmlns="${Strophe.NS.FORWARD}"] message[type="groupchat"]`, stanza);
+    const msgs = sizzle_default()(`mentions[xmlns="${core.NS.MENTIONS}"] forwarded[xmlns="${core.NS.FORWARD}"] message[type="groupchat"]`, stanza);
     const muc_jid = this.get('jid');
-    const mentions = msgs.filter(m => Strophe.getBareJidFromJid(m.getAttribute('from')) === muc_jid);
+    const mentions = msgs.filter(m => core.getBareJidFromJid(m.getAttribute('from')) === muc_jid);
     if (mentions.length) {
       this.save({
         'has_activity': true,
@@ -43613,7 +43706,7 @@ const ChatRoomMixin = {
    */
   registerHandlers() {
     const muc_jid = this.get('jid');
-    const muc_domain = Strophe.getDomainFromJid(muc_jid);
+    const muc_domain = core.getDomainFromJid(muc_jid);
     this.removeHandlers();
     this.presence_handler = shared_converse.connection.addHandler(stanza => this.onPresence(stanza) || true, null, 'presence', null, null, muc_jid, {
       'ignoreNamespaceFragment': true,
@@ -43624,7 +43717,7 @@ const ChatRoomMixin = {
       'matchBareFromJid': true
     });
     this.domain_message_handler = shared_converse.connection.addHandler(stanza => this.handleMessageFromMUCHost(stanza) || true, null, 'message', null, null, muc_domain);
-    this.affiliation_message_handler = shared_converse.connection.addHandler(stanza => this.handleAffiliationChangedMessage(stanza) || true, Strophe.NS.MUC_USER, 'message', null, null, muc_jid);
+    this.affiliation_message_handler = shared_converse.connection.addHandler(stanza => this.handleAffiliationChangedMessage(stanza) || true, core.NS.MUC_USER, 'message', null, null, muc_jid);
   },
   removeHandlers() {
     // Remove the presence and message handlers that were
@@ -43659,7 +43752,7 @@ const ChatRoomMixin = {
     if (name) {
       return name;
     } else if (shared_api.settings.get('locked_muc_domain') === 'hidden') {
-      return Strophe.getNodeFromJid(this.get('jid'));
+      return core.getNodeFromJid(this.get('jid'));
     } else {
       return this.get('jid');
     }
@@ -43716,12 +43809,12 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'groupchat'
     }).c('store', {
-      xmlns: Strophe.NS.HINTS
+      xmlns: core.NS.HINTS
     }).up().c('apply-to', {
       'id': origin_id,
-      'xmlns': Strophe.NS.FASTEN
+      'xmlns': core.NS.FASTEN
     }).c('retract', {
-      xmlns: Strophe.NS.RETRACT
+      xmlns: core.NS.RETRACT
     });
 
     // Optimistic save
@@ -43793,11 +43886,11 @@ const ChatRoomMixin = {
       'type': 'set'
     }).c('apply-to', {
       'id': message.get(`stanza_id ${this.get('jid')}`),
-      'xmlns': Strophe.NS.FASTEN
+      'xmlns': core.NS.FASTEN
     }).c('moderate', {
-      xmlns: Strophe.NS.MODERATE
+      xmlns: core.NS.MODERATE
     }).c('retract', {
-      xmlns: Strophe.NS.RETRACT
+      xmlns: core.NS.RETRACT
     }).up().c('reason').t(reason || '');
     return shared_api.sendIQ(iq, null, false);
   },
@@ -43821,7 +43914,7 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'set'
     }).c('query', {
-      'xmlns': Strophe.NS.MUC_OWNER
+      'xmlns': core.NS.MUC_OWNER
     }).cnode(destroy.node);
     if (reason && reason.length > 0) {
       iq.c('reason', reason);
@@ -43891,7 +43984,7 @@ const ChatRoomMixin = {
   },
   canModerateMessages() {
     const self = this.getOwnOccupant();
-    return self && self.isModerator() && shared_api.disco.supports(Strophe.NS.MODERATE, this.get('jid'));
+    return self && self.isModerator() && shared_api.disco.supports(core.NS.MODERATE, this.get('jid'));
   },
   /**
    * Return an array of unique nicknames based on all occupants and messages in this MUC.
@@ -44001,7 +44094,7 @@ const ChatRoomMixin = {
    */
   getRoomJIDAndNick() {
     const nick = this.get('nick');
-    const jid = Strophe.getBareJidFromJid(this.get('jid'));
+    const jid = core.getBareJidFromJid(this.get('jid'));
     return jid + (nick !== null ? `/${nick}` : '');
   },
   /**
@@ -44027,11 +44120,11 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'groupchat'
     }).c(chat_state, {
-      'xmlns': Strophe.NS.CHATSTATES
+      'xmlns': core.NS.CHATSTATES
     }).up().c('no-store', {
-      'xmlns': Strophe.NS.HINTS
+      'xmlns': core.NS.HINTS
     }).up().c('no-permanent-store', {
-      'xmlns': Strophe.NS.HINTS
+      'xmlns': core.NS.HINTS
     }));
   },
   /**
@@ -44144,7 +44237,7 @@ const ChatRoomMixin = {
     features.each(feature => {
       const fieldname = feature.get('var');
       if (!fieldname.startsWith('muc_')) {
-        if (fieldname === Strophe.NS.MAM) {
+        if (fieldname === core.NS.MAM) {
           attrs.mam_enabled = true;
         } else {
           attrs[fieldname] = true;
@@ -44215,7 +44308,7 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'get'
     }).c('query', {
-      xmlns: Strophe.NS.MUC_OWNER
+      xmlns: core.NS.MUC_OWNER
     }));
   },
   /**
@@ -44232,9 +44325,9 @@ const ChatRoomMixin = {
       to: this.get('jid'),
       type: 'set'
     }).c('query', {
-      xmlns: Strophe.NS.MUC_OWNER
+      xmlns: core.NS.MUC_OWNER
     }).c('x', {
-      xmlns: Strophe.NS.XFORM,
+      xmlns: core.NS.XFORM,
       type: 'submit'
     });
     config.forEach(node => iq.cnode(node).up());
@@ -44420,7 +44513,7 @@ const ChatRoomMixin = {
    * @param { String } nick
    */
   async setNickname(nick) {
-    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(Strophe.NS.MUC_REGISTER, this.get('jid')))) {
+    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(core.NS.MUC_REGISTER, this.get('jid')))) {
       const old_nick = this.get('nick');
       this.set({
         nick
@@ -44444,7 +44537,7 @@ const ChatRoomMixin = {
         return;
       }
     }
-    const jid = Strophe.getBareJidFromJid(this.get('jid'));
+    const jid = core.getBareJidFromJid(this.get('jid'));
     shared_api.send($pres({
       'from': shared_converse.connection.jid,
       'to': `${jid}/${nick}`,
@@ -44470,7 +44563,7 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'set'
     }).c('query', {
-      xmlns: Strophe.NS.MUC_ADMIN
+      xmlns: core.NS.MUC_ADMIN
     }).cnode(item.node);
     if (reason !== null) {
       iq.c('reason', reason);
@@ -44580,7 +44673,7 @@ const ChatRoomMixin = {
       'from': shared_converse.connection.jid,
       'type': 'get'
     }).c('query', {
-      'xmlns': Strophe.NS.DISCO_INFO,
+      'xmlns': core.NS.DISCO_INFO,
       'node': 'x-roomuser-item'
     });
     const result = await shared_api.sendIQ(stanza, null, false);
@@ -44612,12 +44705,12 @@ const ChatRoomMixin = {
         'to': jid,
         'type': 'get'
       }).c('query', {
-        'xmlns': Strophe.NS.MUC_REGISTER
+        'xmlns': core.NS.MUC_REGISTER
       }));
     } catch (e) {
-      if (sizzle_default()(`not-allowed[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
+      if (sizzle_default()(`not-allowed[xmlns="${core.NS.STANZAS}"]`, e).length) {
         err_msg = __("You're not allowed to register yourself in this groupchat.");
-      } else if (sizzle_default()(`registration-required[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
+      } else if (sizzle_default()(`registration-required[xmlns="${core.NS.STANZAS}"]`, e).length) {
         err_msg = __("You're not allowed to register in this groupchat because it's members-only.");
       }
       log.error(e);
@@ -44632,9 +44725,9 @@ const ChatRoomMixin = {
         'to': jid,
         'type': 'set'
       }).c('query', {
-        'xmlns': Strophe.NS.MUC_REGISTER
+        'xmlns': core.NS.MUC_REGISTER
       }).c('x', {
-        'xmlns': Strophe.NS.XFORM,
+        'xmlns': core.NS.XFORM,
         'type': 'submit'
       }).c('field', {
         'var': 'FORM_TYPE'
@@ -44642,9 +44735,9 @@ const ChatRoomMixin = {
         'var': 'muc#register_roomnick'
       }).c('value').t(nick));
     } catch (e) {
-      if (sizzle_default()(`service-unavailable[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
+      if (sizzle_default()(`service-unavailable[xmlns="${core.NS.STANZAS}"]`, e).length) {
         err_msg = __("Can't register your nickname in this groupchat, it doesn't support registration.");
-      } else if (sizzle_default()(`bad-request[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
+      } else if (sizzle_default()(`bad-request[xmlns="${core.NS.STANZAS}"]`, e).length) {
         err_msg = __("Can't register your nickname in this groupchat, invalid data form supplied.");
       }
       log.error(err_msg);
@@ -44660,7 +44753,7 @@ const ChatRoomMixin = {
   async unregisterNickname() {
     if (shared_api.settings.get('auto_register_muc_nickname') === 'unregister') {
       try {
-        if (await shared_api.disco.supports(Strophe.NS.MUC_REGISTER, this.get('jid'))) {
+        if (await shared_api.disco.supports(core.NS.MUC_REGISTER, this.get('jid'))) {
           await this.sendUnregistrationIQ();
         }
       } catch (e) {
@@ -44680,7 +44773,7 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'set'
     }).c('query', {
-      'xmlns': Strophe.NS.MUC_REGISTER
+      'xmlns': core.NS.MUC_REGISTER
     }).c('remove');
     return shared_api.sendIQ(iq).catch(e => log.error(e));
   },
@@ -44706,8 +44799,8 @@ const ChatRoomMixin = {
     const jid = data.jid || '';
     const attributes = {
       ...data,
-      'jid': Strophe.getBareJidFromJid(jid) || occupant?.attributes?.jid,
-      'resource': Strophe.getResourceFromJid(jid) || occupant?.attributes?.resource
+      'jid': core.getBareJidFromJid(jid) || occupant?.attributes?.jid,
+      'resource': core.getResourceFromJid(jid) || occupant?.attributes?.resource
     };
     if (data.is_me) {
       let modified = false;
@@ -44715,7 +44808,7 @@ const ChatRoomMixin = {
         modified = true;
         this.set('nick', data.nick);
       }
-      if (this.features.get(Strophe.NS.OCCUPANTID) && this.get('occupant-id') !== data.occupant_id) {
+      if (this.features.get(core.NS.OCCUPANTID) && this.get('occupant-id') !== data.occupant_id) {
         modified = true;
         this.set('occupant_id', data.occupant_id);
       }
@@ -44749,10 +44842,10 @@ const ChatRoomMixin = {
    * @returns { Boolean }
    */
   isSameUser(jid1, jid2) {
-    const bare_jid1 = Strophe.getBareJidFromJid(jid1);
-    const bare_jid2 = Strophe.getBareJidFromJid(jid2);
-    const resource1 = Strophe.getResourceFromJid(jid1);
-    const resource2 = Strophe.getResourceFromJid(jid2);
+    const bare_jid1 = core.getBareJidFromJid(jid1);
+    const bare_jid2 = core.getBareJidFromJid(jid2);
+    const resource1 = core.getResourceFromJid(jid1);
+    const resource2 = core.getResourceFromJid(jid2);
     if (muc_u.isSameBareJID(jid1, jid2)) {
       if (bare_jid1 === this.get('jid')) {
         // MUC JIDs
@@ -44872,7 +44965,7 @@ const ChatRoomMixin = {
     } else {
       from = msg.from;
     }
-    return Strophe.getResourceFromJid(from) == this.get('nick');
+    return core.getResourceFromJid(from) == this.get('nick');
   },
   getUpdatedMessageAttributes(message, attrs) {
     const new_attrs = {
@@ -45254,7 +45347,7 @@ const ChatRoomMixin = {
    */
   handleDisconnection(stanza) {
     const is_self = stanza.querySelector("status[code='110']") !== null;
-    const x = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"]`, stanza).pop();
+    const x = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"]`, stanza).pop();
     if (!x) {
       return;
     }
@@ -45379,8 +45472,8 @@ const ChatRoomMixin = {
     } else if (code in shared_converse.muc.info_messages) {
       data.message = shared_converse.muc.info_messages[code];
     } else if (!is_self && ACTION_INFO_CODES.includes(code)) {
-      const nick = Strophe.getResourceFromJid(stanza.getAttribute('from'));
-      const item = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] item`, stanza).pop();
+      const nick = core.getResourceFromJid(stanza.getAttribute('from'));
+      const item = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] item`, stanza).pop();
       data.actor = item ? item.querySelector('actor')?.getAttribute('nick') : undefined;
       data.reason = item ? item.querySelector('reason')?.textContent : undefined;
       data.message = this.getActionInfoMessage(code, nick, data.actor);
@@ -45388,9 +45481,9 @@ const ChatRoomMixin = {
       // XXX: Side-effect of setting the nick. Should ideally be refactored out of this method
       let nick;
       if (code === '210') {
-        nick = Strophe.getResourceFromJid(stanza.getAttribute('from'));
+        nick = core.getResourceFromJid(stanza.getAttribute('from'));
       } else if (code === '303') {
-        nick = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] item`, stanza).pop().getAttribute('nick');
+        nick = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] item`, stanza).pop().getAttribute('nick');
       }
       this.save('nick', nick);
       data.message = __(shared_converse.muc.new_nickname_messages[code], nick);
@@ -45409,7 +45502,7 @@ const ChatRoomMixin = {
    * @param { Element } stanza
    */
   createInfoMessages(stanza) {
-    const codes = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] status`, stanza).map(s => s.getAttribute('code'));
+    const codes = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] status`, stanza).map(s => s.getAttribute('code'));
     if (codes.includes('333') && codes.includes('307')) {
       // See: https://github.com/xsf/xeps/pull/969/files#diff-ac5113766e59219806793c1f7d967f1bR4966
       codes.splice(codes.indexOf('307'), 1);
@@ -45466,11 +45559,11 @@ const ChatRoomMixin = {
     const __ = shared_converse.__;
     const error = stanza.querySelector('error');
     const error_type = error.getAttribute('type');
-    const reason = sizzle_default()(`text[xmlns="${Strophe.NS.STANZAS}"]`, error).pop()?.textContent;
+    const reason = sizzle_default()(`text[xmlns="${core.NS.STANZAS}"]`, error).pop()?.textContent;
     if (error_type === 'modify') {
       this.handleModifyError(stanza);
     } else if (error_type === 'auth') {
-      if (sizzle_default()(`not-authorized[xmlns="${Strophe.NS.STANZAS}"]`, error).length) {
+      if (sizzle_default()(`not-authorized[xmlns="${core.NS.STANZAS}"]`, error).length) {
         this.save({
           'password_validation_message': reason || __('Password incorrect')
         });
@@ -45491,8 +45584,8 @@ const ChatRoomMixin = {
       } else if (error.querySelector('not-acceptable')) {
         const message = __("Your nickname doesn't conform to this groupchat's policies.");
         this.setDisconnectionState(message, reason);
-      } else if (sizzle_default()(`gone[xmlns="${Strophe.NS.STANZAS}"]`, error).length) {
-        const moved_jid = sizzle_default()(`gone[xmlns="${Strophe.NS.STANZAS}"]`, error).pop()?.textContent.replace(/^xmpp:/, '').replace(/\?join$/, '');
+      } else if (sizzle_default()(`gone[xmlns="${core.NS.STANZAS}"]`, error).length) {
+        const moved_jid = sizzle_default()(`gone[xmlns="${core.NS.STANZAS}"]`, error).pop()?.textContent.replace(/^xmpp:/, '').replace(/\?join$/, '');
         this.save({
           moved_jid,
           'destroyed_reason': reason
@@ -46020,7 +46113,7 @@ class ChatRoomOccupants extends Collection {
     if (data.occupant_id) {
       return this.get(data.occupant_id);
     }
-    const jid = data.jid && Strophe.getBareJidFromJid(data.jid);
+    const jid = data.jid && core.getBareJidFromJid(data.jid);
     return jid && this.findWhere({
       jid
     }) || data.nick && this.findWhere({
@@ -46120,7 +46213,7 @@ const {
         'nick': attrs
       } : attrs || {};
       if (!attrs.nick && shared_api.settings.get('muc_nickname_from_jid')) {
-        attrs.nick = Strophe.getNodeFromJid(shared_converse.bare_jid);
+        attrs.nick = core.getNodeFromJid(shared_converse.bare_jid);
       }
       if (jids === undefined) {
         throw new TypeError('rooms.create: You need to provide at least one JID');
@@ -50686,7 +50779,7 @@ public_converse.plugins.add('converse-vcard', {
 
 /* harmony default export */ const headless = ((/* unused pure expression or super */ null && (converse)));
 // EXTERNAL MODULE: ./node_modules/jed/jed.js
-var jed = __webpack_require__(2107);
+var jed = __webpack_require__(6226);
 var jed_default = /*#__PURE__*/__webpack_require__.n(jed);
 ;// CONCATENATED MODULE: ./src/i18n/index.js
 /**
@@ -50912,8 +51005,8 @@ var insertStyleElement_default = /*#__PURE__*/__webpack_require__.n(insertStyleE
 // EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/styleTagTransform.js
 var styleTagTransform = __webpack_require__(4589);
 var styleTagTransform_default = /*#__PURE__*/__webpack_require__.n(styleTagTransform);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/styles/index.scss
-var styles = __webpack_require__(1815);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/styles/index.scss
+var styles = __webpack_require__(6407);
 ;// CONCATENATED MODULE: ./src/shared/styles/index.scss
 
       
@@ -50944,7 +51037,7 @@ var update = injectStylesIntoStyleTag_default()(styles/* default */.Z, options);
        /* harmony default export */ const shared_styles = (styles/* default */.Z && styles/* default */.Z.locals ? styles/* default */.Z.locals : undefined);
 
 // EXTERNAL MODULE: ./node_modules/bootstrap.native/dist/bootstrap-native.js
-var bootstrap_native = __webpack_require__(3170);
+var bootstrap_native = __webpack_require__(8577);
 var bootstrap_native_default = /*#__PURE__*/__webpack_require__.n(bootstrap_native);
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/modal-alert.js
 
@@ -51214,89 +51307,33 @@ Object.assign(View.prototype, Events, {
 });
 ;// CONCATENATED MODULE: ./src/templates/form_captcha.js
 
-/* harmony default export */ const form_captcha = (o => x`
-    <fieldset class="form-group">
-        ${o.label ? x`<label>${o.label}</label>` : ''}
-        <img src="data:${o.type};base64,${o.data}">
-        <input name="${o.name}" type="text" ?required="${o.required}" />
-    </fieldset>
-`);
+/* harmony default export */ const form_captcha = (o => x`<fieldset class="form-group">${o.label ? x`<label>${o.label}</label>` : ''} <img src="data:${o.type};base64,${o.data}"> <input name="${o.name}" type="text" ?required="${o.required}"></fieldset>`);
 ;// CONCATENATED MODULE: ./src/templates/form_checkbox.js
 
-/* harmony default export */ const form_checkbox = (o => x`
-    <fieldset class="form-group">
-        <input id="${o.id}" name="${o.name}" type="checkbox" ?checked=${o.checked} ?required=${o.required} />
-        <label class="form-check-label" for="${o.id}">${o.label}</label>
-    </fieldset>`);
+/* harmony default export */ const form_checkbox = (o => x`<fieldset class="form-group"><input id="${o.id}" name="${o.name}" type="checkbox" ?checked="${o.checked}" ?required="${o.required}"> <label class="form-check-label" for="${o.id}">${o.label}</label></fieldset>`);
 ;// CONCATENATED MODULE: ./src/templates/form_help.js
 
 /* harmony default export */ const form_help = (o => x`<p class="form-help">${o.text}</p>`);
 ;// CONCATENATED MODULE: ./src/templates/form_input.js
 
-/* harmony default export */ const form_input = (o => x`
-    <div class="form-group">
-        ${o.type !== 'hidden' ? x`<label for="${o.id}">${o.label}</label>` : ''}
-
-        <!-- This is a hack to prevent Chrome from auto-filling the username in
-             any of the other input fields in the MUC configuration form. -->
-        ${o.type === 'password' && o.fixed_username ? x`
-            <input class="hidden-username" type="text" autocomplete="username" value="${o.fixed_username}"></input>
-        ` : ''}
-
-        <input
-            autocomplete="${o.autocomplete || ''}"
-            class="form-control"
-            id="${o.id}"
-            name="${o.name}"
-            placeholder="${o.placeholder || ''}"
-            type="${o.type}"
-            value="${o.value || ''}"
-            ?required=${o.required} />
-    </div>`);
+/* harmony default export */ const form_input = (o => x`<div class="form-group">${o.type !== 'hidden' ? x`<label for="${o.id}">${o.label}</label>` : ''} ${o.type === 'password' && o.fixed_username ? x`<input class="hidden-username" type="text" autocomplete="username" value="${o.fixed_username}">` : ''} <input autocomplete="${o.autocomplete || ''}" class="form-control" id="${o.id}" name="${o.name}" placeholder="${o.placeholder || ''}" type="${o.type}" value="${o.value || ''}" ?required="${o.required}"></div>`);
 ;// CONCATENATED MODULE: ./src/templates/form_select.js
 
 const tplOption = o => x`<option value="${o.value}" ?selected="${o.selected}">${o.label}</option>`;
-/* harmony default export */ const form_select = (o => x`
-    <div class="form-group">
-        <label for="${o.id}">${o.label}</label>
-        <select class="form-control" id="${o.id}" name="${o.name}" ?multiple="${o.multiple}">
-            ${o.options?.map(o => tplOption(o))}
-        </select>
-    </div>`);
+/* harmony default export */ const form_select = (o => x`<div class="form-group"><label for="${o.id}">${o.label}</label> <select class="form-control" id="${o.id}" name="${o.name}" ?multiple="${o.multiple}">${o.options?.map(o => tplOption(o))}</select></div>`);
 ;// CONCATENATED MODULE: ./src/templates/form_textarea.js
 
 
 /* harmony default export */ const form_textarea = (o => {
   const id = utils_core.getUniqueId();
-  return x`
-        <div class="form-group">
-            <label class="label-ta" for="${id}">${o.label}</label>
-            <textarea name="${o.name}" id="${id}" class="form-control">${o.value}</textarea>
-        </div>
-    `;
+  return x`<div class="form-group"><label class="label-ta" for="${id}">${o.label}</label> <textarea name="${o.name}" id="${id}" class="form-control">${o.value}</textarea></div>`;
 });
 ;// CONCATENATED MODULE: ./src/templates/form_url.js
 
-/* harmony default export */ const form_url = (o => x`
-    <label>${o.label}
-        <a class="form-url" target="_blank" rel="noopener" href="${o.value}">${o.value}</a>
-    </label>`);
+/* harmony default export */ const form_url = (o => x`<label>${o.label} <a class="form-url" target="_blank" rel="noopener" href="${o.value}">${o.value}</a></label>`);
 ;// CONCATENATED MODULE: ./src/templates/form_username.js
 
-/* harmony default export */ const form_username = (o => x`
-    <div class="form-group">
-        ${o.label ? x`<label>${o.label}</label>` : ''}
-        <div class="input-group">
-                <input name="${o.name}"
-                       class="form-control"
-                       type="${o.type}"
-                       value="${o.value || ''}"
-                       ?required="${o.required}" />
-            <div class="input-group-append">
-                <div class="input-group-text" title="${o.domain}">${o.domain}</div>
-            </div>
-        </div>
-    </div>`);
+/* harmony default export */ const form_username = (o => x`<div class="form-group">${o.label ? x`<label>${o.label}</label>` : ''}<div class="input-group"><input name="${o.name}" class="form-control" type="${o.type}" value="${o.value || ''}" ?required="${o.required}"><div class="input-group-append"><div class="input-group-text" title="${o.domain}">${o.domain}</div></div></div></div>`);
 ;// CONCATENATED MODULE: ./src/templates/hyperlink.js
 
 
@@ -51310,11 +51347,7 @@ function onClickXMPPURI(ev) {
     href_text = 'http://' + href_text;
   }
   if (uri._parts.protocol === 'xmpp' && uri._parts.query === 'join') {
-    return x`
-            <a target="_blank"
-               rel="noopener"
-               @click=${onClickXMPPURI}
-               href="${href_text}">${url_text}</a>`;
+    return x`<a target="_blank" rel="noopener" @click="${onClickXMPPURI}" href="${href_text}">${url_text}</a>`;
   }
   return x`<a target="_blank" rel="noopener" href="${href_text}">${url_text}</a>`;
 });
@@ -51930,8 +51963,8 @@ Object.assign(utils_core, {
   slideOut
 });
 /* harmony default export */ const html = (utils_core);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/modal/styles/_modal.scss
-var _modal = __webpack_require__(975);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/modal/styles/_modal.scss
+var _modal = __webpack_require__(1064);
 ;// CONCATENATED MODULE: ./src/plugins/modal/styles/_modal.scss
 
       
@@ -52057,26 +52090,10 @@ const modal_header_close_button = x`<button type="button" class="close" data-dis
 /* harmony default export */ const modal = (el => {
   const alert = el.model?.get('alert');
   const level = el.model?.get('level') ?? '';
-  return x`
-        <div class="modal-dialog" role="document" tabindex="-1" role="dialog" aria-hidden="true">
-            <div class="modal-content">
-                <div class="modal-header ${level}">
-                    <h5 class="modal-title">${el.getModalTitle()}</h5>
-                    ${modal_header_close_button}
-                </div>
-                <div class="modal-body">
-                    <span class="modal-alert">
-                        ${alert ? modal_alert({
+  return x`<div class="modal-dialog" role="document" tabindex="-1" role="dialog" aria-hidden="true"><div class="modal-content"><div class="modal-header ${level}"><h5 class="modal-title">${el.getModalTitle()}</h5>${modal_header_close_button}</div><div class="modal-body"><span class="modal-alert">${alert ? modal_alert({
     'type': `alert-${alert.type}`,
     'message': alert.message
-  }) : ''}
-                    </span>
-                    ${el.renderModal?.() ?? ''}
-                </div>
-                ${el.renderModalFooter?.() ?? x`<div class="modal-footer">${modal_close_button}</div>`}
-            </div>
-        </div>
-    `;
+  }) : ''} </span>${el.renderModal?.() ?? ''}</div>${el.renderModalFooter?.() ?? x`<div class="modal-footer">${modal_close_button}</div>`}</div></div>`;
 });
 ;// CONCATENATED MODULE: ./node_modules/@converse/skeletor/src/element.js
 
@@ -52328,11 +52345,7 @@ class modal_BaseModal extends ElementView {
 /* harmony default export */ const modal_modal = (modal_BaseModal);
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/alert.js
 
-/* harmony default export */ const templates_alert = (o => x`
-    <div class="modal-body">
-        <span class="modal-alert"></span>
-        ${o.messages.map(message => x`<p>${message}</p>`)}
-    </div>`);
+/* harmony default export */ const templates_alert = (o => x`<div class="modal-body"><span class="modal-alert"></span> ${o.messages.map(message => x`<p>${message}</p>`)}</div>`);
 ;// CONCATENATED MODULE: ./src/plugins/modal/alert.js
 
 
@@ -52354,30 +52367,9 @@ shared_api.elements.define('converse-alert-modal', Alert);
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/prompt.js
 
 
-const tplField = f => x`
-    <div class="form-group">
-        <label>
-            ${f.label || ''}
-            <input type="text"
-                name="${f.name}"
-                class="${f.challenge_failed ? 'error' : ''} form-control form-control--labeled"
-                ?required="${f.required}"
-                placeholder="${f.placeholder}" />
-        </label>
-    </div>
-`;
+const tplField = f => x`<div class="form-group"><label>${f.label || ''} <input type="text" name="${f.name}" class="${f.challenge_failed ? 'error' : ''} form-control form-control--labeled" ?required="${f.required}" placeholder="${f.placeholder}"></label></div>`;
 /* harmony default export */ const templates_prompt = (el => {
-  return x`
-        <form class="converse-form converse-form--modal confirm" action="#" @submit=${ev => el.onConfimation(ev)}>
-            <div class="form-group">
-                ${el.model.get('messages')?.map(message => x`<p>${message}</p>`)}
-            </div>
-            ${el.model.get('fields')?.map(f => tplField(f))}
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">${__('OK')}</button>
-                <input type="button" class="btn btn-secondary" data-dismiss="modal" value="${__('Cancel')}"/>
-            </div>
-        </form>`;
+  return x`<form class="converse-form converse-form--modal confirm" action="#" @submit="${ev => el.onConfimation(ev)}"><div class="form-group">${el.model.get('messages')?.map(message => x`<p>${message}</p>`)}</div>${el.model.get('fields')?.map(f => tplField(f))}<div class="form-group"><button type="submit" class="btn btn-primary">${__('OK')}</button> <input type="button" class="btn btn-secondary" data-dismiss="modal" value="${__('Cancel')}"></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/modal/confirm.js
 
@@ -53144,28 +53136,7 @@ class AutoCompleteComponent extends CustomElement {
   }
   render() {
     const position_class = `suggestion-box__results--${this.position}`;
-    return x`
-            <div class="suggestion-box suggestion-box__name">
-                <ul class="suggestion-box__results ${position_class}" hidden=""></ul>
-                <input
-                    ?autofocus=${this.autofocus}
-                    ?required=${this.required}
-                    type="text"
-                    name="${this.name}"
-                    autocomplete="off"
-                    @keydown=${this.onKeyDown}
-                    @keyup=${this.onKeyUp}
-                    class="form-control suggestion-box__input"
-                    placeholder="${this.placeholder}"
-                />
-                <span
-                    class="suggestion-box__additions visually-hidden"
-                    role="status"
-                    aria-live="assertive"
-                    aria-relevant="additions"
-                ></span>
-            </div>
-        `;
+    return x`<div class="suggestion-box suggestion-box__name"><ul class="suggestion-box__results ${position_class}" hidden=""></ul><input ?autofocus="${this.autofocus}" ?required="${this.required}" type="text" name="${this.name}" autocomplete="off" @keydown="${this.onKeyDown}" @keyup="${this.onKeyUp}" class="form-control suggestion-box__input" placeholder="${this.placeholder}"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div>`;
   }
   firstUpdated() {
     this.auto_complete = new autocomplete(this.firstElementChild, {
@@ -53189,8 +53160,8 @@ class AutoCompleteComponent extends CustomElement {
   }
 }
 shared_api.elements.define('converse-autocomplete', AutoCompleteComponent);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/autocomplete/styles/_autocomplete.scss
-var _autocomplete = __webpack_require__(6022);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/autocomplete/styles/_autocomplete.scss
+var _autocomplete = __webpack_require__(2642);
 ;// CONCATENATED MODULE: ./src/shared/autocomplete/styles/_autocomplete.scss
 
       
@@ -53240,50 +53211,12 @@ const action_map = {
 };
 /* harmony default export */ const ad_hoc_command_form = ((el, command) => {
   const i18n_cancel = __('Cancel');
-  return x`
-        <span> <!-- Don't remove this <span>,
-                    this is a workaround for a lit bug where a <form> cannot be removed
-                    if it contains an <input> with name "remove" -->
-            <form>
-            ${command.alert ? x`<div class="alert alert-${command.alert_type}" role="alert">${command.alert}</div>` : ''}
-            <fieldset class="form-group">
-                <input type="hidden" name="command_node" value="${command.node}"/>
-                <input type="hidden" name="command_jid" value="${command.jid}"/>
-
-                <p class="form-instructions">${command.instructions}</p>
-                ${command.fields}
-            </fieldset>
-            <fieldset>
-                ${command.actions.map(action => x`<input data-action="${action}"
-                        @click=${ev => el.executeAction(ev)}
-                        type="button"
-                        class="btn btn-primary"
-                        value="${action_map[action]}">`)}<input type="button"
-                       class="btn btn-secondary button-cancel"
-                       value="${i18n_cancel}"
-                       @click=${ev => el.cancel(ev)}>
-            </fieldset>
-        </form>
-        </span>
-    `;
+  return x`<span><form>${command.alert ? x`<div class="alert alert-${command.alert_type}" role="alert">${command.alert}</div>` : ''}<fieldset class="form-group"><input type="hidden" name="command_node" value="${command.node}"> <input type="hidden" name="command_jid" value="${command.jid}"><p class="form-instructions">${command.instructions}</p>${command.fields}</fieldset><fieldset>${command.actions.map(action => x`<input data-action="${action}" @click="${ev => el.executeAction(ev)}" type="button" class="btn btn-primary" value="${action_map[action]}">`)}<input type="button" class="btn btn-secondary button-cancel" value="${i18n_cancel}" @click="${ev => el.cancel(ev)}"></fieldset></form></span>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/adhoc-views/templates/ad-hoc-command.js
 
 
-/* harmony default export */ const ad_hoc_command = ((el, command) => x`
-    <li class="room-item list-group-item">
-        <div class="available-chatroom d-flex flex-row">
-            <a class="open-room available-room w-100"
-               @click=${ev => el.toggleCommandForm(ev)}
-               data-command-node="${command.node}"
-               data-command-jid="${command.jid}"
-               data-command-name="${command.name}"
-               title="${command.name}"
-               href="#">${command.name || command.jid}</a>
-        </div>
-        ${command.node === el.showform ? ad_hoc_command_form(el, command) : ''}
-    </li>
-`);
+/* harmony default export */ const ad_hoc_command = ((el, command) => x`<li class="room-item list-group-item"><div class="available-chatroom d-flex flex-row"><a class="open-room available-room w-100" @click="${ev => el.toggleCommandForm(ev)}" data-command-node="${command.node}" data-command-jid="${command.jid}" data-command-name="${command.name}" title="${command.name}" href="#">${command.name || command.jid}</a></div>${command.node === el.showform ? ad_hoc_command_form(el, command) : ''}</li>`);
 ;// CONCATENATED MODULE: ./src/templates/spinner.js
 
 /* harmony default export */ const spinner = (function () {
@@ -53301,16 +53234,13 @@ const getImgHref = (image, image_type) => {
 };
 /* harmony default export */ const avatar = (o => {
   if (o.image) {
-    return x`
-            <svg xmlns="http://www.w3.org/2000/svg" class="avatar ${o.classes}" width="${o.width}" height="${o.height}">
-                <image width="${o.width}" height="${o.height}" preserveAspectRatio="xMidYMid meet" href="${getImgHref(o.image, o.image_type)}"/>
-            </svg>`;
+    return x`<svg xmlns="http://www.w3.org/2000/svg" class="avatar ${o.classes}" width="${o.width}" height="${o.height}"><image width="${o.width}" height="${o.height}" preserveAspectRatio="xMidYMid meet" href="${getImgHref(o.image, o.image_type)}"/></svg>`;
   } else {
     return '';
   }
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/avatar/avatar.scss
-var avatar_avatar = __webpack_require__(180);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/avatar/avatar.scss
+var avatar_avatar = __webpack_require__(7233);
 ;// CONCATENATED MODULE: ./src/shared/avatar/avatar.scss
 
       
@@ -53681,61 +53611,8 @@ const until_m = directive_e(until_c);
   const i18n_add_to_contacts = __('Add to Contacts');
   const can_see_real_jids = muc.features.get('nonanonymous') || muc.getOwnRole() === 'moderator';
   const not_me = jid != shared_converse.bare_jid;
-  const add_to_contacts = shared_api.contacts.get(jid).then(contact => !contact && not_me && can_see_real_jids).then(add => add ? x`<li><button class="btn btn-primary" type="button" @click=${() => el.addToContacts()}>${i18n_add_to_contacts}</button></li>` : '');
-  return x`
-        <div class="row">
-            <div class="col-auto">
-                <converse-avatar
-                    class="avatar modal-avatar"
-                    .data=${vcard?.attributes}
-                    nonce=${vcard?.get('vcard_updated')}
-                    height="120" width="120"></converse-avatar>
-            </div>
-            <div class="col">
-                <ul class="occupant-details">
-                    <li>
-                        ${nick ? x`<div class="row"><strong>${__('Nickname')}:</strong></div><div class="row">${nick}</div>` : ''}
-                    </li>
-                    <li>
-                        ${jid ? x`<div class="row"><strong>${__('XMPP Address')}:</strong></div><div class="row">${jid}</div>` : ''}
-                    </li>
-                    <li>
-                        <div class="row"><strong>${__('Affiliation')}:</strong></div>
-                        <div class="row">${affiliation}&nbsp;
-                            ${may_moderate ? x`
-                                <a href="#"
-                                data-form="affiliation-form"
-                                class="toggle-form right"
-                                color="var(--subdued-color)"
-                                @click=${ev => el.toggleForm(ev)}><converse-icon class="fa fa-wrench" size="1em"></converse-icon>
-                                </a>
-                                ${el.show_affiliation_form ? x`<converse-muc-affiliation-form jid=${jid} .muc=${muc} affiliation=${affiliation}></converse-muc-affiliation-form>` : ''}` : ''}
-                        </div>
-                    </li>
-                    <li>
-                        <div class="row"><strong>${__('Role')}:</strong></div>
-                        <div class="row">${role}&nbsp;
-                            ${may_moderate && role ? x`
-                                <a href="#"
-                                   data-form="row-form"
-                                   class="toggle-form right"
-                                   color="var(--subdued-color)"
-                                   @click=${ev => el.toggleForm(ev)}><converse-icon class="fa fa-wrench" size="1em"></converse-icon>
-                                </a>
-                                ${el.show_role_form ? x`<converse-muc-role-form jid=${jid} .muc=${muc} role=${role}></converse-muc-role-form>` : ''}` : ''}
-                        </div>
-                    </li>
-                    <li>
-                        ${hats ? x`<div class="row"><strong>${__('Hats')}:</strong></div><div class="row">${hats}</div>` : ''}
-                    </li>
-                    <li>
-                        ${occupant_id ? x`<div class="row"><strong>${__('Occupant Id')}:</strong></div><div class="row">${occupant_id}</div>` : ''}
-                    </li>
-                    ${until_m(add_to_contacts, '')}
-                </ul>
-            </div>
-        </div>
-    `;
+  const add_to_contacts = shared_api.contacts.get(jid).then(contact => !contact && not_me && can_see_real_jids).then(add => add ? x`<li><button class="btn btn-primary" type="button" @click="${() => el.addToContacts()}">${i18n_add_to_contacts}</button></li>` : '');
+  return x`<div class="row"><div class="col-auto"><converse-avatar class="avatar modal-avatar" .data="${vcard?.attributes}" nonce="${vcard?.get('vcard_updated')}" height="120" width="120"></converse-avatar></div><div class="col"><ul class="occupant-details"><li>${nick ? x`<div class="row"><strong>${__('Nickname')}:</strong></div><div class="row">${nick}</div>` : ''}</li><li>${jid ? x`<div class="row"><strong>${__('XMPP Address')}:</strong></div><div class="row">${jid}</div>` : ''}</li><li><div class="row"><strong>${__('Affiliation')}:</strong></div><div class="row">${affiliation}  ${may_moderate ? x`<a href="#" data-form="affiliation-form" class="toggle-form right" color="var(--subdued-color)" @click="${ev => el.toggleForm(ev)}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>${el.show_affiliation_form ? x`<converse-muc-affiliation-form jid="${jid}" .muc="${muc}" affiliation="${affiliation}"></converse-muc-affiliation-form>` : ''}` : ''}</div></li><li><div class="row"><strong>${__('Role')}:</strong></div><div class="row">${role}  ${may_moderate && role ? x`<a href="#" data-form="row-form" class="toggle-form right" color="var(--subdued-color)" @click="${ev => el.toggleForm(ev)}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>${el.show_role_form ? x`<converse-muc-role-form jid="${jid}" .muc="${muc}" role="${role}"></converse-muc-role-form>` : ''}` : ''}</div></li><li>${hats ? x`<div class="row"><strong>${__('Hats')}:</strong></div><div class="row">${hats}</div>` : ''}</li><li>${occupant_id ? x`<div class="row"><strong>${__('Occupant Id')}:</strong></div><div class="row">${occupant_id}</div>` : ''}</li>${until_m(add_to_contacts, '')}</ul></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/modals/occupant.js
 
@@ -53825,78 +53702,13 @@ function getAffiliationHelpText(aff) {
     return __("To ban a user, you give them the affiliation of \"outcast\".");
   }
 }
-const role_option = o => x`
-    <option value="${o.item || ''}"
-            ?selected=${o.item === o.role}
-            title="${getRoleHelpText(o.item)}">${o.item}</option>
-`;
-const affiliation_option = o => x`
-    <option value="${o.item || ''}"
-            ?selected=${o.item === o.affiliation}
-            title="${getAffiliationHelpText(o.item)}">${o.item}</option>
-`;
-const tplRoleFormToggle = o => x`
-    <a href="#" data-form="converse-muc-role-form" class="toggle-form right" color="var(--subdued-color)" @click=${o.toggleForm}>
-        <converse-icon class="fa fa-wrench" size="1em"></converse-icon>
-    </a>`;
-const tplRoleListItem = (el, o) => x`
-    <li class="list-group-item" data-nick="${o.item.nick}">
-        <ul class="list-group">
-            <li class="list-group-item active">
-                <div><strong>JID:</strong> ${o.item.jid}</div>
-            </li>
-            <li class="list-group-item">
-                <div><strong>Nickname:</strong> ${o.item.nick}</div>
-            </li>
-            <li class="list-group-item">
-                <div><strong>Role:</strong> ${o.item.role} ${o.assignable_roles.length ? tplRoleFormToggle(o) : ''}</div>
-                ${o.assignable_roles.length ? x`<converse-muc-role-form class="hidden" .muc=${el.muc} jid=${o.item.jid} role=${o.item.role}></converse-muc-role-form>` : ''}
-            </li>
-        </ul>
-    </li>
-`;
-const affiliation_form_toggle = o => x`
-    <a href="#" data-form="converse-muc-affiliation-form" class="toggle-form right" color="var(--subdued-color)" @click=${o.toggleForm}>
-        <converse-icon class="fa fa-wrench" size="1em"></converse-icon>
-    </a>`;
-const affiliation_list_item = (el, o) => x`
-    <li class="list-group-item" data-nick="${o.item.nick}">
-        <ul class="list-group">
-            <li class="list-group-item active">
-                <div><strong>JID:</strong> ${o.item.jid}</div>
-            </li>
-            <li class="list-group-item">
-                <div><strong>Nickname:</strong> ${o.item.nick}</div>
-            </li>
-            <li class="list-group-item">
-                <div><strong>Affiliation:</strong> ${o.item.affiliation} ${o.assignable_affiliations.length ? affiliation_form_toggle(o) : ''}</div>
-                ${o.assignable_affiliations.length ? x`<converse-muc-affiliation-form class="hidden" .muc=${el.muc} jid=${o.item.jid} affiliation=${o.item.affiliation}></converse-muc-affiliation-form>` : ''}
-            </li>
-        </ul>
-    </li>
-`;
-const tplNavigation = o => x`
-    <ul class="nav nav-pills justify-content-center">
-        <li role="presentation" class="nav-item">
-            <a class="nav-link ${o.tab === "affiliations" ? "active" : ""}"
-               id="affiliations-tab"
-               href="#affiliations-tabpanel"
-               aria-controls="affiliations-tabpanel"
-               role="tab"
-               data-name="affiliations"
-               @click=${o.switchTab}>Affiliations</a>
-        </li>
-        <li role="presentation" class="nav-item">
-            <a class="nav-link ${o.tab === "roles" ? "active" : ""}"
-               id="roles-tab"
-               href="#roles-tabpanel"
-               aria-controls="roles-tabpanel"
-               role="tab"
-               data-name="roles"
-               @click=${o.switchTab}>Roles</a>
-        </li>
-    </ul>
-`;
+const role_option = o => x`<option value="${o.item || ''}" ?selected="${o.item === o.role}" title="${getRoleHelpText(o.item)}">${o.item}</option>`;
+const affiliation_option = o => x`<option value="${o.item || ''}" ?selected="${o.item === o.affiliation}" title="${getAffiliationHelpText(o.item)}">${o.item}</option>`;
+const tplRoleFormToggle = o => x`<a href="#" data-form="converse-muc-role-form" class="toggle-form right" color="var(--subdued-color)" @click="${o.toggleForm}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>`;
+const tplRoleListItem = (el, o) => x`<li class="list-group-item" data-nick="${o.item.nick}"><ul class="list-group"><li class="list-group-item active"><div><strong>JID:</strong> ${o.item.jid}</div></li><li class="list-group-item"><div><strong>Nickname:</strong> ${o.item.nick}</div></li><li class="list-group-item"><div><strong>Role:</strong> ${o.item.role} ${o.assignable_roles.length ? tplRoleFormToggle(o) : ''}</div>${o.assignable_roles.length ? x`<converse-muc-role-form class="hidden" .muc="${el.muc}" jid="${o.item.jid}" role="${o.item.role}"></converse-muc-role-form>` : ''}</li></ul></li>`;
+const affiliation_form_toggle = o => x`<a href="#" data-form="converse-muc-affiliation-form" class="toggle-form right" color="var(--subdued-color)" @click="${o.toggleForm}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>`;
+const affiliation_list_item = (el, o) => x`<li class="list-group-item" data-nick="${o.item.nick}"><ul class="list-group"><li class="list-group-item active"><div><strong>JID:</strong> ${o.item.jid}</div></li><li class="list-group-item"><div><strong>Nickname:</strong> ${o.item.nick}</div></li><li class="list-group-item"><div><strong>Affiliation:</strong> ${o.item.affiliation} ${o.assignable_affiliations.length ? affiliation_form_toggle(o) : ''}</div>${o.assignable_affiliations.length ? x`<converse-muc-affiliation-form class="hidden" .muc="${el.muc}" jid="${o.item.jid}" affiliation="${o.item.affiliation}"></converse-muc-affiliation-form>` : ''}</li></ul></li>`;
+const tplNavigation = o => x`<ul class="nav nav-pills justify-content-center"><li role="presentation" class="nav-item"><a class="nav-link ${o.tab === "affiliations" ? "active" : ""}" id="affiliations-tab" href="#affiliations-tabpanel" aria-controls="affiliations-tabpanel" role="tab" data-name="affiliations" @click="${o.switchTab}">Affiliations</a></li><li role="presentation" class="nav-item"><a class="nav-link ${o.tab === "roles" ? "active" : ""}" id="roles-tab" href="#roles-tabpanel" aria-controls="roles-tabpanel" role="tab" data-name="roles" @click="${o.switchTab}">Roles</a></li></ul>`;
 /* harmony default export */ const moderator_tools = ((el, o) => {
   const i18n_affiliation = __('Affiliation');
   const i18n_no_users_with_aff = __('No users with that affiliation found.');
@@ -53907,94 +53719,18 @@ const tplNavigation = o => x`
   const i18n_helptext_role = __("Roles are assigned to users to grant or deny them certain abilities in a multi-user chat. " + "They're assigned either explicitly or implicitly as part of an affiliation. " + "A role that's not due to an affiliation, is only valid for the duration of the user's session.");
   const i18n_helptext_affiliation = __("An affiliation is a long-lived entitlement which typically implies a certain role and which " + "grants privileges and responsibilities. For example admins and owners automatically have the " + "moderator role.");
   const show_both_tabs = o.queryable_roles.length && o.queryable_affiliations.length;
-  return x`
-        ${o.alert_message ? x`<div class="alert alert-${o.alert_type}" role="alert">${o.alert_message}</div>` : ''}
-        ${show_both_tabs ? tplNavigation(o) : ''}
-
-        <div class="tab-content">
-
-            ${o.queryable_affiliations.length ? x`
-            <div class="tab-pane tab-pane--columns ${o.tab === 'affiliations' ? 'active' : ''}" id="affiliations-tabpanel" role="tabpanel" aria-labelledby="affiliations-tab">
-                <form class="converse-form query-affiliation" @submit=${o.queryAffiliation}>
-                    <p class="helptext pb-3">${i18n_helptext_affiliation}</p>
-                    <div class="form-group">
-                        <label for="affiliation">
-                            <strong>${i18n_affiliation}:</strong>
-                        </label>
-                        <div class="row">
-                            <div class="col">
-                                <select class="custom-select select-affiliation" name="affiliation">
-                                    ${o.queryable_affiliations.map(item => affiliation_option(Object.assign({
+  return x`${o.alert_message ? x`<div class="alert alert-${o.alert_type}" role="alert">${o.alert_message}</div>` : ''} ${show_both_tabs ? tplNavigation(o) : ''}<div class="tab-content">${o.queryable_affiliations.length ? x`<div class="tab-pane tab-pane--columns ${o.tab === 'affiliations' ? 'active' : ''}" id="affiliations-tabpanel" role="tabpanel" aria-labelledby="affiliations-tab"><form class="converse-form query-affiliation" @submit="${o.queryAffiliation}"><p class="helptext pb-3">${i18n_helptext_affiliation}</p><div class="form-group"><label for="affiliation"><strong>${i18n_affiliation}:</strong></label><div class="row"><div class="col"><select class="custom-select select-affiliation" name="affiliation">${o.queryable_affiliations.map(item => affiliation_option(Object.assign({
     item
-  }, o)))}
-                                </select>
-                            </div>
-                            <div class="col">
-                                <input type="submit" class="btn btn-primary" name="users_with_affiliation" value="${i18n_show_users}"/>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col mt-3">
-                                ${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length > 5 ? x`<input class="form-control" .value="${o.affiliations_filter}" @keyup=${o.filterAffiliationResults} type="text" name="filter" placeholder="${i18n_filter}"/>` : ''}
-                            </div>
-                        </div>
-
-                        ${getAffiliationHelpText(o.affiliation) ? x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getAffiliationHelpText(o.affiliation)}</p></div></div>` : ''}
-                    </div>
-                </form>
-                <div class="scrollable-container">
-                    <ul class="list-group list-group--users">
-                        ${o.loading_users_with_affiliation ? x`<li class="list-group-item"> ${spinner()} </li>` : ''}
-                        ${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length === 0 ? x`<li class="list-group-item">${i18n_no_users_with_aff}</li>` : ''}
-
-                        ${o.users_with_affiliation instanceof Error ? x`<li class="list-group-item">${o.users_with_affiliation.message}</li>` : (o.users_with_affiliation || []).map(item => (item.nick || item.jid).match(new RegExp(o.affiliations_filter, 'i')) ? affiliation_list_item(el, Object.assign({
+  }, o)))}</select></div><div class="col"><input type="submit" class="btn btn-primary" name="users_with_affiliation" value="${i18n_show_users}"></div></div><div class="row"><div class="col mt-3">${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length > 5 ? x`<input class="form-control" .value="${o.affiliations_filter}" @keyup="${o.filterAffiliationResults}" type="text" name="filter" placeholder="${i18n_filter}">` : ''}</div></div>${getAffiliationHelpText(o.affiliation) ? x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getAffiliationHelpText(o.affiliation)}</p></div></div>` : ''}</div></form><div class="scrollable-container"><ul class="list-group list-group--users">${o.loading_users_with_affiliation ? x`<li class="list-group-item">${spinner()}</li>` : ''} ${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length === 0 ? x`<li class="list-group-item">${i18n_no_users_with_aff}</li>` : ''} ${o.users_with_affiliation instanceof Error ? x`<li class="list-group-item">${o.users_with_affiliation.message}</li>` : (o.users_with_affiliation || []).map(item => (item.nick || item.jid).match(new RegExp(o.affiliations_filter, 'i')) ? affiliation_list_item(el, Object.assign({
     item
-  }, o)) : '')}
-                    </ul>
-                </div>
-            </div>` : ''}
-
-            ${o.queryable_roles.length ? x`
-            <div class="tab-pane tab-pane--columns ${o.tab === 'roles' ? 'active' : ''}" id="roles-tabpanel" role="tabpanel" aria-labelledby="roles-tab">
-                <form class="converse-form query-role" @submit=${o.queryRole}>
-                    <p class="helptext pb-3">${i18n_helptext_role}</p>
-                    <div class="form-group">
-                        <label for="role"><strong>${i18n_role}:</strong></label>
-                        <div class="row">
-                            <div class="col">
-                                <select class="custom-select select-role" name="role">
-                                    ${o.queryable_roles.map(item => role_option(Object.assign({
+  }, o)) : '')}</ul></div></div>` : ''} ${o.queryable_roles.length ? x`<div class="tab-pane tab-pane--columns ${o.tab === 'roles' ? 'active' : ''}" id="roles-tabpanel" role="tabpanel" aria-labelledby="roles-tab"><form class="converse-form query-role" @submit="${o.queryRole}"><p class="helptext pb-3">${i18n_helptext_role}</p><div class="form-group"><label for="role"><strong>${i18n_role}:</strong></label><div class="row"><div class="col"><select class="custom-select select-role" name="role">${o.queryable_roles.map(item => role_option(Object.assign({
     item
-  }, o)))}
-                                </select>
-                            </div>
-                            <div class="col">
-                                <input type="submit" class="btn btn-primary" name="users_with_role" value="${i18n_show_users}"/>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col mt-3">
-                                ${Array.isArray(o.users_with_role) && o.users_with_role.length > 5 ? x`<input class="form-control" .value="${o.roles_filter}" @keyup=${o.filterRoleResults} type="text" name="filter" placeholder="${i18n_filter}"/>` : ''}
-                            </div>
-                        </div>
-
-                        ${getRoleHelpText(o.role) ? x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getRoleHelpText(o.role)}</p></div></div>` : ''}
-                    </div>
-                </form>
-                <div class="scrollable-container">
-                    <ul class="list-group list-group--users">
-                        ${o.loading_users_with_role ? x`<li class="list-group-item"> ${spinner()} </li>` : ''}
-                        ${o.users_with_role && o.users_with_role.length === 0 ? x`<li class="list-group-item">${i18n_no_users_with_role}</li>` : ''}
-                        ${(o.users_with_role || []).map(item => item.nick.match(o.roles_filter) ? tplRoleListItem(el, Object.assign({
+  }, o)))}</select></div><div class="col"><input type="submit" class="btn btn-primary" name="users_with_role" value="${i18n_show_users}"></div></div><div class="row"><div class="col mt-3">${Array.isArray(o.users_with_role) && o.users_with_role.length > 5 ? x`<input class="form-control" .value="${o.roles_filter}" @keyup="${o.filterRoleResults}" type="text" name="filter" placeholder="${i18n_filter}">` : ''}</div></div>${getRoleHelpText(o.role) ? x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getRoleHelpText(o.role)}</p></div></div>` : ''}</div></form><div class="scrollable-container"><ul class="list-group list-group--users">${o.loading_users_with_role ? x`<li class="list-group-item">${spinner()}</li>` : ''} ${o.users_with_role && o.users_with_role.length === 0 ? x`<li class="list-group-item">${i18n_no_users_with_role}</li>` : ''} ${(o.users_with_role || []).map(item => item.nick.match(o.roles_filter) ? tplRoleListItem(el, Object.assign({
     item
-  }, o)) : '')}
-                    </ul>
-                </div>
-            </div>` : ''}
-        </div>`;
+  }, o)) : '')}</ul></div></div>` : ''}</div>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/moderator-tools.scss
-var styles_moderator_tools = __webpack_require__(6205);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/moderator-tools.scss
+var styles_moderator_tools = __webpack_require__(4891);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/moderator-tools.scss
 
       
@@ -54243,7 +53979,7 @@ class ModeratorToolsModal extends modal_modal {
     this.id = "converse-modtools-modal";
   }
   renderModal() {
-    return x`<converse-modtools jid=${this.jid} affiliation=${this.affiliation}></converse-modtools>`;
+    return x`<converse-modtools jid="${this.jid}" affiliation="${this.affiliation}"></converse-modtools>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -54343,15 +54079,7 @@ function getChatRoomBodyTemplate(o) {
   if (view === public_converse.MUC.VIEWS.CONFIG) {
     return x`<converse-muc-config-form class="muc-form-container" jid="${jid}"></converse-muc-config-form>`;
   } else {
-    return x`
-            ${conn_status == RS.PASSWORD_REQUIRED ? x`<converse-muc-password-form class="muc-form-container" jid="${jid}"></converse-muc-password-form>` : ''}
-            ${conn_status == RS.ENTERED ? x`<converse-muc-chatarea jid="${jid}"></converse-muc-chatarea>` : ''}
-            ${conn_status == RS.CONNECTING ? spinner() : ''}
-            ${conn_status == RS.NICKNAME_REQUIRED ? getNicknameRequiredTemplate(o.model) : ''}
-            ${conn_status == RS.DISCONNECTED ? x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''}
-            ${conn_status == RS.BANNED ? x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''}
-            ${conn_status == RS.DESTROYED ? x`<converse-muc-destroyed jid="${jid}"></converse-muc-destroyed>` : ''}
-        `;
+    return x`${conn_status == RS.PASSWORD_REQUIRED ? x`<converse-muc-password-form class="muc-form-container" jid="${jid}"></converse-muc-password-form>` : ''} ${conn_status == RS.ENTERED ? x`<converse-muc-chatarea jid="${jid}"></converse-muc-chatarea>` : ''} ${conn_status == RS.CONNECTING ? spinner() : ''} ${conn_status == RS.NICKNAME_REQUIRED ? getNicknameRequiredTemplate(o.model) : ''} ${conn_status == RS.DISCONNECTED ? x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''} ${conn_status == RS.BANNED ? x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''} ${conn_status == RS.DESTROYED ? x`<converse-muc-destroyed jid="${jid}"></converse-muc-destroyed>` : ''}`;
   }
 }
 function getAutoCompleteListItem(text, input) {
@@ -54592,36 +54320,7 @@ function parseMessageForMUCCommands(data, handled) {
   const i18n_fetch_commands = __('List available commands');
   const i18n_jid_placeholder = __('XMPP Address');
   const i18n_no_commands_found = __('No commands found');
-  return x`
-        ${el.alert ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert}</div>` : ''}
-        ${el.note ? x`<p class="form-help">${el.note}</p>` : ''}
-
-        <form class="converse-form" @submit=${el.fetchCommands}>
-            <fieldset class="form-group">
-                <label>
-                    ${i18n_choose_service}
-                    <p class="form-help">${i18n_choose_service_instructions}</p>
-                    <converse-autocomplete
-                        .getAutoCompleteList="${getAutoCompleteList}"
-                        required
-                        placeholder="${i18n_jid_placeholder}"
-                        name="jid">
-                    </converse-autocomplete>
-                </label>
-            </fieldset>
-            <fieldset class="form-group">
-                ${el.fetching ? spinner() : x`<input type="submit" class="btn btn-primary" value="${i18n_fetch_commands}">`}
-            </fieldset>
-            ${el.view === 'list-commands' ? x`
-            <fieldset class="form-group">
-                <ul class="list-group">
-                    <li class="list-group-item active">${el.commands.length ? i18n_commands_found : i18n_no_commands_found}:</li>
-                    ${el.commands.map(cmd => ad_hoc_command(el, cmd))}
-                </ul>
-            </fieldset>` : ''}
-
-        </form>
-    `;
+  return x`${el.alert ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert}</div>` : ''} ${el.note ? x`<p class="form-help">${el.note}</p>` : ''}<form class="converse-form" @submit="${el.fetchCommands}"><fieldset class="form-group"><label>${i18n_choose_service}<p class="form-help">${i18n_choose_service_instructions}</p><converse-autocomplete .getAutoCompleteList="${getAutoCompleteList}" required placeholder="${i18n_jid_placeholder}" name="jid"></converse-autocomplete></label></fieldset><fieldset class="form-group">${el.fetching ? spinner() : x`<input type="submit" class="btn btn-primary" value="${i18n_fetch_commands}">`}</fieldset>${el.view === 'list-commands' ? x`<fieldset class="form-group"><ul class="list-group"><li class="list-group-item active">${el.commands.length ? i18n_commands_found : i18n_no_commands_found}:</li>${el.commands.map(cmd => ad_hoc_command(el, cmd))}</ul></fieldset>` : ''}</form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/adhoc-views/adhoc-commands.js
 
@@ -54944,21 +54643,7 @@ function openRoomViaEvent(ev) {
   const jid = bm.get('jid');
   const info_remove_bookmark = __('Unbookmark this groupchat');
   const open_title = __('Click to open this groupchat');
-  return x`
-        <div class="list-item room-item available-chatroom d-flex flex-row" data-room-jid="${jid}">
-            <a class="list-item-link open-room w-100" data-room-jid="${jid}"
-                title="${open_title}"
-                @click=${openRoomViaEvent}>${bm.getDisplayName()}</a>
-
-            <a class="list-item-action remove-bookmark align-self-center ${bm.get('bookmarked') ? 'button-on' : ''}"
-                data-room-jid="${jid}"
-                data-bookmark-name="${bm.getDisplayName()}"
-                title="${info_remove_bookmark}"
-                @click=${removeBookmarkViaEvent}>
-            <converse-icon class="fa fa-bookmark" size="1em"></converse-icon>
-            </a>
-        </div>
-    `;
+  return x`<div class="list-item room-item available-chatroom d-flex flex-row" data-room-jid="${jid}"><a class="list-item-link open-room w-100" data-room-jid="${jid}" title="${open_title}" @click="${openRoomViaEvent}">${bm.getDisplayName()}</a> <a class="list-item-action remove-bookmark align-self-center ${bm.get('bookmarked') ? 'button-on' : ''}" data-room-jid="${jid}" data-bookmark-name="${bm.getDisplayName()}" title="${info_remove_bookmark}" @click="${removeBookmarkViaEvent}"><converse-icon class="fa fa-bookmark" size="1em"></converse-icon></a></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/bookmark-views/components/templates/list.js
 
@@ -54973,30 +54658,10 @@ const filterBookmark = (b, text) => b.get('name')?.includes(text) || b.get('jid'
     bookmarks
   } = shared_converse;
   const shown_bookmarks = filter_text ? bookmarks.filter(b => filterBookmark(b, filter_text)) : bookmarks;
-  return x`
-        <form class="converse-form bookmarks-filter">
-            <div class="btn-group w-100">
-                <input
-                    .value=${filter_text ?? ''}
-                    @keydown="${ev => el.liveFilter(ev)}"
-                    class="form-control"
-                    placeholder="${i18n_placeholder}"/>
-
-                <converse-icon size="1em" class="fa fa-times clear-input ${!filter_text ? 'hidden' : ''}"
-                    @click=${el.clearFilter}>
-                </converse-icon>
-            </div>
-        </form>
-
-        <div class="list-container list-container--bookmarks">
-            <div class="items-list bookmarks rooms-list">
-                ${shown_bookmarks.map(bm => item(bm))}
-            </div>
-        </div>
-    `;
+  return x`<form class="converse-form bookmarks-filter"><div class="btn-group w-100"><input .value="${filter_text ?? ''}" @keydown="${ev => el.liveFilter(ev)}" class="form-control" placeholder="${i18n_placeholder}"><converse-icon size="1em" class="fa fa-times clear-input ${!filter_text ? 'hidden' : ''}" @click="${el.clearFilter}"></converse-icon></div></form><div class="list-container list-container--bookmarks"><div class="items-list bookmarks rooms-list">${shown_bookmarks.map(bm => item(bm))}</div></div>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/bookmark-views/styles/bookmarks.scss
-var bookmarks = __webpack_require__(5422);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/bookmark-views/styles/bookmarks.scss
+var bookmarks = __webpack_require__(7690);
 ;// CONCATENATED MODULE: ./src/plugins/bookmark-views/styles/bookmarks.scss
 
       
@@ -55098,27 +54763,7 @@ shared_api.elements.define('converse-bookmark-list-modal', BookmarkListModal);
   const i18n_name = __('The name for this bookmark:');
   const i18n_nick = __('What should your nickname for this groupchat be?');
   const i18n_submit = el.bookmark ? __('Update') : __('Save');
-  return x`
-        <form class="converse-form chatroom-form" @submit=${ev => el.onBookmarkFormSubmitted(ev)}>
-            <legend>${i18n_heading}</legend>
-            <fieldset class="form-group">
-                <label for="converse_muc_bookmark_name">${i18n_name}</label>
-                <input class="form-control" type="text" value="${name}" name="name" required="required" id="converse_muc_bookmark_name"/>
-            </fieldset>
-            <fieldset class="form-group">
-                <label for="converse_muc_bookmark_nick">${i18n_nick}</label>
-                <input class="form-control" type="text" name="nick" value="${nick || ''}" id="converse_muc_bookmark_nick"/>
-            </fieldset>
-            <fieldset class="form-group form-check">
-                <input class="form-check-input" id="converse_muc_bookmark_autojoin" type="checkbox" ?checked=${el.bookmark?.get('autojoin')} name="autojoin"/>
-                <label class="form-check-label" for="converse_muc_bookmark_autojoin">${i18n_autojoin}</label>
-            </fieldset>
-            <fieldset class="form-group">
-                <input class="btn btn-primary" type="submit" value="${i18n_submit}">
-                    ${el.bookmark ? x`<input class="btn btn-secondary button-remove" type="button" value="${i18n_remove}" @click=${ev => el.removeBookmark(ev)}>` : ''}
-            </fieldset>
-        </form>
-    `;
+  return x`<form class="converse-form chatroom-form" @submit="${ev => el.onBookmarkFormSubmitted(ev)}"><legend>${i18n_heading}</legend><fieldset class="form-group"><label for="converse_muc_bookmark_name">${i18n_name}</label> <input class="form-control" type="text" value="${name}" name="name" required="required" id="converse_muc_bookmark_name"></fieldset><fieldset class="form-group"><label for="converse_muc_bookmark_nick">${i18n_nick}</label> <input class="form-control" type="text" name="nick" value="${nick || ''}" id="converse_muc_bookmark_nick"></fieldset><fieldset class="form-group form-check"><input class="form-check-input" id="converse_muc_bookmark_autojoin" type="checkbox" ?checked="${el.bookmark?.get('autojoin')}" name="autojoin"> <label class="form-check-label" for="converse_muc_bookmark_autojoin">${i18n_autojoin}</label></fieldset><fieldset class="form-group"><input class="btn btn-primary" type="submit" value="${i18n_submit}"> ${el.bookmark ? x`<input class="btn btn-secondary button-remove" type="button" value="${i18n_remove}" @click="${ev => el.removeBookmark(ev)}">` : ''}</fieldset></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/bookmark-views/components/bookmark-form.js
 
@@ -55172,9 +54817,7 @@ shared_api.elements.define('converse-muc-bookmark-form', MUCBookmarkForm);
 
 class BookmarkFormModal extends modal_modal {
   renderModal() {
-    return x`
-            <converse-muc-bookmark-form class="muc-form-container" jid="${this.jid}">
-            </converse-muc-bookmark-form>`;
+    return x`<converse-muc-bookmark-form class="muc-form-container" jid="${this.jid}"></converse-muc-bookmark-form>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -55268,53 +54911,7 @@ public_converse.plugins.add('converse-bookmark-views', {
 ;// CONCATENATED MODULE: ./src/templates/background_logo.js
 
 
-/* harmony default export */ const background_logo = (() => x`
-    <div class="inner-content converse-brand row">
-        <div class="converse-brand__padding"></div>
-        <div class="converse-brand__heading">
-            <svg height="200px"
-                xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink"
-                viewBox="0 0 364 364"
-                version="1.1">
-                <title>Logo Converse</title>
-                <defs>
-                    <linearGradient id="gradient" x1="92.14" y1="27.64" x2="267.65" y2="331.62" gradientUnits="userSpaceOnUse">
-                        <stop offset="0" stop-color="#fff1d1"/>
-                        <stop offset="0.05" stop-color="#fae8c1"/>
-                        <stop offset="0.15" stop-color="#f0d5a1"/>
-                        <stop offset="0.27" stop-color="#e7c687"/>
-                        <stop offset="0.4" stop-color="#e1bb72"/>
-                        <stop offset="0.54" stop-color="#dcb264"/>
-                        <stop offset="0.71" stop-color="#daad5c"/>
-                        <stop offset="1" stop-color="#d9ac59"/>
-                    </linearGradient>
-                    <filter id="shadow">
-                        <feGaussianBlur in="SourceAlpha" stdDeviation="2.3" result="blur1"/>
-                        <feOffset in="blur1" dx="3" dy="3" result="blur2"/>
-                        <feColorMatrix in="blur2" type="matrix" result="blur3"
-                            values="1 0 0 0 0.1
-                                    0 1 0 0 0.1
-                                    0 0 1 0 0.1
-                                    0 0 0 1 0"/>
-                        <feMerge>
-                            <feMergeNode in="blur3"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                </defs>
-                <g filter="url(#shadow)">
-                    <path d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z" fill="#d9ac59"/>
-                    <path d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z" fill="url(#gradient)"/>
-                </g>
-            </svg>
-            <span class="converse-brand__text">
-                <span>converse<span class="subdued">.js</span></span>
-                <p class="byline">messaging freedom</p>
-            </span>
-        </div>
-        ${shared_api.settings.get('view_mode') === 'overlayed' ? x`<div class="converse-brand__padding"></div>` : ''}
-    </div>`);
+/* harmony default export */ const background_logo = (() => x`<div class="inner-content converse-brand row"><div class="converse-brand__padding"></div><div class="converse-brand__heading"><svg height="200px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 364 364" version="1.1"><title>Logo Converse</title><defs><linearGradient id="gradient" x1="92.14" y1="27.64" x2="267.65" y2="331.62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff1d1"/><stop offset="0.05" stop-color="#fae8c1"/><stop offset="0.15" stop-color="#f0d5a1"/><stop offset="0.27" stop-color="#e7c687"/><stop offset="0.4" stop-color="#e1bb72"/><stop offset="0.54" stop-color="#dcb264"/><stop offset="0.71" stop-color="#daad5c"/><stop offset="1" stop-color="#d9ac59"/></linearGradient><filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="2.3" result="blur1"/><feOffset in="blur1" dx="3" dy="3" result="blur2"/><feColorMatrix in="blur2" type="matrix" result="blur3" values="1 0 0 0 0.1                                    0 1 0 0 0.1                                    0 0 1 0 0.1                                    0 0 0 1 0"/><feMerge><feMergeNode in="blur3"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#shadow)"><path d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z" fill="#d9ac59"/><path d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z" fill="url(#gradient)"/></g></svg> <span class="converse-brand__text"><span>converse<span class="subdued">.js</span></span><p class="byline">messaging freedom</p></span></div>${shared_api.settings.get('view_mode') === 'overlayed' ? x`<div class="converse-brand__padding"></div>` : ''}</div>`);
 ;// CONCATENATED MODULE: ./node_modules/lit-html/directives/repeat.js
 
 
@@ -55411,32 +55008,17 @@ function shouldShowChat(c) {
   const view_mode = shared_api.settings.get('view_mode');
   const connection = shared_converse?.connection;
   const logged_out = !connection?.connected || !connection?.authenticated || connection?.disconnecting;
-  return x`
-        ${!logged_out && view_mode === 'overlayed' ? x`<converse-minimized-chats></converse-minimized-chats>` : ''}
-        ${repeat_c(chatboxes.filter(shouldShowChat), m => m.get('jid'), m => {
+  return x`${!logged_out && view_mode === 'overlayed' ? x`<converse-minimized-chats></converse-minimized-chats>` : ''} ${repeat_c(chatboxes.filter(shouldShowChat), m => m.get('jid'), m => {
     if (m.get('type') === CONTROLBOX_TYPE) {
-      return x`
-                    ${view_mode === 'overlayed' ? x`<converse-controlbox-toggle class="${!m.get('closed') ? 'hidden' : ''}"></converse-controlbox-toggle>` : ''}
-                    <converse-controlbox
-                        id="controlbox"
-                        class="chatbox ${view_mode === 'overlayed' && m.get('closed') ? 'hidden' : ''} ${logged_out ? 'logged-out' : ''}"
-                        style="${m.get('width') ? `width: ${m.get('width')}` : ''}"></converse-controlbox>
-                `;
+      return x`${view_mode === 'overlayed' ? x`<converse-controlbox-toggle class="${!m.get('closed') ? 'hidden' : ''}"></converse-controlbox-toggle>` : ''}<converse-controlbox id="controlbox" class="chatbox ${view_mode === 'overlayed' && m.get('closed') ? 'hidden' : ''} ${logged_out ? 'logged-out' : ''}" style="${m.get('width') ? `width: ${m.get('width')}` : ''}"></converse-controlbox>`;
     } else if (m.get('type') === CHATROOMS_TYPE) {
-      return x`
-                    <converse-muc jid="${m.get('jid')}" class="chatbox chatroom"></converse-muc>
-                `;
+      return x`<converse-muc jid="${m.get('jid')}" class="chatbox chatroom"></converse-muc>`;
     } else if (m.get('type') === HEADLINES_TYPE) {
-      return x`
-                    <converse-headlines jid="${m.get('jid')}" class="chatbox headlines"></converse-headlines>
-                `;
+      return x`<converse-headlines jid="${m.get('jid')}" class="chatbox headlines"></converse-headlines>`;
     } else {
-      return x`
-                    <converse-chat jid="${m.get('jid')}" class="chatbox"></converse-chat>
-                `;
+      return x`<converse-chat jid="${m.get('jid')}" class="chatbox"></converse-chat>`;
     }
-  })}
-    `;
+  })}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/chatboxviews/view.js
 
@@ -55530,8 +55112,8 @@ function calculateViewportHeightUnit() {
   const vh = window.innerHeight * 0.01;
   document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/chatboxviews/styles/chats.scss
-var styles_chats = __webpack_require__(9989);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/chatboxviews/styles/chats.scss
+var styles_chats = __webpack_require__(148);
 ;// CONCATENATED MODULE: ./src/plugins/chatboxviews/styles/chats.scss
 
       
@@ -55621,8 +55203,8 @@ public_converse.plugins.add('converse-chatboxviews', {
     });
   }
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/chat/styles/message-actions.scss
-var message_actions = __webpack_require__(4912);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/message-actions.scss
+var message_actions = __webpack_require__(1540);
 ;// CONCATENATED MODULE: ./src/shared/chat/styles/message-actions.scss
 
       
@@ -55698,25 +55280,13 @@ class MessageActions extends CustomElement {
     const buttons = await this.getActionButtons();
     const items = buttons.map(b => MessageActions.getActionsDropdownItem(b));
     if (items.length) {
-      return x`<converse-dropdown
-                class="chat-msg__actions ${should_drop_up ? 'dropup dropup--left' : 'dropleft'}"
-                .items=${items}
-            ></converse-dropdown>`;
+      return x`<converse-dropdown class="chat-msg__actions ${should_drop_up ? 'dropup dropup--left' : 'dropleft'}" .items="${items}"></converse-dropdown>`;
     } else {
       return '';
     }
   }
   static getActionsDropdownItem(o) {
-    return x`
-            <button class="chat-msg__action ${o.button_class}" @click=${o.handler}>
-                <converse-icon
-                    class="${o.icon_class}"
-                    color="var(--text-color-lighten-15-percent)"
-                    size="1em"
-                ></converse-icon>
-                ${o.i18n_text}
-            </button>
-        `;
+    return x`<button class="chat-msg__action ${o.button_class}" @click="${o.handler}"><converse-icon class="${o.icon_class}" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${o.i18n_text}</button>`;
   }
   async onMessageEditButtonClicked(ev) {
     ev.preventDefault();
@@ -55948,8 +55518,8 @@ shared_api.elements.define('converse-message-actions', MessageActions);
 ;// CONCATENATED MODULE: ./src/shared/modals/templates/image.js
 
 /* harmony default export */ const templates_image = (o => x`<img class="chat-image chat-image--modal" src="${o.src}">`);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/modals/styles/image.scss
-var styles_image = __webpack_require__(8334);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/modals/styles/image.scss
+var styles_image = __webpack_require__(17);
 ;// CONCATENATED MODULE: ./src/shared/modals/styles/image.scss
 
       
@@ -56001,7 +55571,7 @@ shared_api.elements.define('converse-image-modal', ImageModal);
 ;// CONCATENATED MODULE: ./node_modules/lit/directive.js
 
 // EXTERNAL MODULE: ./node_modules/gifuct-js/lib/index.js
-var lib = __webpack_require__(5481);
+var lib = __webpack_require__(3028);
 ;// CONCATENATED MODULE: ./src/shared/gif/index.js
 
 
@@ -56391,8 +55961,8 @@ class ConverseGif {
     return promise;
   }
 }
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/components/styles/gif.scss
-var gif = __webpack_require__(8069);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/components/styles/gif.scss
+var gif = __webpack_require__(9478);
 ;// CONCATENATED MODULE: ./src/shared/components/styles/gif.scss
 
       
@@ -56491,10 +56061,7 @@ class ConverseGIFElement extends CustomElement {
     }
   }
   render() {
-    return this.supergif?.load_error && ['url', 'empty'].includes(this.fallback) ? this.renderErrorFallback() : x`<canvas class="gif-canvas"
-                @mouseover=${() => this.setHover()}
-                @mouseleave=${() => this.unsetHover()}
-                @click=${ev => this.onControlsClicked(ev)}><img class="gif" src="${this.src}"></a></canvas>`;
+    return this.supergif?.load_error && ['url', 'empty'].includes(this.fallback) ? this.renderErrorFallback() : x`<canvas class="gif-canvas" @mouseover="${() => this.setHover()}" @mouseleave="${() => this.unsetHover()}" @click="${ev => this.onControlsClicked(ev)}"><img class="gif" src="${this.src}"></canvas>`;
   }
   renderErrorFallback() {
     if (this.fallback === 'url') {
@@ -56528,7 +56095,7 @@ shared_api.elements.define('converse-gif', ConverseGIFElement);
 ;// CONCATENATED MODULE: ./src/templates/gif.js
 
 
-/* harmony default export */ const templates_gif = ((url, hide_url) => x`<converse-gif autoplay noloop fallback='empty' src=${url}></converse-gif>${hide_url ? '' : x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
+/* harmony default export */ const templates_gif = ((url, hide_url) => x`<converse-gif autoplay noloop fallback="empty" src="${url}"></converse-gif>${hide_url ? '' : x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
 ;// CONCATENATED MODULE: ./node_modules/lit/async-directive.js
 
 ;// CONCATENATED MODULE: ./src/shared/directives/image.js
@@ -56546,12 +56113,7 @@ class ImageDirective extends async_directive_c {
     return href ? x`<a href="${href}" class="chat-image__link" target="_blank" rel="noopener">${this.renderImage(src, href, onLoad, onClick)}</a>` : this.renderImage(src, href, onLoad, onClick);
   }
   renderImage(src, href, onLoad, onClick) {
-    return x`<img class="chat-image img-thumbnail"
-                loading="lazy"
-                src="${src}"
-                @click=${onClick}
-                @error=${() => this.onError(src, href, onLoad, onClick)}
-                @load=${onLoad}/></a>`;
+    return x`<img class="chat-image img-thumbnail" loading="lazy" src="${src}" @click="${onClick}" @error="${() => this.onError(src, href, onLoad, onClick)}" @load="${onLoad}/">`;
   }
   onError(src, href, onLoad, onClick) {
     if (isURLWithImageExtension(src)) {
@@ -56782,12 +56344,7 @@ function containsDirectives(text) {
 }
 ;// CONCATENATED MODULE: ./src/shared/chat/templates/new-day.js
 
-/* harmony default export */ const new_day = (o => x`
-    <div class="message date-separator" data-isodate="${o.time}">
-        <hr class="separator"/>
-        <time class="separator-text" datetime="${o.time}"><span>${o.datestring}</span></time>
-    </div>
-`);
+/* harmony default export */ const new_day = (o => x`<div class="message date-separator" data-isodate="${o.time}"><hr class="separator"><time class="separator-text" datetime="${o.time}"><span>${o.datestring}</span></time></div>`);
 ;// CONCATENATED MODULE: ./src/shared/chat/utils.js
 
 
@@ -56801,31 +56358,11 @@ const {
 } = public_converse.env;
 async function getHeadingDropdownItem(promise_or_data) {
   const data = await promise_or_data;
-  return data ? x`
-              <a href="#" class="dropdown-item ${data.a_class}" @click=${data.handler} title="${data.i18n_title}">
-                  <converse-icon
-                      size="1em"
-                      class="fa ${data.icon_class}"
-                  ></converse-icon>
-                  ${data.i18n_text}
-              </a>
-          ` : '';
+  return data ? x`<a href="#" class="dropdown-item ${data.a_class}" @click="${data.handler}" title="${data.i18n_title}"><converse-icon size="1em" class="fa ${data.icon_class}"></converse-icon>${data.i18n_text}</a>` : '';
 }
 async function getHeadingStandaloneButton(promise_or_data) {
   const data = await promise_or_data;
-  return x`
-        <a
-            href="#"
-            class="chatbox-btn ${data.a_class}"
-            @click=${data.handler}
-            title="${data.i18n_title}"
-        >
-            <converse-icon
-                size="1em"
-                class="fa ${data.icon_class}"
-            ></converse-icon>
-        </a>
-    `;
+  return x`<a href="#" class="chatbox-btn ${data.a_class}" @click="${data.handler}" title="${data.i18n_title}"><converse-icon size="1em" class="fa ${data.icon_class}"></converse-icon></a>`;
 }
 function getStandaloneButtons(promise) {
   return promise.then(btns => btns.filter(b => b.standalone).map(b => getHeadingStandaloneButton(b)).reverse().map(b => until_m(b, '')));
@@ -56833,7 +56370,7 @@ function getStandaloneButtons(promise) {
 function getDropdownButtons(promise) {
   return promise.then(btns => {
     const dropdown_btns = btns.filter(b => !b.standalone).map(b => getHeadingDropdownItem(b));
-    return dropdown_btns.length ? x`<converse-dropdown class="chatbox-btn dropleft" .items=${dropdown_btns}></converse-dropdown>` : '';
+    return dropdown_btns.length ? x`<converse-dropdown class="chatbox-btn dropleft" .items="${dropdown_btns}"></converse-dropdown>` : '';
   });
 }
 function onScrolledDown(model) {
@@ -56951,22 +56488,12 @@ function getEmojiMarkup(data) {
       }
     } else {
       const path = shared_api.settings.get('emoji_image_path');
-      return x`<img class="emoji"
-                loading="lazy"
-                draggable="false"
-                title="${shortname}"
-                alt="${emoji}"
-                src="${path}/72x72/${data.cp}.png"/>`;
+      return x`<img class="emoji" loading="lazy" draggable="false" title="${shortname}" alt="${emoji}" src="${path}/72x72/${data.cp}.png">`;
     }
   } else if (options.unicode_only) {
     return shortname;
   } else {
-    return x`<img class="emoji"
-            loading="lazy"
-            draggable="false"
-            title="${shortname}"
-            alt="${shortname}"
-            src="${public_converse.emojis.by_sn[shortname].url}">`;
+    return x`<img class="emoji" loading="lazy" draggable="false" title="${shortname}" alt="${shortname}" src="${public_converse.emojis.by_sn[shortname].url}">`;
   }
 }
 function utils_addEmojisMarkup(text, options) {
@@ -57416,8 +56943,8 @@ class RichTextDirective extends directive_i {
 }
 const renderRichText = directive_e(RichTextDirective);
 /* harmony default export */ const rich_text = (renderRichText);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/chat/styles/message-body.scss
-var message_body = __webpack_require__(6380);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/message-body.scss
+var message_body = __webpack_require__(6933);
 ;// CONCATENATED MODULE: ./src/shared/chat/styles/message-body.scss
 
       
@@ -57519,8 +57046,8 @@ class MessageBody extends CustomElement {
   }
 }
 shared_api.elements.define('converse-chat-message-body', MessageBody);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/components/styles/icon.scss
-var icon = __webpack_require__(2484);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/components/styles/icon.scss
+var icon = __webpack_require__(8916);
 ;// CONCATENATED MODULE: ./src/shared/components/styles/icon.scss
 
       
@@ -57595,7 +57122,7 @@ class ConverseIcon extends CustomElement {
         `;
   }
   render() {
-    return x`<svg .style="${this.getStyles()}"> <use href="${this.getSource()}"> </use> </svg>`;
+    return x`<svg .style="${this.getStyles()}"><use href="${this.getSource()}"></use></svg>`;
   }
 }
 shared_api.elements.define("converse-icon", ConverseIcon);
@@ -58051,8 +57578,8 @@ class DropdownBase extends CustomElement {
     super.disconnectedCallback();
   }
 }
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/components/styles/dropdown.scss
-var dropdown = __webpack_require__(1484);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/components/styles/dropdown.scss
+var dropdown = __webpack_require__(9211);
 ;// CONCATENATED MODULE: ./src/shared/components/styles/dropdown.scss
 
       
@@ -58107,14 +57634,7 @@ class Dropdown extends DropdownBase {
     this.icon_classes = 'fa fa-bars';
   }
   render() {
-    return x`
-            <button type="button" class="btn btn--transparent btn--standalone" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <converse-icon size="1em" class="${this.icon_classes}">
-            </button>
-            <div class="dropdown-menu">
-                ${this.items.map(b => until_m(b, ''))}
-            </div>
-        `;
+    return x`<button type="button" class="btn btn--transparent btn--standalone" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><converse-icon size="1em" class="${this.icon_classes}"></converse-icon></button><div class="dropdown-menu">${this.items.map(b => until_m(b, ''))}</div>`;
   }
   firstUpdated() {
     super.firstUpdated();
@@ -58158,8 +57678,8 @@ class Dropdown extends DropdownBase {
   }
 }
 shared_api.elements.define('converse-dropdown', Dropdown);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/components/styles/message-versions.scss
-var message_versions = __webpack_require__(8211);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/components/styles/message-versions.scss
+var message_versions = __webpack_require__(2533);
 ;// CONCATENATED MODULE: ./src/shared/components/styles/message-versions.scss
 
       
@@ -58214,11 +57734,7 @@ class MessageVersions extends CustomElement {
   render() {
     const older_versions = this.model.get('older_versions');
     const keys = Object.keys(older_versions);
-    return x`
-            ${keys.length ? x`<h4>${__('Older versions')}</h4> ${keys.map(k => tplOlderVersion(k, older_versions))}` : x`<h4>${__('No older versions found')}</h4>`}
-            <hr/>
-            <h4>${__('Current version')}</h4>
-            <p><time>${message_versions_dayjs(this.model.get('time')).format('MMM D, YYYY, HH:mm:ss')}</time>: ${this.model.getMessageText()}</p>`;
+    return x`${keys.length ? x`<h4>${__('Older versions')}</h4>${keys.map(k => tplOlderVersion(k, older_versions))}` : x`<h4>${__('No older versions found')}</h4>`}<hr><h4>${__('Current version')}</h4><p><time>${message_versions_dayjs(this.model.get('time')).format('MMM D, YYYY, HH:mm:ss')}</time>: ${this.model.getMessageText()}</p>`;
   }
 }
 shared_api.elements.define('converse-message-versions', MessageVersions);
@@ -58230,7 +57746,7 @@ shared_api.elements.define('converse-message-versions', MessageVersions);
 
 class MessageVersionsModal extends modal_modal {
   renderModal() {
-    return x`<converse-message-versions .model=${this.model}></converse-message-versions>`;
+    return x`<converse-message-versions .model="${this.model}"></converse-message-versions>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -58246,34 +57762,13 @@ shared_api.elements.define('converse-message-versions-modal', MessageVersionsMod
 
 const remove_button = el => {
   const i18n_remove_contact = __('Remove as contact');
-  return x`
-        <button type="button" @click="${ev => el.removeContact(ev)}" class="btn btn-danger remove-contact">
-            <converse-icon
-                class="fas fa-trash-alt"
-                color="var(--text-color-lighten-15-percent)"
-                size="1em"
-            ></converse-icon>
-            ${i18n_remove_contact}
-        </button>
-    `;
+  return x`<button type="button" @click="${ev => el.removeContact(ev)}" class="btn btn-danger remove-contact"><converse-icon class="fas fa-trash-alt" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${i18n_remove_contact}</button>`;
 };
 const tplFooter = el => {
   const is_roster_contact = el.model.contact !== undefined;
   const i18n_refresh = __('Refresh');
   const allow_contact_removal = shared_api.settings.get('allow_contact_removal');
-  return x`
-        <div class="modal-footer">
-            ${modal_close_button}
-            <button type="button" class="btn btn-info refresh-contact" @click=${ev => el.refreshContact(ev)}>
-                <converse-icon
-                    class="fa fa-refresh"
-                    color="var(--text-color-lighten-15-percent)"
-                    size="1em"
-                ></converse-icon>
-                ${i18n_refresh}</button>
-            ${allow_contact_removal && is_roster_contact ? remove_button(el) : ''}
-        </div>
-    `;
+  return x`<div class="modal-footer">${modal_close_button} <button type="button" class="btn btn-info refresh-contact" @click="${ev => el.refreshContact(ev)}"><converse-icon class="fa fa-refresh" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${i18n_refresh}</button> ${allow_contact_removal && is_roster_contact ? remove_button(el) : ''}</div>`;
 };
 const tplUserDetailsModal = el => {
   const vcard = el.model?.vcard;
@@ -58295,19 +57790,7 @@ const tplUserDetailsModal = el => {
     'height': '120',
     'width': '120'
   };
-  return x`
-        <div class="modal-body">
-            ${o.image ? x`<div class="mb-4">${avatar(Object.assign(o, avatar_data))}</div>` : ''}
-            ${o.fullname ? x`<p><label>${i18n_full_name}:</label> ${o.fullname}</p>` : ''}
-            <p><label>${i18n_address}:</label> <a href="xmpp:${o.jid}">${o.jid}</a></p>
-            ${o.nickname ? x`<p><label>${i18n_nickname}:</label> ${o.nickname}</p>` : ''}
-            ${o.url ? x`<p><label>${i18n_url}:</label> <a target="_blank" rel="noopener" href="${o.url}">${o.url}</a></p>` : ''}
-            ${o.email ? x`<p><label>${i18n_email}:</label> <a href="mailto:${o.email}">${o.email}</a></p>` : ''}
-            ${o.role ? x`<p><label>${i18n_role}:</label> ${o.role}</p>` : ''}
-
-            <converse-omemo-fingerprints jid=${o.jid}></converse-omemo-fingerprints>
-        </div>
-    `;
+  return x`<div class="modal-body">${o.image ? x`<div class="mb-4">${avatar(Object.assign(o, avatar_data))}</div>` : ''} ${o.fullname ? x`<p><label>${i18n_full_name}:</label> ${o.fullname}</p>` : ''}<p><label>${i18n_address}:</label> <a href="xmpp:${o.jid}">${o.jid}</a></p>${o.nickname ? x`<p><label>${i18n_nickname}:</label> ${o.nickname}</p>` : ''} ${o.url ? x`<p><label>${i18n_url}:</label> <a target="_blank" rel="noopener" href="${o.url}">${o.url}</a></p>` : ''} ${o.email ? x`<p><label>${i18n_email}:</label> <a href="mailto:${o.email}">${o.email}</a></p>` : ''} ${o.role ? x`<p><label>${i18n_role}:</label> ${o.role}</p>` : ''}<converse-omemo-fingerprints jid="${o.jid}"></converse-omemo-fingerprints></div>`;
 };
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/utils.js
 
@@ -58488,19 +57971,7 @@ const {
   const i18n_uploading = __('Uploading file:');
   const filename = el.model.file.name;
   const size = file_progress_filesize(el.model.file.size);
-  return x`
-        <div class="message chat-msg">
-            ${el.shouldShowAvatar() ? x`<a class="show-msg-author-modal" @click=${el.showUserModal}>
-                    <converse-avatar class="avatar align-self-center"
-                        .data=${el.model.vcard?.attributes}
-                        nonce=${el.model.vcard?.get('vcard_updated')}
-                        height="40" width="40"></converse-avatar>
-                </a>` : ''}
-            <div class="chat-msg__content">
-                <span class="chat-msg__text">${i18n_uploading} <strong>${filename}</strong>, ${size}</span>
-                <progress value="${el.model.get('progress')}"/>
-            </div>
-        </div>`;
+  return x`<div class="message chat-msg">${el.shouldShowAvatar() ? x`<a class="show-msg-author-modal" @click="${el.showUserModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a>` : ''}<div class="chat-msg__content"><span class="chat-msg__text">${i18n_uploading} <strong>${filename}</strong>, ${size}</span><progress value="${el.model.get('progress')}"></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/shared/chat/templates/info-message.js
 
@@ -58512,23 +57983,7 @@ const {
 /* harmony default export */ const info_message = (el => {
   const isodate = info_message_dayjs(el.model.get('time')).toISOString();
   const i18n_retry = __('Retry');
-  return x`
-        <div class="message chat-info chat-${el.model.get('type')}"
-            data-isodate="${isodate}"
-            data-type="${el.data_name}"
-            data-value="${el.data_value}">
-
-            <div class="chat-info__message">
-                <converse-rich-text
-                    .mentions=${el.model.get('references')}
-                    render_styling
-                    text=${el.model.getMessageText()}>
-                </converse-rich-text>
-            </div>
-            ${el.model.get('reason') ? x`<q class="reason">${el.model.get('reason')}</q>` : ``}
-            ${el.model.get('error_text') ? x`<q class="reason">${el.model.get('error_text')}</q>` : ``}
-            ${el.model.get('retry_event_id') ? x`<a class="retry" @click=${el.onRetryClicked}>${i18n_retry}</a>` : ''}
-        </div>`;
+  return x`<div class="message chat-info chat-${el.model.get('type')}" data-isodate="${isodate}" data-type="${el.data_name}" data-value="${el.data_value}"><div class="chat-info__message"><converse-rich-text .mentions="${el.model.get('references')}" render_styling text="${el.model.getMessageText()}"></converse-rich-text></div>${el.model.get('reason') ? x`<q class="reason">${el.model.get('reason')}</q>` : ``} ${el.model.get('error_text') ? x`<q class="reason">${el.model.get('error_text')}</q>` : ``} ${el.model.get('retry_event_id') ? x`<a class="retry" @click="${el.onRetryClicked}">${i18n_retry}</a>` : ''}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/mep-message.js
 
@@ -58538,30 +57993,7 @@ const {
 } = public_converse.env;
 /* harmony default export */ const mep_message = (el => {
   const isodate = mep_message_dayjs(el.model.get('time')).toISOString();
-  return x`
-        <div class="message chat-info message--mep ${el.getExtraMessageClasses()}"
-            data-isodate="${isodate}"
-            data-type="${el.data_name}"
-            data-value="${el.data_value}">
-
-            <div class="chat-msg__content">
-                <div class="chat-msg__body chat-msg__body--${el.model.get('type')} ${el.model.get('is_delayed') ? 'chat-msg__body--delayed' : ''}">
-                    <div class="chat-info__message">
-                        ${el.isRetracted() ? el.renderRetraction() : x`
-                            <converse-rich-text
-                                .mentions=${el.model.get('references')}
-                                render_styling
-                                text=${el.model.getMessageText()}>
-                            </converse-rich-text>
-                            ${el.model.get('reason') ? x`<q class="reason"><converse-rich-text text=${el.model.get('reason')}></converse-rich-text></q>` : ``}
-                        `}
-                    </div>
-                    <converse-message-actions
-                        ?is_retracted=${el.isRetracted()}
-                        .model=${el.model}></converse-message-actions>
-                </div>
-            </div>
-        </div>`;
+  return x`<div class="message chat-info message--mep ${el.getExtraMessageClasses()}" data-isodate="${isodate}" data-type="${el.data_name}" data-value="${el.data_value}"><div class="chat-msg__content"><div class="chat-msg__body chat-msg__body--${el.model.get('type')} ${el.model.get('is_delayed') ? 'chat-msg__body--delayed' : ''}"><div class="chat-info__message">${el.isRetracted() ? el.renderRetraction() : x`<converse-rich-text .mentions="${el.model.get('references')}" render_styling text="${el.model.getMessageText()}"></converse-rich-text>${el.model.get('reason') ? x`<q class="reason"><converse-rich-text text="${el.model.get('reason')}"></converse-rich-text></q>` : ``}`}</div><converse-message-actions ?is_retracted="${el.isRetracted()}" .model="${el.model}"></converse-message-actions></div></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/shared/components/image.js
 
@@ -58617,29 +58049,18 @@ function isValidImage(image) {
   return image && isDomainAllowed(image, 'allowed_image_domains') && isValidURL(image);
 }
 const tplUrlWrapper = (o, wrapped_template) => o.url && isValidURL(o.url) && !isGIFURL(o.image) ? x`<a href="${o.url}" target="_blank" rel="noopener">${wrapped_template(o)}</a>` : wrapped_template(o);
-const tplImage = o => x`<converse-image class="card-img-top hor_centered" href="${o.url}" src="${o.image}" .onImgLoad=${o.onload}></converse-image>`;
+const tplImage = o => x`<converse-image class="card-img-top hor_centered" href="${o.url}" src="${o.image}" .onImgLoad="${o.onload}"></converse-image>`;
 /* harmony default export */ const unfurl = (o => {
   const show_image = isValidImage(o.image);
   const has_body_info = o.title || o.description || o.url;
   if (show_image || has_body_info) {
-    return x`<div class="card card--unfurl">
-            ${show_image ? tplImage(o) : ''}
-            ${has_body_info ? x` <div class="card-body">
-                      ${o.title ? tplUrlWrapper(o, o => x`<h5 class="card-title">${o.title}</h5>`) : ''}
-                      ${o.description ? x`<p class="card-text">
-                                <converse-rich-text text=${o.description}></converse-rich-text>
-                            </p>` : ''}
-                      ${o.url ? x`<p class="card-text">
-                                <a href="${o.url}" target="_blank" rel="noopener">${getURI(o.url).domain()}</a>
-                            </p>` : ''}
-                  </div>` : ''}
-        </div>`;
+    return x`<div class="card card--unfurl">${show_image ? tplImage(o) : ''} ${has_body_info ? x`<div class="card-body">${o.title ? tplUrlWrapper(o, o => x`<h5 class="card-title">${o.title}</h5>`) : ''} ${o.description ? x`<p class="card-text"><converse-rich-text text="${o.description}"></converse-rich-text></p>` : ''} ${o.url ? x`<p class="card-text"><a href="${o.url}" target="_blank" rel="noopener">${getURI(o.url).domain()}</a></p>` : ''}</div>` : ''}</div>`;
   } else {
     return '';
   }
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/chat/styles/unfurl.scss
-var styles_unfurl = __webpack_require__(1165);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/unfurl.scss
+var styles_unfurl = __webpack_require__(8906);
 ;// CONCATENATED MODULE: ./src/shared/chat/styles/unfurl.scss
 
       
@@ -58727,64 +58148,15 @@ shared_api.elements.define('converse-message-unfurl', MessageUnfurl);
 /* harmony default export */ const templates_message = ((el, o) => {
   const i18n_new_messages = __('New messages');
   const is_followup = el.model.isFollowup();
-  return x`
-        ${o.is_first_unread ? x`<div class="message separator"><hr class="separator"><span class="separator-text">${i18n_new_messages}</span></div>` : ''}
-        <div class="message chat-msg ${el.getExtraMessageClasses()}"
-                data-isodate="${o.time}"
-                data-msgid="${o.msgid}"
-                data-from="${o.from}"
-                data-encrypted="${o.is_encrypted}">
-
-            <!-- Anchor to allow us to scroll the message into view -->
-            <a id="${o.msgid}"></a>
-
-            ${o.should_show_avatar && !is_followup ? x`<a class="show-msg-author-modal" @click=${el.showUserModal}>
-                    <converse-avatar
-                        class="avatar align-self-center"
-                        .data=${el.model.vcard?.attributes}
-                        nonce=${el.model.vcard?.get('vcard_updated')}
-                        height="40" width="40"></converse-avatar>
-                </a>` : ''}
-
-            <div class="chat-msg__content chat-msg__content--${o.sender} ${o.is_me_message ? 'chat-msg__content--action' : ''}">
-                ${!o.is_me_message && !is_followup ? x`
-                    <span class="chat-msg__heading">
-                        <span class="chat-msg__author"><a class="show-msg-author-modal" @click=${el.showUserModal}>${o.username}</a></span>
-                        ${o.hats.map(h => x`<span class="badge badge-secondary">${h.title}</span>`)}
-                        <time timestamp="${el.model.get('edited') || el.model.get('time')}" class="chat-msg__time">${o.pretty_time}</time>
-                        ${o.is_encrypted ? x`<converse-icon class="fa fa-lock" size="1.1em"></converse-icon>` : ''}
-                    </span>` : ''}
-
-                <div class="chat-msg__body chat-msg__body--${o.message_type} ${o.received ? 'chat-msg__body--received' : ''} ${o.is_delayed ? 'chat-msg__body--delayed' : ''}">
-                    <div class="chat-msg__message">
-                        ${o.is_me_message ? x`
-                            <time timestamp="${o.edited || o.time}" class="chat-msg__time">${o.pretty_time}</time>&nbsp;
-                            <span class="chat-msg__author">${o.is_me_message ? '**' : ''}${o.username}</span>&nbsp;` : ''}
-                        ${o.is_retracted ? el.renderRetraction() : el.renderMessageText()}
-                    </div>
-                    <converse-message-actions
-                        .model=${el.model}
-                        ?is_retracted=${o.is_retracted}></converse-message-actions>
-                </div>
-
-                ${el.model.get('ogp_metadata')?.map(m => {
+  return x`${o.is_first_unread ? x`<div class="message separator"><hr class="separator"><span class="separator-text">${i18n_new_messages}</span></div>` : ''}<div class="message chat-msg ${el.getExtraMessageClasses()}" data-isodate="${o.time}" data-msgid="${o.msgid}" data-from="${o.from}" data-encrypted="${o.is_encrypted}"><a id="${o.msgid}"></a> ${o.should_show_avatar && !is_followup ? x`<a class="show-msg-author-modal" @click="${el.showUserModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a>` : ''}<div class="chat-msg__content chat-msg__content--${o.sender} ${o.is_me_message ? 'chat-msg__content--action' : ''}">${!o.is_me_message && !is_followup ? x`<span class="chat-msg__heading"><span class="chat-msg__author"><a class="show-msg-author-modal" @click="${el.showUserModal}">${o.username}</a></span> ${o.hats.map(h => x`<span class="badge badge-secondary">${h.title}</span>`)} <time timestamp="${el.model.get('edited') || el.model.get('time')}" class="chat-msg__time">${o.pretty_time}</time> ${o.is_encrypted ? x`<converse-icon class="fa fa-lock" size="1.1em"></converse-icon>` : ''}</span>` : ''}<div class="chat-msg__body chat-msg__body--${o.message_type} ${o.received ? 'chat-msg__body--received' : ''} ${o.is_delayed ? 'chat-msg__body--delayed' : ''}"><div class="chat-msg__message">${o.is_me_message ? x`<time timestamp="${o.edited || o.time}" class="chat-msg__time">${o.pretty_time}</time>  <span class="chat-msg__author">${o.is_me_message ? '**' : ''}${o.username}</span> ` : ''} ${o.is_retracted ? el.renderRetraction() : el.renderMessageText()}</div><converse-message-actions .model="${el.model}" ?is_retracted="${o.is_retracted}"></converse-message-actions></div>${el.model.get('ogp_metadata')?.map(m => {
     if (el.model.get('hide_url_previews') === true) {
       return '';
     }
     if (!shouldRenderMediaFromURL(m['og:image'], 'image')) {
       return '';
     }
-    return x`<converse-message-unfurl
-                        @animationend="${el.onUnfurlAnimationEnd}"
-                        class="${el.model.get('url_preview_transition')}"
-                        jid="${el.chatbox?.get('jid')}"
-                        description="${m['og:description'] || ''}"
-                        title="${m['og:title'] || ''}"
-                        image="${m['og:image'] || ''}"
-                        url="${m['og:url'] || ''}"></converse-message-unfurl>`;
-  })}
-            </div>
-        </div>`;
+    return x`<converse-message-unfurl @animationend="${el.onUnfurlAnimationEnd}" class="${el.model.get('url_preview_transition')}" jid="${el.chatbox?.get('jid')}" description="${m['og:description'] || ''}" title="${m['og:title'] || ''}" image="${m['og:image'] || ''}" url="${m['og:url'] || ''}"></converse-message-unfurl>`;
+  })}</div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/shared/chat/templates/message-text.js
 
@@ -58792,7 +58164,7 @@ shared_api.elements.define('converse-message-unfurl', MessageUnfurl);
 
 const tplEditedIcon = el => {
   const i18n_edited = __('This message has been edited');
-  return x`<converse-icon title="${i18n_edited}" class="fa fa-edit chat-msg__edit-modal" @click=${el.showMessageVersionsModal} size="1em"></converse-icon>`;
+  return x`<converse-icon title="${i18n_edited}" class="fa fa-edit chat-msg__edit-modal" @click="${el.showMessageVersionsModal}" size="1em"></converse-icon>`;
 };
 const tplCheckmark = () => {
   return x`<converse-icon size="1em" color="var(--chat-color)" class="fa fa-check chat-msg__receipt"></converse-icon>`;
@@ -58801,37 +58173,14 @@ const tplCheckmark = () => {
   const i18n_show = __('Show more');
   const is_groupchat_message = el.model.get('type') === 'groupchat';
   const i18n_show_less = __('Show less');
-  const tplSpoilerHint = x`
-        <div class="chat-msg__spoiler-hint">
-            <span class="spoiler-hint">${el.model.get('spoiler_hint')}</span>
-            <a class="badge badge-info spoiler-toggle" href="#" @click=${el.toggleSpoilerMessage}>
-                <converse-icon size="1em" color="var(--background)" class="fa ${el.model.get('is_spoiler_visible') ? 'fa-eye-slash' : 'fa-eye'}"></converse-icon>
-                ${el.model.get('is_spoiler_visible') ? i18n_show_less : i18n_show}
-            </a>
-        </div>
-    `;
+  const tplSpoilerHint = x`<div class="chat-msg__spoiler-hint"><span class="spoiler-hint">${el.model.get('spoiler_hint')}</span> <a class="badge badge-info spoiler-toggle" href="#" @click="${el.toggleSpoilerMessage}"><converse-icon size="1em" color="var(--background)" class="fa ${el.model.get('is_spoiler_visible') ? 'fa-eye-slash' : 'fa-eye'}"></converse-icon>${el.model.get('is_spoiler_visible') ? i18n_show_less : i18n_show}</a></div>`;
   const spoiler_classes = el.model.get('is_spoiler') ? `spoiler ${el.model.get('is_spoiler_visible') ? '' : 'hidden'}` : '';
   const text = el.model.getMessageText();
   const show_oob = el.model.get('oob_url') && text !== el.model.get('oob_url');
-  return x`
-        ${el.model.get('is_spoiler') ? tplSpoilerHint : ''}
-        ${el.model.get('subject') ? x`<div class="chat-msg__subject">${el.model.get('subject')}</div>` : ''}
-        <span class="chat-msg__body--wrapper">
-            <converse-chat-message-body
-                class="chat-msg__text ${el.model.get('is_only_emojis') ? 'chat-msg__text--larger' : ''} ${spoiler_classes}"
-                .model="${el.model}"
-                hide_url_previews=${el.model.get('hide_url_previews')}
-                ?is_me_message=${el.model.isMeCommand()}
-                text="${text}"></converse-chat-message-body>
-            ${el.model.get('received') && !el.model.isMeCommand() && !is_groupchat_message ? tplCheckmark() : ''}
-            ${el.model.get('edited') ? tplEditedIcon(el) : ''}
-        </span>
-        ${show_oob ? x`<div class="chat-msg__media">${getOOBURLMarkup(el.model.get('oob_url'))}</div>` : ''}
-        <div class="chat-msg__error">${el.model.get('error_text') || el.model.get('error')}</div>
-    `;
+  return x`${el.model.get('is_spoiler') ? tplSpoilerHint : ''} ${el.model.get('subject') ? x`<div class="chat-msg__subject">${el.model.get('subject')}</div>` : ''} <span class="chat-msg__body--wrapper"><converse-chat-message-body class="chat-msg__text ${el.model.get('is_only_emojis') ? 'chat-msg__text--larger' : ''} ${spoiler_classes}" .model="${el.model}" hide_url_previews="${el.model.get('hide_url_previews')}" ?is_me_message="${el.model.isMeCommand()}" text="${text}"></converse-chat-message-body>${el.model.get('received') && !el.model.isMeCommand() && !is_groupchat_message ? tplCheckmark() : ''} ${el.model.get('edited') ? tplEditedIcon(el) : ''} </span>${show_oob ? x`<div class="chat-msg__media">${getOOBURLMarkup(el.model.get('oob_url'))}</div>` : ''}<div class="chat-msg__error">${el.model.get('error_text') || el.model.get('error')}</div>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/chat/styles/retraction.scss
-var retraction = __webpack_require__(563);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/retraction.scss
+var retraction = __webpack_require__(7643);
 ;// CONCATENATED MODULE: ./src/shared/chat/styles/retraction.scss
 
       
@@ -58866,9 +58215,7 @@ var retraction_update = injectStylesIntoStyleTag_default()(retraction/* default 
 
 /* harmony default export */ const templates_retraction = (el => {
   const retraction_text = el.isRetracted() ? el.getRetractionText() : null;
-  return x`
-        <div class="retraction">${retraction_text}</div>
-        ${el.model.get('moderation_reason') ? x`<q class="chat-msg--retracted__reason">${el.model.get('moderation_reason')}</q>` : ''}`;
+  return x`<div class="retraction">${retraction_text}</div>${el.model.get('moderation_reason') ? x`<q class="chat-msg--retracted__reason">${el.model.get('moderation_reason')}</q>` : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/shared/chat/message.js
 
@@ -59124,17 +58471,15 @@ class MessageHistory extends CustomElement {
       const template_promise = shared_api.hook(template_hook, model, '');
       return until_m(template_promise, '');
     } else {
-      const template = x`<converse-chat-message
-                jid="${this.model.get('jid')}"
-                mid="${model.get('id')}"></converse-chat-message>`;
+      const template = x`<converse-chat-message jid="${this.model.get('jid')}" mid="${model.get('id')}"></converse-chat-message>`;
       const day = getDayIndicator(model);
       return day ? [day, template] : template;
     }
   }
 }
 shared_api.elements.define('converse-message-history', MessageHistory);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/chat/styles/chat-content.scss
-var chat_content = __webpack_require__(4659);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/chat-content.scss
+var chat_content = __webpack_require__(8765);
 ;// CONCATENATED MODULE: ./src/shared/chat/styles/chat-content.scss
 
       
@@ -59211,14 +58556,7 @@ class ChatContent extends CustomElement {
     }
     // This element has "flex-direction: reverse", so elements here are
     // shown in reverse order.
-    return x`
-            <div class="chat-content__notifications">${this.model.getNotificationsText()}</div>
-            <converse-message-history
-                .model=${this.model}
-                .messages=${[...this.model.messages.models]}>
-            </converse-message-history>
-            ${this.model.ui?.get('chat-content-spinner-top') ? spinner() : ''}
-        `;
+    return x`<div class="chat-content__notifications">${this.model.getNotificationsText()}</div><converse-message-history .model="${this.model}" .messages="${[...this.model.messages.models]}"></converse-message-history>${this.model.ui?.get('chat-content-spinner-top') ? spinner() : ''}`;
   }
   scrollDown() {
     if (this.model.ui.get('scrolled')) {
@@ -59303,10 +58641,7 @@ class ChatHelp extends CustomElement {
   }
   render() {
     const isodate = new Date().toISOString();
-    return [x`<converse-icon class="fas fa-times close-chat-help"
-                    @click=${this.close}
-                    path-prefix="${shared_api.settings.get("assets_path")}"
-                    size="1em"></converse-icon>`, ...this.messages.map(m => this.renderHelpMessage({
+    return [x`<converse-icon class="fas fa-times close-chat-help" @click="${this.close}" path-prefix="${shared_api.settings.get("assets_path")}" size="1em"></converse-icon>`, ...this.messages.map(m => this.renderHelpMessage({
       isodate,
       'markup': purify_default().sanitize(m, {
         'ALLOWED_TAGS': ['strong']
@@ -59329,17 +58664,7 @@ shared_api.elements.define('converse-chat-help', ChatHelp);
 
 const emoji_picker_u = public_converse.env.utils;
 const emoji_category = o => {
-  return x`
-        <li data-category="${o.category}"
-            class="emoji-category ${o.category} ${o.current_category === o.category ? 'picked' : ''}"
-            title="${__(shared_api.settings.get('emoji_category_labels')[o.category])}">
-
-            <a class="pick-category"
-               @click=${o.onCategoryPicked}
-               href="#emoji-picker-${o.category}"
-               data-category="${o.category}">${o.emoji} </a>
-        </li>
-    `;
+  return x`<li data-category="${o.category}" class="emoji-category ${o.category} ${o.current_category === o.category ? 'picked' : ''}" title="${__(shared_api.settings.get('emoji_category_labels')[o.category])}"><a class="pick-category" @click="${o.onCategoryPicked}" href="#emoji-picker-${o.category}" data-category="${o.category}">${o.emoji}</a></li>`;
 };
 const emoji_picker_header = o => {
   const cats = shared_api.settings.get('emoji_categories');
@@ -59350,73 +58675,34 @@ const emoji_picker_header = o => {
   return x`<ul>${Object.keys(cats).map(transform)}</ul>`;
 };
 const emoji_item = o => {
-  return x`
-        <li class="emoji insert-emoji ${o.shouldBeHidden(o.emoji.sn) ? 'hidden' : ''}" data-emoji="${o.emoji.sn}" title="${o.emoji.sn}">
-            <a href="#" @click=${o.insertEmoji} data-emoji="${o.emoji.sn}">${emoji_picker_u.shortnamesToEmojis(o.emoji.sn)}</a>
-        </li>
-    `;
+  return x`<li class="emoji insert-emoji ${o.shouldBeHidden(o.emoji.sn) ? 'hidden' : ''}" data-emoji="${o.emoji.sn}" title="${o.emoji.sn}"><a href="#" @click="${o.insertEmoji}" data-emoji="${o.emoji.sn}">${emoji_picker_u.shortnamesToEmojis(o.emoji.sn)}</a></li>`;
 };
 const tplSearchResults = o => {
   const i18n_search_results = __('Search results');
-  return x`
-        <span ?hidden=${!o.query} class="emoji-lists__container emojis-lists__container--search">
-        <a id="emoji-picker-search-results" class="emoji-category__heading">${i18n_search_results}</a>
-        <ul class="emoji-picker">
-            ${o.search_results.map(emoji => emoji_item(Object.assign({
+  return x`<span ?hidden="${!o.query}" class="emoji-lists__container emojis-lists__container--search"><a id="emoji-picker-search-results" class="emoji-category__heading">${i18n_search_results}</a><ul class="emoji-picker">${o.search_results.map(emoji => emoji_item(Object.assign({
     emoji
-  }, o)))}
-        </ul>
-        </span>
-    `;
+  }, o)))}</ul></span>`;
 };
 const emojis_for_category = o => {
-  return x`
-        <a id="emoji-picker-${o.category}" class="emoji-category__heading" data-category="${o.category}">${__(shared_api.settings.get('emoji_category_labels')[o.category])}</a>
-        <ul class="emoji-picker" data-category="${o.category}">
-            ${Object.values(public_converse.emojis.json[o.category]).map(emoji => emoji_item(Object.assign({
+  return x`<a id="emoji-picker-${o.category}" class="emoji-category__heading" data-category="${o.category}">${__(shared_api.settings.get('emoji_category_labels')[o.category])}</a><ul class="emoji-picker" data-category="${o.category}">${Object.values(public_converse.emojis.json[o.category]).map(emoji => emoji_item(Object.assign({
     emoji
-  }, o)))}
-        </ul>`;
+  }, o)))}</ul>`;
 };
 const tplAllEmojis = o => {
   const cats = shared_api.settings.get('emoji_categories');
-  return x`
-        <span ?hidden=${o.query} class="emoji-lists__container emoji-lists__container--browse">
-            ${Object.keys(cats).map(c => cats[c] ? emojis_for_category(Object.assign({
+  return x`<span ?hidden="${o.query}" class="emoji-lists__container emoji-lists__container--browse">${Object.keys(cats).map(c => cats[c] ? emojis_for_category(Object.assign({
     'category': c
-  }, o)) : '')}
-        </span>`;
+  }, o)) : '')}</span>`;
 };
 const skintone_emoji = o => {
-  return x`
-        <li data-skintone="${o.skintone}" class="emoji-skintone ${o.current_skintone === o.skintone ? 'picked' : ''}">
-            <a class="pick-skintone" href="#" data-skintone="${o.skintone}" @click=${o.onSkintonePicked}>${emoji_picker_u.shortnamesToEmojis(':' + o.skintone + ':')}</a>
-        </li>`;
+  return x`<li data-skintone="${o.skintone}" class="emoji-skintone ${o.current_skintone === o.skintone ? 'picked' : ''}"><a class="pick-skintone" href="#" data-skintone="${o.skintone}" @click="${o.onSkintonePicked}">${emoji_picker_u.shortnamesToEmojis(':' + o.skintone + ':')}</a></li>`;
 };
 const tplEmojiPicker = o => {
   const i18n_search = __('Search');
   const skintones = ['tone1', 'tone2', 'tone3', 'tone4', 'tone5'];
-  return x`
-        <div class="emoji-picker__header">
-            <input class="form-control emoji-search" name="emoji-search" placeholder="${i18n_search}"
-                .value=${o.query || ''}
-                @keydown=${o.onSearchInputKeyDown}
-                @blur=${o.onSearchInputBlurred}
-                @focus=${o.onSearchInputFocus}>
-            ${o.query ? '' : emoji_picker_header(o)}
-        </div>
-        ${o.render_emojis ? x`<converse-emoji-picker-content
-                .chatview=${o.chatview}
-                .model=${o.model}
-                .search_results="${o.search_results}"
-                current_skintone="${o.current_skintone}"
-                query="${o.query}"></converse-emoji-picker-content>` : ''}
-
-        <div class="emoji-skintone-picker">
-            <ul>${skintones.map(skintone => skintone_emoji(Object.assign({
+  return x`<div class="emoji-picker__header"><input class="form-control emoji-search" name="emoji-search" placeholder="${i18n_search}" .value="${o.query || ''}" @keydown="${o.onSearchInputKeyDown}" @blur="${o.onSearchInputBlurred}" @focus="${o.onSearchInputFocus}"> ${o.query ? '' : emoji_picker_header(o)}</div>${o.render_emojis ? x`<converse-emoji-picker-content .chatview="${o.chatview}" .model="${o.model}" .search_results="${o.search_results}" current_skintone="${o.current_skintone}" query="${o.query}"></converse-emoji-picker-content>` : ''}<div class="emoji-skintone-picker"><ul>${skintones.map(skintone => skintone_emoji(Object.assign({
     skintone
-  }, o)))}</ul>
-        </div>`;
+  }, o)))}</ul></div>`;
 };
 ;// CONCATENATED MODULE: ./src/shared/chat/emoji-picker-content.js
 
@@ -59455,12 +58741,7 @@ class EmojiPickerContent extends CustomElement {
       'search_results': this.search_results,
       'shouldBeHidden': shortname => this.shouldBeHidden(shortname)
     };
-    return x`
-          <div class="emoji-picker__lists">
-              ${tplSearchResults(props)}
-              ${tplAllEmojis(props)}
-          </div>
-      `;
+    return x`<div class="emoji-picker__lists">${tplSearchResults(props)} ${tplAllEmojis(props)}</div>`;
   }
   firstUpdated() {
     this.initIntersectionObserver();
@@ -59574,32 +58855,7 @@ class EmojiDropdown extends Dropdown {
   render() {
     const is_groupchat = this.chatview.model.get('type') === shared_converse.CHATROOMS_TYPE;
     const color = is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
-    return x`
-            <div class="dropup">
-                <button class="toggle-emojis"
-                        title="${__('Insert emojis')}"
-                        data-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false">
-                    <converse-icon
-                        color="var(${color})"
-                        class="fa fa-smile "
-                        path-prefix="${shared_api.settings.get('assets_path')}"
-                        size="1em"></converse-icon>
-                </button>
-                <div class="dropdown-menu">
-                    ${until_m(this.initModel().then(() => x`
-                        <converse-emoji-picker
-                                .chatview=${this.chatview}
-                                .model=${this.model}
-                                @emojiSelected=${() => this.hideMenu()}
-                                ?render_emojis=${this.render_emojis}
-                                current_category="${this.model.get('current_category') || ''}"
-                                current_skintone="${this.model.get('current_skintone') || ''}"
-                                query="${this.model.get('query') || ''}"
-                        ></converse-emoji-picker>`), '')}
-                </div>
-            </div>`;
+    return x`<div class="dropup"><button class="toggle-emojis" title="${__('Insert emojis')}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><converse-icon color="var(${color})" class="fa fa-smile" path-prefix="${shared_api.settings.get('assets_path')}" size="1em"></converse-icon></button><div class="dropdown-menu">${until_m(this.initModel().then(() => x`<converse-emoji-picker .chatview="${this.chatview}" .model="${this.model}" @emojiSelected="${() => this.hideMenu()}" ?render_emojis="${this.render_emojis}" current_category="${this.model.get('current_category') || ''}" current_skintone="${this.model.get('current_skintone') || ''}" query="${this.model.get('query') || ''}"></converse-emoji-picker>`), '')}</div></div>`;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -59629,8 +58885,8 @@ class EmojiDropdown extends Dropdown {
   }
 }
 shared_api.elements.define('converse-emoji-dropdown', EmojiDropdown);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/chat/styles/emoji.scss
-var emoji = __webpack_require__(4311);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/emoji.scss
+var emoji = __webpack_require__(2432);
 ;// CONCATENATED MODULE: ./src/shared/chat/styles/emoji.scss
 
       
@@ -59971,18 +59227,13 @@ shared_api.elements.define('converse-message-limit-indicator', MessageLimitIndic
 
 function tplSendButton() {
   const i18n_send_message = __('Send the message');
-  return x`<button type="submit" class="btn send-button" title="${i18n_send_message}">
-        <converse-icon color="var(--toolbar-btn-text-color)" class="fa fa-paper-plane" size="1em"></converse-icon>
-    </button>`;
+  return x`<button type="submit" class="btn send-button" title="${i18n_send_message}"><converse-icon color="var(--toolbar-btn-text-color)" class="fa fa-paper-plane" size="1em"></converse-icon></button>`;
 }
 /* harmony default export */ const toolbar = (el => {
-  return x`
-        <span class="toolbar-buttons">${until_m(el.getButtons(), '')}</span>
-        ${el.show_send_button ? tplSendButton() : ''}
-    `;
+  return x`<span class="toolbar-buttons">${until_m(el.getButtons(), '')}</span> ${el.show_send_button ? tplSendButton() : ''}`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/chat/styles/toolbar.scss
-var styles_toolbar = __webpack_require__(8899);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/toolbar.scss
+var styles_toolbar = __webpack_require__(9833);
 ;// CONCATENATED MODULE: ./src/shared/chat/styles/toolbar.scss
 
       
@@ -60072,21 +59323,16 @@ class ChatToolbar extends CustomElement {
     const buttons = [];
     if (this.show_emoji_button) {
       const chatview = shared_converse.chatboxviews.get(this.model.get('jid'));
-      buttons.push(x`<converse-emoji-dropdown .chatview=${chatview}></converse-emoji-dropdown>`);
+      buttons.push(x`<converse-emoji-dropdown .chatview="${chatview}"></converse-emoji-dropdown>`);
     }
     if (this.show_call_button) {
       const color = this.is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
       const i18n_start_call = __('Start a call');
-      buttons.push(x`
-                <button class="toggle-call" @click=${this.toggleCall} title="${i18n_start_call}">
-                    <converse-icon color="var(${color})" class="fa fa-phone" size="1em"></converse-icon>
-                </button>`);
+      buttons.push(x`<button class="toggle-call" @click="${this.toggleCall}" title="${i18n_start_call}"><converse-icon color="var(${color})" class="fa fa-phone" size="1em"></converse-icon></button>`);
     }
     const message_limit = shared_api.settings.get('message_limit');
     if (message_limit) {
-      buttons.push(x`
-                <converse-message-limit-indicator .model=${this.model} class="right">
-                </converse-message-limit-indicator>`);
+      buttons.push(x`<converse-message-limit-indicator .model="${this.model}" class="right"></converse-message-limit-indicator>`);
     }
     if (this.show_spoiler_button) {
       buttons.push(this.getSpoilerButton());
@@ -60096,15 +59342,7 @@ class ChatToolbar extends CustomElement {
     if (this.is_groupchat && shared_api.settings.get('visible_toolbar_buttons')?.toggle_occupants) {
       const i18n_hide_occupants = __('Hide participants');
       const i18n_show_occupants = __('Show participants');
-      buttons.push(x`
-                <button class="toggle_occupants right"
-                        title="${this.hidden_occupants ? i18n_show_occupants : i18n_hide_occupants}"
-                        @click=${this.toggleOccupants}>
-                    <converse-icon
-                        color="var(--muc-toolbar-btn-color)"
-                        class="fa ${this.hidden_occupants ? `fa-angle-double-left` : `fa-angle-double-right`}"
-                        size="1em"></converse-icon>
-                </button>`);
+      buttons.push(x`<button class="toggle_occupants right" title="${this.hidden_occupants ? i18n_show_occupants : i18n_hide_occupants}" @click="${this.toggleOccupants}"><converse-icon color="var(--muc-toolbar-btn-color)" class="fa ${this.hidden_occupants ? `fa-angle-double-left` : `fa-angle-double-right`}" size="1em"></converse-icon></button>`);
     }
 
     /**
@@ -60124,14 +59362,7 @@ class ChatToolbar extends CustomElement {
     if (is_supported) {
       const i18n_choose_file = __('Choose a file to send');
       const color = this.is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
-      return x`
-                <button title="${i18n_choose_file}" @click=${this.toggleFileUpload}>
-                    <converse-icon
-                        color="var(${color})"
-                        class="fa fa-paperclip"
-                        size="1em"></converse-icon>
-                </button>
-                <input type="file" @change=${this.onFileSelection} class="fileupload" multiple="" style="display:none"/>`;
+      return x`<button title="${i18n_choose_file}" @click="${this.toggleFileUpload}"><converse-icon color="var(${color})" class="fa fa-paperclip" size="1em"></converse-icon></button> <input type="file" @change="${this.onFileSelection}" class="fileupload" multiple="" style="display:none">`;
     } else {
       return '';
     }
@@ -60148,15 +59379,7 @@ class ChatToolbar extends CustomElement {
       i18n_toggle_spoiler = __("Click to write your message as a spoiler");
     }
     const color = this.is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
-    const markup = x`
-            <button class="toggle-compose-spoiler"
-                    title="${i18n_toggle_spoiler}"
-                    @click=${this.toggleComposeSpoilerMessage}>
-                <converse-icon
-                    color="var(${color})"
-                    class="fa ${model.get('composing_spoiler') ? 'fa-eye-slash' : 'fa-eye'}"
-                    size="1em"></converse-icon>
-            </button>`;
+    const markup = x`<button class="toggle-compose-spoiler" title="${i18n_toggle_spoiler}" @click="${this.toggleComposeSpoilerMessage}"><converse-icon color="var(${color})" class="fa ${model.get('composing_spoiler') ? 'fa-eye-slash' : 'fa-eye'}" size="1em"></converse-icon></button>`;
     if (this.is_groupchat) {
       return markup;
     } else {
@@ -60211,32 +59434,12 @@ shared_api.elements.define('converse-chat-toolbar', ChatToolbar);
 
 /* harmony default export */ const chat_head = (o => {
   const i18n_profile = __("The User's Profile Image");
-  const avatar = x`<span title="${i18n_profile}">
-        <converse-avatar
-            class="avatar chat-msg__avatar"
-            .data=${o.model.vcard?.attributes}
-            nonce=${o.model.vcard?.get('vcard_updated')}
-            height="40" width="40"></converse-avatar></span>`;
+  const avatar = x`<span title="${i18n_profile}"><converse-avatar class="avatar chat-msg__avatar" .data="${o.model.vcard?.attributes}" nonce="${o.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></span>`;
   const display_name = o.model.getDisplayName();
-  return x`
-        <div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}">
-            <div class="chatbox-title--row">
-                ${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}
-                ${o.type !== shared_converse.HEADLINES_TYPE ? x`<a class="show-msg-author-modal" @click=${o.showUserDetailsModal}>${avatar}</a>` : ''}
-                <div class="chatbox-title__text" title="${o.jid}">
-                    ${o.type !== shared_converse.HEADLINES_TYPE ? x`<a class="user show-msg-author-modal" @click=${o.showUserDetailsModal}>${display_name}</a>` : display_name}
-                </div>
-            </div>
-            <div class="chatbox-title__buttons row no-gutters">
-                ${until_m(getDropdownButtons(o.heading_buttons_promise), '')}
-                ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}
-            </div>
-        </div>
-        ${o.status ? x`<p class="chat-head__desc">${o.status}</p>` : ''}
-    `;
+  return x`<div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}"><div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''} ${o.type !== shared_converse.HEADLINES_TYPE ? x`<a class="show-msg-author-modal" @click="${o.showUserDetailsModal}">${avatar}</a>` : ''}<div class="chatbox-title__text" title="${o.jid}">${o.type !== shared_converse.HEADLINES_TYPE ? x`<a class="user show-msg-author-modal" @click="${o.showUserDetailsModal}">${display_name}</a>` : display_name}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getDropdownButtons(o.heading_buttons_promise), '')} ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}</div></div>${o.status ? x`<p class="chat-head__desc">${o.status}</p>` : ''}`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/chatview/styles/chat-head.scss
-var styles_chat_head = __webpack_require__(3584);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/chatview/styles/chat-head.scss
+var styles_chat_head = __webpack_require__(263);
 ;// CONCATENATED MODULE: ./src/plugins/chatview/styles/chat-head.scss
 
       
@@ -60466,28 +59669,7 @@ function resetElementHeight(ev) {
   const label_message = o.composing_spoiler ? __('Hidden message') : __('Message');
   const label_spoiler_hint = __('Optional hint');
   const show_send_button = shared_api.settings.get('show_send_button');
-  return x`
-        <form class="sendXMPPMessage">
-            <input type="text"
-                   enterkeyhint="send"
-                   placeholder="${label_spoiler_hint || ''}"i
-                   value="${o.hint_value || ''}"
-                   class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"/>
-            <textarea
-                autofocus
-                type="text"
-                enterkeyhint="send"
-                @drop=${o.onDrop}
-                @input=${resetElementHeight}
-                @keydown=${o.onKeyDown}
-                @keyup=${o.onKeyUp}
-                @paste=${o.onPaste}
-                @change=${o.onChange}
-                class="chat-textarea
-                    ${show_send_button ? 'chat-textarea-send-button' : ''}
-                    ${o.composing_spoiler ? 'spoiler' : ''}"
-                placeholder="${label_message}">${o.message_value || ''}</textarea>
-        </form>`;
+  return x`<form class="sendXMPPMessage"><input type="text" enterkeyhint="send" placeholder="${label_spoiler_hint || ''}" i value="${o.hint_value || ''}" class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"> <textarea autofocus type="text" enterkeyhint="send" @drop="${o.onDrop}" @input="${resetElementHeight}" @keydown="${o.onKeyDown}" @keyup="${o.onKeyUp}" @paste="${o.onPaste}" @change="${o.onChange}" class="chat-textarea ${show_send_button ? 'chat-textarea-send-button' : ''} ${o.composing_spoiler ? 'spoiler' : ''}" placeholder="${label_message}">${o.message_value || ''}</textarea></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/chatview/message-form.js
 
@@ -60725,24 +59907,10 @@ shared_api.elements.define('converse-message-form', MessageForm);
   const show_send_button = shared_api.settings.get('show_send_button');
   const show_spoiler_button = shared_api.settings.get('visible_toolbar_buttons').spoiler;
   const show_toolbar = shared_api.settings.get('show_toolbar');
-  return x`
-        ${o.model.ui.get('scrolled') && o.model.get('num_unread') ? x`<div class="new-msgs-indicator" @click=${ev => o.viewUnreadMessages(ev)}>▼ ${unread_msgs} ▼</div>` : ''}
-        ${shared_api.settings.get('show_toolbar') ? x`
-            <converse-chat-toolbar
-                class="chat-toolbar no-text-select"
-                .model=${o.model}
-                ?composing_spoiler="${o.model.get('composing_spoiler')}"
-                ?show_call_button="${show_call_button}"
-                ?show_emoji_button="${show_emoji_button}"
-                ?show_send_button="${show_send_button}"
-                ?show_spoiler_button="${show_spoiler_button}"
-                ?show_toolbar="${show_toolbar}"
-                message_limit="${message_limit}"></converse-chat-toolbar>` : ''}
-        <converse-message-form jid="${o.model.get('jid')}"></converse-message-form>
-    `;
+  return x`${o.model.ui.get('scrolled') && o.model.get('num_unread') ? x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${shared_api.settings.get('show_toolbar') ? x`<converse-chat-toolbar class="chat-toolbar no-text-select" .model="${o.model}" ?composing_spoiler="${o.model.get('composing_spoiler')}" ?show_call_button="${show_call_button}" ?show_emoji_button="${show_emoji_button}" ?show_send_button="${show_send_button}" ?show_spoiler_button="${show_spoiler_button}" ?show_toolbar="${show_toolbar}" message_limit="${message_limit}"></converse-chat-toolbar>` : ''}<converse-message-form jid="${o.model.get('jid')}"></converse-message-form>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/chatview/styles/chat-bottom-panel.scss
-var chat_bottom_panel = __webpack_require__(7092);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/chatview/styles/chat-bottom-panel.scss
+var chat_bottom_panel = __webpack_require__(298);
 ;// CONCATENATED MODULE: ./src/plugins/chatview/styles/chat-bottom-panel.scss
 
       
@@ -60971,31 +60139,7 @@ class BaseChatView extends CustomElement {
 ;// CONCATENATED MODULE: ./src/plugins/chatview/templates/chat.js
 
 
-/* harmony default export */ const chat = (o => x`
-    <div class="flyout box-flyout">
-        <converse-dragresize></converse-dragresize>
-        ${o.model ? x`
-            <converse-chat-heading jid="${o.jid}" class="chat-head chat-head-chatbox row no-gutters"></converse-chat-heading>
-            <div class="chat-body">
-                <div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite">
-                    <converse-chat-content
-                        class="chat-content__messages"
-                        jid="${o.jid}"></converse-chat-content>
-
-                    ${o.show_help_messages ? x`<div class="chat-content__help">
-                            <converse-chat-help
-                                .model=${o.model}
-                                .messages=${o.help_messages}
-                                ?hidden=${!o.show_help_messages}
-                                type="info"
-                                chat_type="${shared_converse.CHATROOMS_TYPE}"
-                            ></converse-chat-help></div>` : ''}
-                </div>
-                <converse-chat-bottom-panel jid="${o.jid}" class="bottom-panel"> </converse-chat-bottom-panel>
-            </div>
-        ` : ''}
-    </div>
-`);
+/* harmony default export */ const chat = (o => x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${o.model ? x`<converse-chat-heading jid="${o.jid}" class="chat-head chat-head-chatbox row no-gutters"></converse-chat-heading><div class="chat-body"><div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${o.jid}"></converse-chat-content>${o.show_help_messages ? x`<div class="chat-content__help"><converse-chat-help .model="${o.model}" .messages="${o.help_messages}" ?hidden="${!o.show_help_messages}" type="info" chat_type="${shared_converse.CHATROOMS_TYPE}"></converse-chat-help></div>` : ''}</div><converse-chat-bottom-panel jid="${o.jid}" class="bottom-panel"></converse-chat-bottom-panel></div>` : ''}</div>`);
 ;// CONCATENATED MODULE: ./src/plugins/chatview/chat.js
 
 
@@ -61046,8 +60190,8 @@ class ChatView extends BaseChatView {
   }
 }
 shared_api.elements.define('converse-chat', ChatView);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/chatview/styles/index.scss
-var chatview_styles = __webpack_require__(2);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/chatview/styles/index.scss
+var chatview_styles = __webpack_require__(110);
 ;// CONCATENATED MODULE: ./src/plugins/chatview/styles/index.scss
 
       
@@ -61146,21 +60290,7 @@ class ConverseBrandByline extends CustomElement {
   render() {
     // eslint-disable-line class-methods-use-this
     const is_fullscreen = shared_api.settings.get('view_mode') === 'fullscreen';
-    return x`
-            ${is_fullscreen ? x`
-                    <p class="brand-subtitle">${shared_converse.VERSION_NAME}</p>
-                    <p class="brand-subtitle">
-                        <a target="_blank" rel="nofollow" href="https://conversejs.org">Open Source</a> XMPP chat client
-                        brought to you by <a target="_blank" rel="nofollow" href="https://opkode.com">Opkode</a>
-                    </p>
-                    <p class="brand-subtitle">
-                        <a target="_blank" rel="nofollow" href="https://hosted.weblate.org/projects/conversejs/#languages"
-                            >Translate</a
-                        >
-                        it into your own language
-                    </p>
-                ` : ''}
-            `;
+    return x`${is_fullscreen ? x`<p class="brand-subtitle">${shared_converse.VERSION_NAME}</p><p class="brand-subtitle"><a target="_blank" rel="nofollow" href="https://conversejs.org">Open Source</a> XMPP chat client brought to you by <a target="_blank" rel="nofollow" href="https://opkode.com">Opkode</a></p><p class="brand-subtitle"><a target="_blank" rel="nofollow" href="https://hosted.weblate.org/projects/conversejs/#languages">Translate</a> it into your own language</p>` : ''}`;
   }
 }
 shared_api.elements.define('converse-brand-byline', ConverseBrandByline);
@@ -61172,41 +60302,7 @@ class ConverseBrandLogo extends CustomElement {
   render() {
     // eslint-disable-line class-methods-use-this
     const is_fullscreen = shared_api.settings.get('view_mode') === 'fullscreen';
-    return x`
-            <a class="brand-heading" href="https://conversejs.org" target="_blank" rel="noopener">
-                <span class="brand-name-wrapper ${is_fullscreen ? 'brand-name-wrapper--fullscreen' : ''}">
-                    <svg
-                        class="converse-svg-logo"
-                        xmlns:svg="http://www.w3.org/2000/svg"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlns:xlink="http://www.w3.org/1999/xlink"
-                        viewBox="0 0 364 364">
-
-                        <title>Converse</title>
-                        <g class="cls-1" id="g904">
-                            <g data-name="Layer 2">
-                                <g data-name="Layer 7">
-                                    <path
-                                        class="cls-3"
-                                        d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z"
-                                    />
-                                    <path
-                                        class="cls-4"
-                                        d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z"
-                                    />
-                                </g>
-                            </g>
-                        </g>
-                    </svg>
-                    <span class="brand-name">
-                        <span class="brand-name__text">converse<span class="subdued">.js</span></span>
-                        ${is_fullscreen ? x`
-                                <p class="byline">messaging freedom</p>
-                            ` : ''}
-                    </span>
-                </span>
-            </a>
-        `;
+    return x`<a class="brand-heading" href="https://conversejs.org" target="_blank" rel="noopener"><span class="brand-name-wrapper ${is_fullscreen ? 'brand-name-wrapper--fullscreen' : ''}"><svg class="converse-svg-logo" xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 364 364"><title>Converse</title><g class="cls-1" id="g904"><g data-name="Layer 2"><g data-name="Layer 7"><path class="cls-3" d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z"/><path class="cls-4" d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z"/></g></g></g></svg> <span class="brand-name"><span class="brand-name__text">converse<span class="subdued">.js</span></span> ${is_fullscreen ? x`<p class="byline">messaging freedom</p>` : ''}</span></span></a>`;
   }
 }
 shared_api.elements.define('converse-brand-logo', ConverseBrandLogo);
@@ -61221,10 +60317,7 @@ shared_api.elements.define('converse-brand-logo', ConverseBrandLogo);
 class ConverseBrandHeading extends CustomElement {
   render() {
     // eslint-disable-line class-methods-use-this
-    return x`
-            <converse-brand-logo></converse-brand-logo>
-            <converse-brand-byline></converse-brand-byline>
-        `;
+    return x`<converse-brand-logo></converse-brand-logo><converse-brand-byline></converse-brand-byline>`;
   }
 }
 shared_api.elements.define('converse-brand-heading', ConverseBrandHeading);
@@ -61247,74 +60340,22 @@ const CONNECTION_STATUS_CSS_CLASS = Object.fromEntries([[constants_Strophe.Statu
 const trust_checkbox = checked => {
   const i18n_hint_trusted = __('To improve performance, we cache your data in this browser. ' + 'Uncheck this box if this is a public computer or if you want your data to be deleted when you log out. ' + "It's important that you explicitly log out, otherwise not all cached data might be deleted. " + 'Please note, when using an untrusted device, OMEMO encryption is NOT available.');
   const i18n_trusted = __('This is a trusted device');
-  return x`
-        <div class="form-group form-check login-trusted">
-            <input
-                id="converse-login-trusted"
-                type="checkbox"
-                class="form-check-input"
-                name="trusted"
-                ?checked=${checked}
-            />
-            <label for="converse-login-trusted" class="form-check-label login-trusted__desc">${i18n_trusted}</label>
-
-            <converse-icon
-                class="fa fa-info-circle"
-                data-toggle="popover"
-                data-title="Trusted device?"
-                data-content="${i18n_hint_trusted}"
-                size="1.2em"
-                title="${i18n_hint_trusted}"
-            ></converse-icon>
-        </div>
-    `;
+  return x`<div class="form-group form-check login-trusted"><input id="converse-login-trusted" type="checkbox" class="form-check-input" name="trusted" ?checked="${checked}"> <label for="converse-login-trusted" class="form-check-label login-trusted__desc">${i18n_trusted}</label><converse-icon class="fa fa-info-circle" data-toggle="popover" data-title="Trusted device?" data-content="${i18n_hint_trusted}" size="1.2em" title="${i18n_hint_trusted}"></converse-icon></div>`;
 };
 const connection_url_input = () => {
   const i18n_connection_url = __('Connection URL');
   const i18n_form_help = __('HTTP or websocket URL that is used to connect to your XMPP server');
   const i18n_placeholder = __('e.g. wss://example.org/xmpp-websocket');
-  return x`
-        <div class="form-group fade-in">
-            <label for="converse-conn-url">${i18n_connection_url}</label>
-            <p class="form-help instructions">${i18n_form_help}</p>
-            <input
-                id="converse-conn-url"
-                class="form-control"
-                type="url"
-                name="connection-url"
-                placeholder="${i18n_placeholder}"
-            />
-        </div>
-    `;
+  return x`<div class="form-group fade-in"><label for="converse-conn-url">${i18n_connection_url}</label><p class="form-help instructions">${i18n_form_help}</p><input id="converse-conn-url" class="form-control" type="url" name="connection-url" placeholder="${i18n_placeholder}"></div>`;
 };
 const password_input = () => {
   const i18n_password = __('Password');
-  return x`
-        <div class="form-group">
-            <label for="converse-login-password">${i18n_password}</label>
-            <input
-                id="converse-login-password"
-                class="form-control"
-                required="required"
-                value="${shared_api.settings.get('password') ?? ''}"
-                type="password"
-                name="password"
-                placeholder="${i18n_password}"
-            />
-        </div>
-    `;
+  return x`<div class="form-group"><label for="converse-login-password">${i18n_password}</label> <input id="converse-login-password" class="form-control" required="required" value="${shared_api.settings.get('password') ?? ''}" type="password" name="password" placeholder="${i18n_password}"></div>`;
 };
 const tplRegisterLink = () => {
   const i18n_create_account = __('Create an account');
   const i18n_hint_no_account = __("Don't have a chat account?");
-  return x`
-        <fieldset class="switch-form">
-            <p>${i18n_hint_no_account}</p>
-            <p>
-                <a class="register-account toggle-register-login" href="#converse/register">${i18n_create_account}</a>
-            </p>
-        </fieldset>
-    `;
+  return x`<fieldset class="switch-form"><p>${i18n_hint_no_account}</p><p><a class="register-account toggle-register-login" href="#converse/register">${i18n_create_account}</a></p></fieldset>`;
 };
 const tplShowRegisterLink = () => {
   return shared_api.settings.get('allow_registration') && !shared_api.settings.get('auto_login') && shared_converse.pluggable.plugins['converse-register'].enabled(shared_converse);
@@ -61327,39 +60368,13 @@ const auth_fields = el => {
   const default_domain = shared_api.settings.get('default_domain');
   const placeholder_username = (locked_domain || default_domain) && __('Username') || __('user@domain');
   const show_trust_checkbox = shared_api.settings.get('allow_user_trust_override');
-  return x`
-        <div class="form-group">
-            <label for="converse-login-jid">${i18n_xmpp_address}:</label>
-            <input
-                id="converse-login-jid"
-                ?autofocus=${shared_api.settings.get('auto_focus') ? true : false}
-                @changed=${el.validate}
-                value="${shared_api.settings.get('jid') ?? ''}"
-                required
-                class="form-control"
-                type="text"
-                name="jid"
-                placeholder="${placeholder_username}"
-            />
-        </div>
-        ${authentication !== EXTERNAL ? password_input() : ''}
-        ${shared_api.settings.get('show_connection_url_input') ? connection_url_input() : ''}
-        ${show_trust_checkbox ? trust_checkbox(show_trust_checkbox === 'off' ? false : true) : ''}
-        <fieldset class="form-group buttons">
-            <input class="btn btn-primary" type="submit" value="${i18n_login}" />
-        </fieldset>
-        ${tplShowRegisterLink() ? tplRegisterLink() : ''}
-    `;
+  return x`<div class="form-group"><label for="converse-login-jid">${i18n_xmpp_address}:</label> <input id="converse-login-jid" ?autofocus="${shared_api.settings.get('auto_focus') ? true : false}" @changed="${el.validate}" value="${shared_api.settings.get('jid') ?? ''}" required class="form-control" type="text" name="jid" placeholder="${placeholder_username}"></div>${authentication !== EXTERNAL ? password_input() : ''} ${shared_api.settings.get('show_connection_url_input') ? connection_url_input() : ''} ${show_trust_checkbox ? trust_checkbox(show_trust_checkbox === 'off' ? false : true) : ''}<fieldset class="form-group buttons"><input class="btn btn-primary" type="submit" value="${i18n_login}"></fieldset>${tplShowRegisterLink() ? tplRegisterLink() : ''}`;
 };
 const form_fields = el => {
   const authentication = shared_api.settings.get('authentication');
   const i18n_disconnected = __('Disconnected');
   const i18n_anon_login = __('Click here to log in anonymously');
-  return x`
-        ${authentication == LOGIN || authentication == EXTERNAL ? auth_fields(el) : ''}
-        ${authentication == ANONYMOUS ? x`<input class="btn btn-primary login-anon" type="submit" value="${i18n_anon_login}" />` : ''}
-        ${authentication == PREBIND ? x`<p>${i18n_disconnected}</p>` : ''}
-    `;
+  return x`${authentication == LOGIN || authentication == EXTERNAL ? auth_fields(el) : ''} ${authentication == ANONYMOUS ? x`<input class="btn btn-primary login-anon" type="submit" value="${i18n_anon_login}">` : ''} ${authentication == PREBIND ? x`<p>${i18n_disconnected}</p>` : ''}`;
 };
 /* harmony default export */ const loginform = (el => {
   const connection_status = shared_converse.connfeedback.get('connection_status');
@@ -61369,16 +60384,9 @@ const form_fields = el => {
     feedback_class = CONNECTION_STATUS_CSS_CLASS[connection_status];
   }
   const conn_feedback_message = shared_converse.connfeedback.get('message');
-  return x` <converse-brand-heading></converse-brand-heading>
-        <form id="converse-login" class="converse-form" method="post" @submit=${el.onLoginFormSubmitted}>
-            <div class="conn-feedback fade-in ${!pretty_status ? 'hidden' : feedback_class}">
-                <p class="feedback-subject">${pretty_status}</p>
-                <p class="feedback-message ${!conn_feedback_message ? 'hidden' : ''}">${conn_feedback_message}</p>
-            </div>
-            ${CONNECTION_STATUS[connection_status] === 'CONNECTING' ? spinner({
+  return x`<converse-brand-heading></converse-brand-heading><form id="converse-login" class="converse-form" method="post" @submit="${el.onLoginFormSubmitted}"><div class="conn-feedback fade-in ${!pretty_status ? 'hidden' : feedback_class}"><p class="feedback-subject">${pretty_status}</p><p class="feedback-message ${!conn_feedback_message ? 'hidden' : ''}">${conn_feedback_message}</p></div>${CONNECTION_STATUS[connection_status] === 'CONNECTING' ? spinner({
     'classes': 'hor_centered'
-  }) : form_fields(el)}
-        </form>`;
+  }) : form_fields(el)}</form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/utils.js
 
@@ -61574,7 +60582,7 @@ shared_api.elements.define('converse-login-form', LoginForm);
 
 
 /* harmony default export */ const navback = (jid => {
-  return x`<converse-icon size="1em" class="fa fa-arrow-left" @click=${() => navigateToControlBox(jid)}></converse-icon>`;
+  return x`<converse-icon size="1em" class="fa fa-arrow-left" @click="${() => navigateToControlBox(jid)}"></converse-icon>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/navback.js
 
@@ -61649,7 +60657,7 @@ const ControlBox = Model.extend({
 
 /* harmony default export */ const toggle = (o => {
   const i18n_toggle = shared_api.connection.connected() ? __('Chat Contacts') : __('Toggle chat');
-  return x`<a id="toggle-controlbox" class="toggle-controlbox ${o.hide ? 'hidden' : ''}" @click=${o.onClick}><span class="toggle-feedback">${i18n_toggle}</span></a>`;
+  return x`<a id="toggle-controlbox" class="toggle-controlbox ${o.hide ? 'hidden' : ''}" @click="${o.onClick}"><span class="toggle-feedback">${i18n_toggle}</span></a>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/toggle.js
 
@@ -61693,26 +60701,7 @@ function whenNotConnected(o) {
 /* harmony default export */ const controlbox = (el => {
   const o = el.model.toJSON();
   const sticky_controlbox = shared_api.settings.get('sticky_controlbox');
-  return x`
-        <div class="flyout box-flyout">
-            <converse-dragresize></converse-dragresize>
-            <div class="chat-head controlbox-head">
-                ${sticky_controlbox ? '' : x`
-                        <a class="chatbox-btn close-chatbox-button" @click=${ev => el.close(ev)}>
-                            <converse-icon class="fa fa-times" size="1em"></converse-icon>
-                        </a>
-                    `}
-            </div>
-            <div class="controlbox-panes">
-                <div class="controlbox-pane">
-                    ${o.connected ? x`
-                            <converse-user-profile></converse-user-profile>
-                            <converse-headlines-feeds-list class="controlbox-section"></converse-headlines-feeds-list>
-                            <div id="chatrooms" class="controlbox-section"><converse-rooms-list></converse-rooms-list></div>
-                            ${shared_api.settings.get("authentication") === shared_converse.ANONYMOUS ? '' : x`<div id="converse-roster" class="controlbox-section"><converse-roster></converse-roster></div>`}` : whenNotConnected(o)}
-                </div>
-            </div>
-        </div>`;
+  return x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize><div class="chat-head controlbox-head">${sticky_controlbox ? '' : x`<a class="chatbox-btn close-chatbox-button" @click="${ev => el.close(ev)}"><converse-icon class="fa fa-times" size="1em"></converse-icon></a>`}</div><div class="controlbox-panes"><div class="controlbox-pane">${o.connected ? x`<converse-user-profile></converse-user-profile><converse-headlines-feeds-list class="controlbox-section"></converse-headlines-feeds-list><div id="chatrooms" class="controlbox-section"><converse-rooms-list></converse-rooms-list></div>${shared_api.settings.get("authentication") === shared_converse.ANONYMOUS ? '' : x`<div id="converse-roster" class="controlbox-section"><converse-roster></converse-roster></div>`}` : whenNotConnected(o)}</div></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/controlbox.js
 
@@ -61822,8 +60811,8 @@ const {
     }
   }
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/controlbox/styles/_controlbox.scss
-var _controlbox = __webpack_require__(9870);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/controlbox/styles/_controlbox.scss
+var _controlbox = __webpack_require__(7740);
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/styles/_controlbox.scss
 
       
@@ -61853,8 +60842,8 @@ var _controlbox_update = injectStylesIntoStyleTag_default()(_controlbox/* defaul
 
        /* harmony default export */ const styles_controlbox = (_controlbox/* default */.Z && _controlbox/* default */.Z.locals ? _controlbox/* default */.Z.locals : undefined);
 
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/controlbox/styles/controlbox-head.scss
-var controlbox_head = __webpack_require__(4937);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/controlbox/styles/controlbox-head.scss
+var controlbox_head = __webpack_require__(4706);
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/styles/controlbox-head.scss
 
       
@@ -61957,19 +60946,7 @@ public_converse.plugins.add('converse-controlbox', {
 
 
 /* harmony default export */ const templates_chat_head = (o => {
-  return x`
-        <div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}">
-            <div class="chatbox-title--row">
-                ${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}
-                <div class="chatbox-title__text" title="${o.jid}">${o.display_name}</div>
-            </div>
-            <div class="chatbox-title__buttons row no-gutters">
-                ${until_m(getDropdownButtons(o.heading_buttons_promise), '')}
-                ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}
-            </div>
-        </div>
-        ${o.status ? x`<p class="chat-head__desc">${o.status}</p>` : ''}
-    `;
+  return x`<div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}"><div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}<div class="chatbox-title__text" title="${o.jid}">${o.display_name}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getDropdownButtons(o.heading_buttons_promise), '')} ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}</div></div>${o.status ? x`<p class="chat-head__desc">${o.status}</p>` : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/heading.js
 
@@ -62029,21 +61006,7 @@ shared_api.elements.define('converse-headlines-heading', HeadlinesHeading);
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/templates/headlines.js
 
 
-/* harmony default export */ const headlines = (model => x`
-    <div class="flyout box-flyout">
-        <converse-dragresize></converse-dragresize>
-        ${model ? x`
-            <converse-headlines-heading jid="${model.get('jid')}" class="chat-head chat-head-chatbox row no-gutters">
-            </converse-headlines-heading>
-            <div class="chat-body">
-                <div class="chat-content" aria-live="polite">
-                    <converse-chat-content
-                        class="chat-content__messages"
-                        jid="${model.get('jid')}"></converse-chat-content>
-                </div>
-            </div>` : ''}
-    </div>
-`);
+/* harmony default export */ const headlines = (model => x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${model ? x`<converse-headlines-heading jid="${model.get('jid')}" class="chat-head chat-head-chatbox row no-gutters"></converse-headlines-heading><div class="chat-body"><div class="chat-content" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${model.get('jid')}"></converse-chat-content></div></div>` : ''}</div>`);
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/view.js
 
 
@@ -62097,31 +61060,12 @@ shared_api.elements.define('converse-headlines', HeadlinesFeedView);
 
 function tplHeadlinesFeedsListItem(el, feed) {
   const open_title = __('Click to open this server message');
-  return x`
-        <div class="list-item controlbox-padded d-flex flex-row"
-            data-headline-jid="${feed.get('jid')}">
-        <a class="list-item-link open-headline available-room w-100"
-            data-headline-jid="${feed.get('jid')}"
-            title="${open_title}"
-            @click=${ev => el.openHeadline(ev)}
-            href="#">${feed.get('jid')}</a>
-        </div>
-    `;
+  return x`<div class="list-item controlbox-padded d-flex flex-row" data-headline-jid="${feed.get('jid')}"><a class="list-item-link open-headline available-room w-100" data-headline-jid="${feed.get('jid')}" title="${open_title}" @click="${ev => el.openHeadline(ev)}" href="#">${feed.get('jid')}</a></div>`;
 }
 /* harmony default export */ const feeds_list = (el => {
   const feeds = el.model.filter(m => m.get('type') === shared_converse.HEADLINES_TYPE);
   const heading_headline = __('Announcements');
-  return x`
-        <div class="controlbox-section" id="headline">
-            <div class="d-flex controlbox-padded ${feeds.length ? '' : 'hidden'}">
-                <span class="w-100 controlbox-heading controlbox-heading--headline">${heading_headline}</span>
-            </div>
-        </div>
-        <div class="list-container list-container--headline ${feeds.length ? '' : 'hidden'}">
-            <div class="items-list rooms-list headline-list">
-                ${feeds.map(feed => tplHeadlinesFeedsListItem(el, feed))}
-            </div>
-        </div>`;
+  return x`<div class="controlbox-section" id="headline"><div class="d-flex controlbox-padded ${feeds.length ? '' : 'hidden'}"><span class="w-100 controlbox-heading controlbox-heading--headline">${heading_headline}</span></div></div><div class="list-container list-container--headline ${feeds.length ? '' : 'hidden'}"><div class="items-list rooms-list headline-list">${feeds.map(feed => tplHeadlinesFeedsListItem(el, feed))}</div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/feed-list.js
 
@@ -62157,8 +61101,8 @@ class HeadlinesFeedsList extends CustomElement {
   }
 }
 shared_api.elements.define('converse-headlines-feeds-list', HeadlinesFeedsList);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/headlines-view/styles/headlines.scss
-var styles_headlines = __webpack_require__(2846);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/headlines-view/styles/headlines.scss
+var styles_headlines = __webpack_require__(7537);
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/styles/headlines.scss
 
       
@@ -62188,8 +61132,8 @@ var headlines_update = injectStylesIntoStyleTag_default()(styles_headlines/* def
 
        /* harmony default export */ const headlines_view_styles_headlines = (styles_headlines/* default */.Z && styles_headlines/* default */.Z.locals ? styles_headlines/* default */.Z.locals : undefined);
 
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/headlines-view/styles/headlines-head.scss
-var headlines_head = __webpack_require__(3806);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/headlines-view/styles/headlines-head.scss
+var headlines_head = __webpack_require__(2118);
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/styles/headlines-head.scss
 
       
@@ -62257,12 +61201,10 @@ public_converse.plugins.add('converse-headlines-view', {
 /* harmony default export */ const placeholder = (el => {
   return el.model.get('fetching') ? spinner({
     'classes': 'hor_centered'
-  }) : x`<a @click="${ev => el.fetchMissingMessages(ev)}" title="${__('Click to load missing messages')}">
-            <div class="message mam-placeholder"></div>
-        </a>`;
+  }) : x`<a @click="${ev => el.fetchMissingMessages(ev)}" title="${__('Click to load missing messages')}"><div class="message mam-placeholder"></div></a>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/mam-views/styles/placeholder.scss
-var styles_placeholder = __webpack_require__(7038);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/mam-views/styles/placeholder.scss
+var styles_placeholder = __webpack_require__(7725);
 ;// CONCATENATED MODULE: ./src/plugins/mam-views/styles/placeholder.scss
 
       
@@ -62329,7 +61271,7 @@ shared_api.elements.define('converse-mam-placeholder', Placeholder);
 
 function getPlaceholderTemplate(message, tpl) {
   if (message instanceof MAMPlaceholderMessage) {
-    return x`<converse-mam-placeholder .model=${message}></converse-mam-placeholder>`;
+    return x`<converse-mam-placeholder .model="${message}"></converse-mam-placeholder>`;
   } else {
     return tpl;
   }
@@ -62393,30 +61335,7 @@ public_converse.plugins.add('converse-mam-views', {
   const i18n_reason = __('Reason');
   const occupant = el.muc.getOwnOccupant();
   const assignable_affiliations = getAssignableAffiliations(occupant);
-  return x`
-        <form class="affiliation-form" @submit=${ev => el.assignAffiliation(ev)}>
-            ${el.alert_message ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''}
-            <div class="form-group">
-                <div class="row">
-                    <div class="col">
-                        <label><strong>${i18n_new_affiliation}:</strong></label>
-                        <select class="custom-select select-affiliation" name="affiliation">
-                            ${assignable_affiliations.map(aff => x`<option value="${aff}" ?selected=${aff === el.affiliation}>${aff}</option>`)}
-                        </select>
-                    </div>
-                    <div class="col">
-                        <label><strong>${i18n_reason}:</strong></label>
-                        <input class="form-control" type="text" name="reason"/>
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="col">
-                    <input type="submit" class="btn btn-primary" name="change" value="${i18n_change_affiliation}"/>
-                </div>
-            </div>
-        </form>
-    `;
+  return x`<form class="affiliation-form" @submit="${ev => el.assignAffiliation(ev)}">${el.alert_message ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''}<div class="form-group"><div class="row"><div class="col"><label><strong>${i18n_new_affiliation}:</strong></label> <select class="custom-select select-affiliation" name="affiliation">${assignable_affiliations.map(aff => x`<option value="${aff}" ?selected="${aff === el.affiliation}">${aff}</option>`)}</select></div><div class="col"><label><strong>${i18n_reason}:</strong></label> <input class="form-control" type="text" name="reason"></div></div></div><div class="form-group"><div class="col"><input type="submit" class="btn btn-primary" name="change" value="${i18n_change_affiliation}"></div></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/affiliation-form.js
 
@@ -62508,31 +61427,7 @@ shared_api.elements.define('converse-muc-affiliation-form', AffiliationForm);
   const i18n_reason = __('Reason');
   const occupant = el.muc.getOwnOccupant();
   const assignable_roles = getAssignableRoles(occupant);
-  return x`
-        <form class="role-form" @submit=${el.assignRole}>
-            <div class="form-group">
-                <input type="hidden" name="jid" value="${el.jid}"/>
-                <input type="hidden" name="nick" value="${el.nick}"/>
-                <div class="row">
-                    <div class="col">
-                        <label><strong>${i18n_new_role}:</strong></label>
-                        <select class="custom-select select-role" name="role">
-                        ${assignable_roles.map(role => x`<option value="${role}" ?selected=${role === el.role}>${role}</option>`)}
-                        </select>
-                    </div>
-                    <div class="col">
-                        <label><strong>${i18n_reason}:</strong></label>
-                        <input class="form-control" type="text" name="reason"/>
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="col">
-                    <input type="submit" class="btn btn-primary" value="${i18n_change_role}"/>
-                </div>
-            </div>
-        </form>
-    `;
+  return x`<form class="role-form" @submit="${el.assignRole}"><div class="form-group"><input type="hidden" name="jid" value="${el.jid}"> <input type="hidden" name="nick" value="${el.nick}"><div class="row"><div class="col"><label><strong>${i18n_new_role}:</strong></label> <select class="custom-select select-role" name="role">${assignable_roles.map(role => x`<option value="${role}" ?selected="${role === el.role}">${role}</option>`)}</select></div><div class="col"><label><strong>${i18n_reason}:</strong></label> <input class="form-control" type="text" name="reason"></div></div></div><div class="form-group"><div class="col"><input type="submit" class="btn btn-primary" value="${i18n_change_role}"></div></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/role-form.js
 
@@ -62614,30 +61509,7 @@ shared_api.elements.define('converse-muc-role-form', RoleForm);
   const label_message = o.composing_spoiler ? __('Hidden message') : __('Message');
   const label_spoiler_hint = __('Optional hint');
   const show_send_button = shared_api.settings.get('show_send_button');
-  return x`
-        <form class="setNicknameButtonForm hidden">
-            <input type="submit" class="btn btn-primary" name="join" value="Join"/>
-        </form>
-        <form class="sendXMPPMessage">
-            <input type="text" placeholder="${label_spoiler_hint || ''}" value="${o.hint_value || ''}" class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"/>
-            <div class="suggestion-box">
-                <ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul>
-                <textarea
-                    autofocus
-                    type="text"
-                    @drop=${o.onDrop}
-                    @input=${resetElementHeight}
-                    @keydown=${o.onKeyDown}
-                    @keyup=${o.onKeyUp}
-                    @paste=${o.onPaste}
-                    @change=${o.onChange}
-                    class="chat-textarea suggestion-box__input
-                        ${show_send_button ? 'chat-textarea-send-button' : ''}
-                        ${o.composing_spoiler ? 'spoiler' : ''}"
-                    placeholder="${label_message}">${o.message_value || ''}</textarea>
-                <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span>
-            </div>
-        </form>`;
+  return x`<form class="setNicknameButtonForm hidden"><input type="submit" class="btn btn-primary" name="join" value="Join"></form><form class="sendXMPPMessage"><input type="text" placeholder="${label_spoiler_hint || ''}" value="${o.hint_value || ''}" class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"><div class="suggestion-box"><ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul><textarea autofocus type="text" @drop="${o.onDrop}" @input="${resetElementHeight}" @keydown="${o.onKeyDown}" @keyup="${o.onKeyUp}" @paste="${o.onPaste}" @change="${o.onChange}" class="chat-textarea suggestion-box__input ${show_send_button ? 'chat-textarea-send-button' : ''} ${o.composing_spoiler ? 'spoiler' : ''}" placeholder="${label_message}">${o.message_value || ''}</textarea> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/message-form.js
 
@@ -62712,31 +61584,10 @@ shared_api.elements.define('converse-muc-message-form', MUCMessageForm);
   const i18n_join = el.model?.isEntered() ? __('Change nickname') : __('Enter groupchat');
   const i18n_heading = shared_api.settings.get('muc_show_logs_before_join') ? __('Choose a nickname to enter') : __('Please choose your nickname');
   const validation_message = el.model?.get('nickname_validation_message');
-  return x`
-        <div class="chatroom-form-container muc-nickname-form">
-                <form class="converse-form chatroom-form converse-centered-form"
-                        @submit=${ev => el.submitNickname(ev)}>
-                <fieldset class="form-group">
-                    <label>${i18n_heading}</label>
-                    <p class="validation-message">${validation_message}</p>
-                    <input type="text"
-                        required="required"
-                        name="nick"
-                        value="${el.model?.get('nick') || ''}"
-                        class="form-control ${validation_message ? 'error' : ''}"
-                        placeholder="${i18n_nickname}"/>
-                </fieldset>
-                <fieldset class="form-group">
-                    <input type="submit"
-                        class="btn btn-primary"
-                        name="join"
-                        value="${i18n_join}"/>
-                </fieldset>
-            </form>
-        </div>`;
+  return x`<div class="chatroom-form-container muc-nickname-form"><form class="converse-form chatroom-form converse-centered-form" @submit="${ev => el.submitNickname(ev)}"><fieldset class="form-group"><label>${i18n_heading}</label><p class="validation-message">${validation_message}</p><input type="text" required="required" name="nick" value="${el.model?.get('nick') || ''}" class="form-control ${validation_message ? 'error' : ''}" placeholder="${i18n_nickname}"></fieldset><fieldset class="form-group"><input type="submit" class="btn btn-primary" name="join" value="${i18n_join}"></fieldset></form></div>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/nickname-form.scss
-var nickname_form = __webpack_require__(9592);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/nickname-form.scss
+var nickname_form = __webpack_require__(6714);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/nickname-form.scss
 
       
@@ -62822,42 +61673,24 @@ const tplCanEdit = o => {
   const show_send_button = shared_api.settings.get('show_send_button');
   const show_spoiler_button = shared_api.settings.get('visible_toolbar_buttons').spoiler;
   const show_toolbar = shared_api.settings.get('show_toolbar');
-  return x`
-        ${o.model.ui.get('scrolled') && o.model.get('num_unread') ? x`<div class="new-msgs-indicator" @click=${ev => o.viewUnreadMessages(ev)}>▼ ${unread_msgs} ▼</div>` : ''}
-        ${show_toolbar ? x`
-            <converse-chat-toolbar
-                class="chat-toolbar no-text-select"
-                .model=${o.model}
-                ?hidden_occupants="${o.model.get('hidden_occupants')}"
-                ?is_groupchat="${o.is_groupchat}"
-                ?show_call_button="${show_call_button}"
-                ?show_emoji_button="${show_emoji_button}"
-                ?show_send_button="${show_send_button}"
-                ?show_spoiler_button="${show_spoiler_button}"
-                ?show_toolbar="${show_toolbar}"
-                message_limit="${message_limit}"></converse-chat-toolbar>` : ''}
-        <converse-muc-message-form jid=${o.model.get('jid')}></converse-muc-message-form>`;
+  return x`${o.model.ui.get('scrolled') && o.model.get('num_unread') ? x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${show_toolbar ? x`<converse-chat-toolbar class="chat-toolbar no-text-select" .model="${o.model}" ?hidden_occupants="${o.model.get('hidden_occupants')}" ?is_groupchat="${o.is_groupchat}" ?show_call_button="${show_call_button}" ?show_emoji_button="${show_emoji_button}" ?show_send_button="${show_send_button}" ?show_spoiler_button="${show_spoiler_button}" ?show_toolbar="${show_toolbar}" message_limit="${message_limit}"></converse-chat-toolbar>` : ''}<converse-muc-message-form jid="${o.model.get('jid')}"></converse-muc-message-form>`;
 };
 /* harmony default export */ const muc_bottom_panel = (o => {
   const unread_msgs = __('You have unread messages');
   const conn_status = o.model.session.get('connection_status');
   const i18n_not_allowed = __("You're not allowed to send messages in this room");
   if (conn_status === public_converse.ROOMSTATUS.ENTERED) {
-    return x`
-            ${o.model.ui.get('scrolled') && o.model.get('num_unread_general') ? x`<div class="new-msgs-indicator" @click=${ev => o.viewUnreadMessages(ev)}>▼ ${unread_msgs} ▼</div>` : ''}
-            ${o.can_edit ? tplCanEdit(o) : x`<span class="muc-bottom-panel muc-bottom-panel--muted">${i18n_not_allowed}</span>`}`;
+    return x`${o.model.ui.get('scrolled') && o.model.get('num_unread_general') ? x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${o.can_edit ? tplCanEdit(o) : x`<span class="muc-bottom-panel muc-bottom-panel--muted">${i18n_not_allowed}</span>`}`;
   } else if (conn_status == public_converse.ROOMSTATUS.NICKNAME_REQUIRED) {
     if (shared_api.settings.get('muc_show_logs_before_join')) {
-      return x`<span class="muc-bottom-panel muc-bottom-panel--nickname">
-                <converse-muc-nickname-form jid="${o.model.get('jid')}"></converse-muc-nickname-form>
-            </span>`;
+      return x`<span class="muc-bottom-panel muc-bottom-panel--nickname"><converse-muc-nickname-form jid="${o.model.get('jid')}"></converse-muc-nickname-form></span>`;
     }
   } else {
     return '';
   }
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/muc-bottom-panel.scss
-var styles_muc_bottom_panel = __webpack_require__(3774);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/muc-bottom-panel.scss
+var styles_muc_bottom_panel = __webpack_require__(5777);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/muc-bottom-panel.scss
 
       
@@ -62987,37 +61820,7 @@ const occupant_title = o => {
   } else {
     [classes, color] = ['fa fa-circle', 'subdued-color'];
   }
-  return x`
-        <li class="occupant" id="${o.id}" title="${occupant_title(o)}">
-            <div class="row no-gutters">
-                <div class="col-auto">
-                    <a class="show-msg-author-modal" @click=${ev => showOccupantModal(ev, o)}>
-                        <converse-avatar
-                            class="avatar chat-msg__avatar"
-                            .data=${o.vcard?.attributes}
-                            nonce=${o.vcard?.get('vcard_updated')}
-                            height="30" width="30"></converse-avatar>
-                        <converse-icon
-                           title="${hint_show}"
-                           color="var(--${color})"
-                           style="margin-top: -0.1em"
-                           size="0.82em"
-                           class="${classes} chat-status chat-status--avatar"></converse-icon>
-                    </a>
-                </div>
-                <div class="col occupant-nick-badge">
-                    <span class="occupant-nick" @click=${chat.onOccupantClicked}>${o.getDisplayName()}</span>
-                    <span class="occupant-badges">
-                        ${affiliation === "owner" ? x`<span class="badge badge-groupchat">${i18n_owner}</span>` : ''}
-                        ${affiliation === "admin" ? x`<span class="badge badge-info">${i18n_admin}</span>` : ''}
-                        ${affiliation === "member" ? x`<span class="badge badge-info">${i18n_member}</span>` : ''}
-                        ${role === "moderator" ? x`<span class="badge badge-info">${i18n_moderator}</span>` : ''}
-                        ${role === "visitor" ? x`<span class="badge badge-secondary">${i18n_visitor}</span>` : ''}
-                    </span>
-                </div>
-            </div>
-        </li>
-    `;
+  return x`<li class="occupant" id="${o.id}" title="${occupant_title(o)}"><div class="row no-gutters"><div class="col-auto"><a class="show-msg-author-modal" @click="${ev => showOccupantModal(ev, o)}"><converse-avatar class="avatar chat-msg__avatar" .data="${o.vcard?.attributes}" nonce="${o.vcard?.get('vcard_updated')}" height="30" width="30"></converse-avatar><converse-icon title="${hint_show}" color="var(--${color})" style="margin-top:-.1em" size="0.82em" class="${classes} chat-status chat-status--avatar"></converse-icon></a></div><div class="col occupant-nick-badge"><span class="occupant-nick" @click="${chat.onOccupantClicked}">${o.getDisplayName()}</span> <span class="occupant-badges">${affiliation === "owner" ? x`<span class="badge badge-groupchat">${i18n_owner}</span>` : ''} ${affiliation === "admin" ? x`<span class="badge badge-info">${i18n_admin}</span>` : ''} ${affiliation === "member" ? x`<span class="badge badge-info">${i18n_member}</span>` : ''} ${role === "moderator" ? x`<span class="badge badge-info">${i18n_moderator}</span>` : ''} ${role === "visitor" ? x`<span class="badge badge-secondary">${i18n_visitor}</span>` : ''}</span></div></div></li>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/muc-sidebar.js
 
@@ -63026,21 +61829,10 @@ const occupant_title = o => {
 
 /* harmony default export */ const muc_sidebar = (o => {
   const i18n_participants = o.occupants.length === 1 ? __('Participant') : __('Participants');
-  return x`
-        <div class="occupants-header">
-            <div class="occupants-header--title">
-                <span class="occupants-heading">${o.occupants.length} ${i18n_participants}</span>
-                <i class="hide-occupants" @click=${o.closeSidebar}>
-                    <converse-icon class="fa fa-times" size="1em"></converse-icon>
-                </i>
-            </div>
-        </div>
-        <div class="dragresize dragresize-occupants-left"></div>
-        <ul class="occupant-list">${repeat_c(o.occupants, occ => occ.get('jid'), occ => muc_views_templates_occupant(occ, o))}</ul>
-    `;
+  return x`<div class="occupants-header"><div class="occupants-header--title"><span class="occupants-heading">${o.occupants.length} ${i18n_participants}</span> <i class="hide-occupants" @click="${o.closeSidebar}"><converse-icon class="fa fa-times" size="1em"></converse-icon></i></div></div><div class="dragresize dragresize-occupants-left"></div><ul class="occupant-list">${repeat_c(o.occupants, occ => occ.get('jid'), occ => muc_views_templates_occupant(occ, o))}</ul>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/styles/status.scss
-var styles_status = __webpack_require__(6305);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/styles/status.scss
+var styles_status = __webpack_require__(5152);
 ;// CONCATENATED MODULE: ./src/shared/styles/status.scss
 
       
@@ -63070,8 +61862,8 @@ var status_update = injectStylesIntoStyleTag_default()(styles_status/* default *
 
        /* harmony default export */ const shared_styles_status = (styles_status/* default */.Z && styles_status/* default */.Z.locals ? styles_status/* default */.Z.locals : undefined);
 
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/muc-occupants.scss
-var muc_occupants = __webpack_require__(3284);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/muc-occupants.scss
+var muc_occupants = __webpack_require__(7428);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/muc-occupants.scss
 
       
@@ -63158,31 +61950,7 @@ shared_api.elements.define('converse-muc-sidebar', MUCSidebar);
 
 
 
-/* harmony default export */ const muc_chatarea = (o => x`
-    <div class="chat-area">
-        <div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite">
-            <converse-chat-content
-                class="chat-content__messages"
-                jid="${o.jid}"></converse-chat-content>
-
-            ${o.model?.get('show_help_messages') ? x`<div class="chat-content__help">
-                    <converse-chat-help
-                        .model=${o.model}
-                        .messages=${o.getHelpMessages()}
-                        type="info"
-                        chat_type="${shared_converse.CHATROOMS_TYPE}"
-                    ></converse-chat-help></div>` : ''}
-        </div>
-        <converse-muc-bottom-panel jid="${o.jid}" class="bottom-panel"></converse-muc-bottom-panel>
-    </div>
-    <div class="disconnect-container hidden"></div>
-    ${o.model ? x`
-        <converse-muc-sidebar
-            class="occupants col-md-3 col-4 ${o.shouldShowSidebar() ? '' : 'hidden'}"
-            style="flex: 0 0 ${o.model.get('occupants_width')}px"
-            jid=${o.jid}
-            @mousedown=${o.onMousedown}></converse-muc-sidebar>` : ''}
-`);
+/* harmony default export */ const muc_chatarea = (o => x`<div class="chat-area"><div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${o.jid}"></converse-chat-content>${o.model?.get('show_help_messages') ? x`<div class="chat-content__help"><converse-chat-help .model="${o.model}" .messages="${o.getHelpMessages()}" type="info" chat_type="${shared_converse.CHATROOMS_TYPE}"></converse-chat-help></div>` : ''}</div><converse-muc-bottom-panel jid="${o.jid}" class="bottom-panel"></converse-muc-bottom-panel></div><div class="disconnect-container hidden"></div>${o.model ? x`<converse-muc-sidebar class="occupants col-md-3 col-4 ${o.shouldShowSidebar() ? '' : 'hidden'}" style="flex:0 0 ${o.model.get('occupants_width')}" jid="${o.jid}" @mousedown="${o.onMousedown}"></converse-muc-sidebar>` : ''}`);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/chatarea.js
 
 
@@ -63342,25 +62110,9 @@ const muc_config_form_u = public_converse.env.utils;
   }
   const i18n_save = __('Save');
   const i18n_cancel = __('Cancel');
-  return x`
-        <form class="converse-form chatroom-form ${fields.length ? '' : 'converse-form--spinner'}"
-                autocomplete="off"
-                @submit=${o.submitConfigForm}>
-
-            <fieldset class="form-group">
-                <legend class="centered">${title}</legend>
-                ${title !== instructions ? x`<p class="form-help">${instructions}</p>` : ''}
-                ${fields.length ? fields : spinner({
+  return x`<form class="converse-form chatroom-form ${fields.length ? '' : 'converse-form--spinner'}" autocomplete="off" @submit="${o.submitConfigForm}"><fieldset class="form-group"><legend class="centered">${title}</legend>${title !== instructions ? x`<p class="form-help">${instructions}</p>` : ''} ${fields.length ? fields : spinner({
     'classes': 'hor_centered'
-  })}
-            </fieldset>
-            ${fields.length ? x`
-                <fieldset>
-                    <input type="submit" class="btn btn-primary" value="${i18n_save}">
-                    <input type="button" class="btn btn-secondary button-cancel" value="${i18n_cancel}" @click=${o.closeConfigForm}>
-                </fieldset>` : ''}
-        </form>
-    `;
+  })}</fieldset>${fields.length ? x`<fieldset><input type="submit" class="btn btn-primary" value="${i18n_save}"> <input type="button" class="btn btn-secondary button-cancel" value="${i18n_cancel}" @click="${o.closeConfigForm}"></fieldset>` : ''}</form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/config-form.js
 
@@ -63424,22 +62176,12 @@ shared_api.elements.define('converse-muc-config-form', MUCConfigForm);
 
 const tplMoved = o => {
   const i18n_moved = __('The conversation has moved to a new address. Click the link below to enter.');
-  return x`
-        <p class="moved-label">${i18n_moved}</p>
-        <p class="moved-link">
-            <a class="switch-chat" @click=${ev => o.onSwitch(ev)}>${o.moved_jid}</a>
-        </p>`;
+  return x`<p class="moved-label">${i18n_moved}</p><p class="moved-link"><a class="switch-chat" @click="${ev => o.onSwitch(ev)}">${o.moved_jid}</a></p>`;
 };
 /* harmony default export */ const muc_destroyed = (o => {
   const i18n_non_existent = __('This groupchat no longer exists');
   const i18n_reason = __('The following reason was given: "%1$s"', o.reason || '');
-  return x`
-        <div class="alert alert-danger">
-            <h3 class="alert-heading disconnect-msg">${i18n_non_existent}</h3>
-        </div>
-        ${o.reason ? x`<p class="destroyed-reason">${i18n_reason}</p>` : ''}
-        ${o.moved_jid ? tplMoved(o) : ''}
-    `;
+  return x`<div class="alert alert-danger"><h3 class="alert-heading disconnect-msg">${i18n_non_existent}</h3></div>${o.reason ? x`<p class="destroyed-reason">${i18n_reason}</p>` : ''} ${o.moved_jid ? tplMoved(o) : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/destroyed.js
 
@@ -63478,11 +62220,7 @@ shared_api.elements.define('converse-muc-destroyed', MUCDestroyed);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/muc-disconnect.js
 
 /* harmony default export */ const muc_disconnect = (messages => {
-  return x`
-        <div class="alert alert-danger">
-            <h3 class="alert-heading disconnect-msg">${messages[0]}</h3>
-            ${messages.slice(1).map(m => x`<p class="disconnect-msg">${m}</p>`)}
-        </div>`;
+  return x`<div class="alert alert-danger"><h3 class="alert-heading disconnect-msg">${messages[0]}</h3>${messages.slice(1).map(m => x`<p class="disconnect-msg">${m}</p>`)}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/disconnected.js
 
@@ -63525,10 +62263,7 @@ shared_api.elements.define('converse-muc-disconnected', MUCDisconnected);
 const subject = o => {
   const i18n_topic = __('Topic');
   const i18n_topic_author = __('Topic author');
-  return x`
-        <p class="room-info"><strong>${i18n_topic}</strong>: <converse-rich-text text=${o.subject.text} render_styling></converse-rich-text></p>
-        <p class="room-info"><strong>${i18n_topic_author}</strong>: ${o.subject && o.subject.author}</p>
-    `;
+  return x`<p class="room-info"><strong>${i18n_topic}</strong>:<converse-rich-text text="${o.subject.text}" render_styling></converse-rich-text></p><p class="room-info"><strong>${i18n_topic_author}</strong>: ${o.subject && o.subject.author}</p>`;
 };
 /* harmony default export */ const muc_details = (model => {
   const o = model.toJSON();
@@ -63565,36 +62300,10 @@ const subject = o => {
   const i18n_semi_anon_help = __('Only moderators can see your XMPP address');
   const i18n_temporary = __('Temporary');
   const i18n_temporary_help = __('This groupchat will disappear once the last person leaves');
-  return x`
-        <div class="room-info">
-            <p class="room-info"><strong>${i18n_name}</strong>: ${o.name}</p>
-            <p class="room-info"><strong>${i18n_address}</strong>: <converse-rich-text text="xmpp:${o.jid}?join"></converse-rich-text></p>
-            <p class="room-info"><strong>${i18n_desc}</strong>: <converse-rich-text text="${config.description}" render_styling></converse-rich-text></p>
-            ${o.subject ? subject(o) : ''}
-            <p class="room-info"><strong>${i18n_online_users}</strong>: ${num_occupants}</p>
-            <p class="room-info"><strong>${i18n_features}</strong>:
-                <div class="chatroom-features">
-                <ul class="features-list">
-                    ${features.passwordprotected ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-lock"></converse-icon>${i18n_password_protected} - <em>${i18n_password_help}</em></li>` : ''}
-                    ${features.unsecured ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-unlock"></converse-icon>${i18n_no_password_required} - <em>${i18n_no_pass_help}</em></li>` : ''}
-                    ${features.hidden ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-eye-slash"></converse-icon>${i18n_hidden} - <em>${i18n_hidden_help}</em></li>` : ''}
-                    ${features.public_room ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-eye"></converse-icon>${i18n_public} - <em>${o.__('This groupchat is publicly searchable')}</em></li>` : ''}
-                    ${features.membersonly ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-address-book"></converse-icon>${i18n_members_only} - <em>${i18n_members_help}</em></li>` : ''}
-                    ${features.open ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-globe"></converse-icon>${i18n_open} - <em>${i18n_open_help}</em></li>` : ''}
-                    ${features.persistent ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-save"></converse-icon>${i18n_persistent} - <em>${i18n_persistent_help}</em></li>` : ''}
-                    ${features.temporary ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-snowflake"></converse-icon>${i18n_temporary} - <em>${i18n_temporary_help}</em></li>` : ''}
-                    ${features.nonanonymous ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-id-card"></converse-icon>${i18n_not_anonymous} - <em>${i18n_not_anonymous_help}</em></li>` : ''}
-                    ${features.semianonymous ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-user-secret"></converse-icon>${i18n_semi_anon} - <em>${i18n_semi_anon_help}</em></li>` : ''}
-                    ${features.moderated ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-gavel"></converse-icon>${i18n_moderated} - <em>${i18n_moderated_help}</em></li>` : ''}
-                    ${features.unmoderated ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-info-circle"></converse-icon>${i18n_not_moderated} - <em>${i18n_not_moderated_help}</em></li>` : ''}
-                    ${features.mam_enabled ? x`<li class="feature" ><converse-icon size="1em" class="fa fa-database"></converse-icon>${i18n_archiving} - <em>${i18n_archiving_help}</em></li>` : ''}
-                </ul>
-                </div>
-            </p>
-    `;
+  return x`<div class="room-info"><p class="room-info"><strong>${i18n_name}</strong>: ${o.name}</p><p class="room-info"><strong>${i18n_address}</strong>:<converse-rich-text text="xmpp:${o.jid}?join"></converse-rich-text></p><p class="room-info"><strong>${i18n_desc}</strong>:<converse-rich-text text="${config.description}" render_styling></converse-rich-text></p>${o.subject ? subject(o) : ''}<p class="room-info"><strong>${i18n_online_users}</strong>: ${num_occupants}</p><p class="room-info"><strong>${i18n_features}</strong>:</p><div class="chatroom-features"><ul class="features-list">${features.passwordprotected ? x`<li class="feature"><converse-icon size="1em" class="fa fa-lock"></converse-icon>${i18n_password_protected} - <em>${i18n_password_help}</em></li>` : ''} ${features.unsecured ? x`<li class="feature"><converse-icon size="1em" class="fa fa-unlock"></converse-icon>${i18n_no_password_required} - <em>${i18n_no_pass_help}</em></li>` : ''} ${features.hidden ? x`<li class="feature"><converse-icon size="1em" class="fa fa-eye-slash"></converse-icon>${i18n_hidden} - <em>${i18n_hidden_help}</em></li>` : ''} ${features.public_room ? x`<li class="feature"><converse-icon size="1em" class="fa fa-eye"></converse-icon>${i18n_public} - <em>${o.__('This groupchat is publicly searchable')}</em></li>` : ''} ${features.membersonly ? x`<li class="feature"><converse-icon size="1em" class="fa fa-address-book"></converse-icon>${i18n_members_only} - <em>${i18n_members_help}</em></li>` : ''} ${features.open ? x`<li class="feature"><converse-icon size="1em" class="fa fa-globe"></converse-icon>${i18n_open} - <em>${i18n_open_help}</em></li>` : ''} ${features.persistent ? x`<li class="feature"><converse-icon size="1em" class="fa fa-save"></converse-icon>${i18n_persistent} - <em>${i18n_persistent_help}</em></li>` : ''} ${features.temporary ? x`<li class="feature"><converse-icon size="1em" class="fa fa-snowflake"></converse-icon>${i18n_temporary} - <em>${i18n_temporary_help}</em></li>` : ''} ${features.nonanonymous ? x`<li class="feature"><converse-icon size="1em" class="fa fa-id-card"></converse-icon>${i18n_not_anonymous} - <em>${i18n_not_anonymous_help}</em></li>` : ''} ${features.semianonymous ? x`<li class="feature"><converse-icon size="1em" class="fa fa-user-secret"></converse-icon>${i18n_semi_anon} - <em>${i18n_semi_anon_help}</em></li>` : ''} ${features.moderated ? x`<li class="feature"><converse-icon size="1em" class="fa fa-gavel"></converse-icon>${i18n_moderated} - <em>${i18n_moderated_help}</em></li>` : ''} ${features.unmoderated ? x`<li class="feature"><converse-icon size="1em" class="fa fa-info-circle"></converse-icon>${i18n_not_moderated} - <em>${i18n_not_moderated_help}</em></li>` : ''} ${features.mam_enabled ? x`<li class="feature"><converse-icon size="1em" class="fa fa-database"></converse-icon>${i18n_archiving} - <em>${i18n_archiving_help}</em></li>` : ''}</ul></div><p></p></div>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/muc-details-modal.scss
-var muc_details_modal = __webpack_require__(2430);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/muc-details-modal.scss
+var muc_details_modal = __webpack_require__(1067);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/muc-details-modal.scss
 
       
@@ -63656,31 +62365,7 @@ shared_api.elements.define('converse-muc-details-modal', MUCDetailsModal);
   const i18n_error_message = __('Please enter a valid XMPP address');
   const i18n_invite_label = __('XMPP Address');
   const i18n_reason = __('Optional reason for the invitation');
-  return x`
-        <form class="converse-form" @submit=${ev => el.submitInviteForm(ev)}>
-            <div class="form-group">
-                <label class="clearfix" for="invitee_jids">${i18n_invite_label}:</label>
-                ${el.model.get('invalid_invite_jid') ? x`<div class="error error-feedback">${i18n_error_message}</div>` : ''}
-                <converse-autocomplete
-                    .getAutoCompleteList=${() => el.getAutoCompleteList()}
-                    ?autofocus=${true}
-                    min_chars="1"
-                    position="below"
-                    required="required"
-                    name="invitee_jids"
-                    id="invitee_jids"
-                    placeholder="${i18n_jid_placeholder}">
-                </converse-autocomplete>
-            </div>
-            <div class="form-group">
-                <label>${i18n_reason}:</label>
-                <textarea class="form-control" name="reason"></textarea>
-            </div>
-            <div class="form-group">
-                <input type="submit" class="btn btn-primary" value="${i18n_invite}"/>
-            </div>
-        </form>
-    `;
+  return x`<form class="converse-form" @submit="${ev => el.submitInviteForm(ev)}"><div class="form-group"><label class="clearfix" for="invitee_jids">${i18n_invite_label}:</label> ${el.model.get('invalid_invite_jid') ? x`<div class="error error-feedback">${i18n_error_message}</div>` : ''}<converse-autocomplete .getAutoCompleteList="${() => el.getAutoCompleteList()}" ?autofocus="${true}" min_chars="1" position="below" required="required" name="invitee_jids" id="invitee_jids" placeholder="${i18n_jid_placeholder}"></converse-autocomplete></div><div class="form-group"><label>${i18n_reason}:</label> <textarea class="form-control" name="reason"></textarea></div><div class="form-group"><input type="submit" class="btn btn-primary" value="${i18n_invite}"></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/modals/muc-invite.js
 
@@ -63741,8 +62426,8 @@ class MUCNicknameModal extends modal_modal {
   }
 }
 shared_api.elements.define('converse-muc-nickname-modal', MUCNicknameModal);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/shared/components/styles/rich-text.scss
-var styles_rich_text = __webpack_require__(9575);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/components/styles/rich-text.scss
+var styles_rich_text = __webpack_require__(2864);
 ;// CONCATENATED MODULE: ./src/shared/components/styles/rich-text.scss
 
       
@@ -63892,38 +62577,10 @@ shared_api.elements.define('converse-rich-text', rich_text_RichText);
   const subject = o.subject ? o.subject.text : '';
   const show_subject = subject && !subject_hidden;
   const muc_vcard = el.model.vcard?.get('image');
-  return x`
-        <div class="chatbox-title ${show_subject ? '' : "chatbox-title--no-desc"}">
-
-            ${muc_vcard && muc_vcard !== shared_converse.DEFAULT_IMAGE ? x`
-                <converse-avatar class="avatar align-self-center"
-                    .data=${el.model.vcard?.attributes}
-                    nonce=${el.model.vcard?.get('vcard_updated')}
-                    height="40" width="40"></converse-avatar>` : ''}
-
-            <div class="chatbox-title--row">
-                ${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}
-                <div class="chatbox-title__text" title="${shared_api.settings.get('locked_muc_domain') !== 'hidden' ? o.jid : ''}">${el.model.getDisplayName()}
-                ${o.bookmarked ? x`<converse-icon
-                            class="fa fa-bookmark chatbox-title__text--bookmarked"
-                            size="1em"
-                            color="var(--chatroom-head-color)"
-                            title="${i18n_bookmarked}">
-                        </converse-icon>` : ''}
-                </div>
-            </div>
-            <div class="chatbox-title__buttons row no-gutters">
-                ${until_m(getStandaloneButtons(heading_buttons_promise), '')}
-                ${until_m(getDropdownButtons(heading_buttons_promise), '')}
-            </div>
-        </div>
-        ${show_subject ? x`<p class="chat-head__desc" title="${i18n_hide_topic}">
-            <converse-rich-text text=${subject} render_styling></converse-rich-text>
-          </p>` : ''}
-    `;
+  return x`<div class="chatbox-title ${show_subject ? '' : "chatbox-title--no-desc"}">${muc_vcard && muc_vcard !== shared_converse.DEFAULT_IMAGE ? x`<converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar>` : ''}<div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}<div class="chatbox-title__text" title="${shared_api.settings.get('locked_muc_domain') !== 'hidden' ? o.jid : ''}">${el.model.getDisplayName()} ${o.bookmarked ? x`<converse-icon class="fa fa-bookmark chatbox-title__text--bookmarked" size="1em" color="var(--chatroom-head-color)" title="${i18n_bookmarked}"></converse-icon>` : ''}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getStandaloneButtons(heading_buttons_promise), '')} ${until_m(getDropdownButtons(heading_buttons_promise), '')}</div></div>${show_subject ? x`<p class="chat-head__desc" title="${i18n_hide_topic}"><converse-rich-text text="${subject}" render_styling></converse-rich-text></p>` : ''}`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/muc-head.scss
-var styles_muc_head = __webpack_require__(2339);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/muc-head.scss
+var styles_muc_head = __webpack_require__(4083);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/muc-head.scss
 
       
@@ -64134,23 +62791,7 @@ shared_api.elements.define('converse-muc-heading', MUCHeading);
   const i18n_heading = __('This groupchat requires a password');
   const i18n_password = __('Password: ');
   const i18n_submit = __('Submit');
-  return x`
-        <form class="converse-form chatroom-form converse-centered-form" @submit=${o.submitPassword}>
-            <fieldset class="form-group">
-                <label>${i18n_heading}</label>
-                <p class="validation-message">${o.validation_message}</p>
-                <input class="hidden-username" type="text" autocomplete="username" value="${o.jid}"></input>
-                <input type="password"
-                    name="password"
-                    required="required"
-                    class="form-control ${o.validation_message ? 'error' : ''}"
-                    placeholder="${i18n_password}"/>
-            </fieldset>
-            <fieldset class="form-group">
-                <input class="btn btn-primary" type="submit" value="${i18n_submit}"/>
-            </fieldset>
-        </form>
-    `;
+  return x`<form class="converse-form chatroom-form converse-centered-form" @submit="${o.submitPassword}"><fieldset class="form-group"><label>${i18n_heading}</label><p class="validation-message">${o.validation_message}</p><input class="hidden-username" type="text" autocomplete="username" value="${o.jid}"><input type="password" name="password" required="required" class="form-control ${o.validation_message ? 'error' : ''}" placeholder="${i18n_password}"></fieldset><fieldset class="form-group"><input class="btn btn-primary" type="submit" value="${i18n_submit}"></fieldset></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/password-form.js
 
@@ -64197,15 +62838,7 @@ shared_api.elements.define('converse-muc-password-form', MUCPasswordForm);
 
 
 /* harmony default export */ const templates_muc = (o => {
-  return x`
-        <div class="flyout box-flyout">
-            <converse-dragresize></converse-dragresize>
-            ${o.model ? x`
-                <converse-muc-heading jid="${o.model.get('jid')}" class="chat-head chat-head-chatroom row no-gutters">
-                </converse-muc-heading>
-                <div class="chat-body chatroom-body row no-gutters">${getChatRoomBodyTemplate(o)}</div>
-            ` : ''}
-        </div>`;
+  return x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${o.model ? x`<converse-muc-heading jid="${o.model.get('jid')}" class="chat-head chat-head-chatroom row no-gutters"></converse-muc-heading><div class="chat-body chatroom-body row no-gutters">${getChatRoomBodyTemplate(o)}</div>` : ''}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/muc.js
 
@@ -64255,8 +62888,8 @@ class MUCView extends BaseChatView {
   }
 }
 shared_api.elements.define('converse-muc', MUCView);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/index.scss
-var muc_views_styles = __webpack_require__(1693);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/index.scss
+var muc_views_styles = __webpack_require__(2832);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/index.scss
 
       
@@ -64389,19 +63022,7 @@ const MinimizedChatsToggle = Model.extend({
 ;// CONCATENATED MODULE: ./src/plugins/minimize/templates/chats-panel.js
 
 
-/* harmony default export */ const chats_panel = (o => x`<div id="minimized-chats" class="${o.chats.length ? '' : 'hidden'}">
-        <a id="toggle-minimized-chats" class="row no-gutters" @click=${o.toggle}>
-            ${o.num_minimized} ${__('Minimized')}
-            <span class="unread-message-count ${!o.num_unread ? 'unread-message-count-hidden' : ''}" href="#">${o.num_unread}</span>
-        </a>
-        <div class="flyout minimized-chats-flyout row no-gutters ${o.collapsed ? 'hidden' : ''}">
-            ${o.chats.map(chat => x`<converse-minimized-chat
-                        .model=${chat}
-                        title=${chat.getDisplayName()}
-                        type=${chat.get('type')}
-                        num_unread=${chat.get('num_unread')}></converse-minimized-chat>`)}
-        </div>
-    </div>`);
+/* harmony default export */ const chats_panel = (o => x`<div id="minimized-chats" class="${o.chats.length ? '' : 'hidden'}"><a id="toggle-minimized-chats" class="row no-gutters" @click="${o.toggle}">${o.num_minimized} ${__('Minimized')} <span class="unread-message-count ${!o.num_unread ? 'unread-message-count-hidden' : ''}" href="#">${o.num_unread}</span></a><div class="flyout minimized-chats-flyout row no-gutters ${o.collapsed ? 'hidden' : ''}">${o.chats.map(chat => x`<converse-minimized-chat .model="${chat}" title="${chat.getDisplayName()}" type="${chat.get('type')}" num_unread="${chat.get('num_unread')}"></converse-minimized-chat>`)}</div></div>`);
 ;// CONCATENATED MODULE: ./src/plugins/minimize/view.js
 
 
@@ -64472,16 +63093,7 @@ shared_api.elements.define('converse-minimized-chats', MinimizedChats);
   } else {
     close_color = "var(--chat-head-text-color)";
   }
-  return x`
-    <div class="chat-head-${o.type} chat-head row no-gutters">
-        <a class="restore-chat w-100 align-self-center" title="${i18n_tooltip}" @click=${o.restore}>
-            ${o.num_unread ? x`<span class="message-count badge badge-light">${o.num_unread}</span>` : ''}
-            ${o.title}
-        </a>
-        <a class="chatbox-btn close-chatbox-button" @click=${o.close}>
-            <converse-icon color=${close_color} class="fas fa-times" @click=${o.close} size="1em"></converse-icon>
-        </a>
-    </div>`;
+  return x`<div class="chat-head-${o.type} chat-head row no-gutters"><a class="restore-chat w-100 align-self-center" title="${i18n_tooltip}" @click="${o.restore}">${o.num_unread ? x`<span class="message-count badge badge-light">${o.num_unread}</span>` : ''} ${o.title} </a><a class="chatbox-btn close-chatbox-button" @click="${o.close}"><converse-icon color="${close_color}" class="fas fa-times" @click="${o.close}" size="1em"></converse-icon></a></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/minimize/utils.js
 
@@ -64724,8 +63336,8 @@ class MinimizedChat extends CustomElement {
   }
 }
 shared_api.elements.define('converse-minimized-chat', MinimizedChat);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/minimize/styles/minimize.scss
-var styles_minimize = __webpack_require__(5784);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/minimize/styles/minimize.scss
+var styles_minimize = __webpack_require__(4540);
 ;// CONCATENATED MODULE: ./src/plugins/minimize/styles/minimize.scss
 
       
@@ -64849,7 +63461,7 @@ public_converse.plugins.add('converse-minimize', {
   }
 });
 // EXTERNAL MODULE: ./node_modules/favico.js-slevomat/favico.js
-var favico = __webpack_require__(3243);
+var favico = __webpack_require__(8042);
 var favico_default = /*#__PURE__*/__webpack_require__.n(favico);
 ;// CONCATENATED MODULE: ./src/plugins/notifications/utils.js
 
@@ -65205,43 +63817,7 @@ public_converse.plugins.add('converse-notification', {
   const placeholder_status_message = __('Personal status message');
   const status = el.model.get('status');
   const status_message = el.model.get('status_message');
-  return x`
-    <form class="converse-form set-xmpp-status" id="set-xmpp-status" @submit=${ev => el.onFormSubmitted(ev)}>
-        <div class="form-group">
-            <div class="custom-control custom-radio">
-                <input ?checked=${status === 'online'}
-                    type="radio" id="radio-online" value="online" name="chat_status" class="custom-control-input"/>
-                <label class="custom-control-label" for="radio-online">
-                    <converse-icon size="1em" class="fa fa-circle chat-status chat-status--online"></converse-icon>${label_online}</label>
-            </div>
-            <div class="custom-control custom-radio">
-                <input ?checked=${status === 'busy'}
-                    type="radio" id="radio-busy" value="dnd" name="chat_status" class="custom-control-input"/>
-                <label class="custom-control-label" for="radio-busy">
-                    <converse-icon size="1em" class="fa fa-minus-circle  chat-status chat-status--busy"></converse-icon>${label_busy}</label>
-            </div>
-            <div class="custom-control custom-radio">
-                <input ?checked=${status === 'away'}
-                    type="radio" id="radio-away" value="away" name="chat_status" class="custom-control-input"/>
-                <label class="custom-control-label" for="radio-away">
-                    <converse-icon size="1em" class="fa fa-circle chat-status chat-status--away"></converse-icon>${label_away}</label>
-            </div>
-            <div class="custom-control custom-radio">
-                <input ?checked=${status === 'xa'}
-                    type="radio" id="radio-xa" value="xa" name="chat_status" class="custom-control-input"/>
-                <label class="custom-control-label" for="radio-xa">
-                    <converse-icon size="1em" class="far fa-circle chat-status chat-status--xa"></converse-icon>${label_xa}</label>
-            </div>
-        </div>
-        <div class="form-group">
-            <div class="btn-group w-100">
-                <input name="status_message" type="text" class="form-control" autofocus
-                    value="${status_message || ''}" placeholder="${placeholder_status_message}"/>
-                <converse-icon size="1em" class="fa fa-times clear-input ${status_message ? '' : 'hidden'}" @click=${ev => el.clearStatusMessage(ev)}></converse-icon>
-            </div>
-        </div>
-        <button type="submit" class="btn btn-primary">${label_save}</button>
-    </form>`;
+  return x`<form class="converse-form set-xmpp-status" id="set-xmpp-status" @submit="${ev => el.onFormSubmitted(ev)}"><div class="form-group"><div class="custom-control custom-radio"><input ?checked="${status === 'online'}" type="radio" id="radio-online" value="online" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-online"><converse-icon size="1em" class="fa fa-circle chat-status chat-status--online"></converse-icon>${label_online}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'busy'}" type="radio" id="radio-busy" value="dnd" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-busy"><converse-icon size="1em" class="fa fa-minus-circle chat-status chat-status--busy"></converse-icon>${label_busy}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'away'}" type="radio" id="radio-away" value="away" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-away"><converse-icon size="1em" class="fa fa-circle chat-status chat-status--away"></converse-icon>${label_away}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'xa'}" type="radio" id="radio-xa" value="xa" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-xa"><converse-icon size="1em" class="far fa-circle chat-status chat-status--xa"></converse-icon>${label_xa}</label></div></div><div class="form-group"><div class="btn-group w-100"><input name="status_message" type="text" class="form-control" autofocus value="${status_message || ''}" placeholder="${placeholder_status_message}"><converse-icon size="1em" class="fa fa-times clear-input ${status_message ? '' : 'hidden'}" @click="${ev => el.clearStatusMessage(ev)}"></converse-icon></div></div><button type="submit" class="btn btn-primary">${label_save}</button></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/modals/chat-status.js
 
@@ -65305,12 +63881,7 @@ class ImagePicker extends CustomElement {
     };
   }
   render() {
-    return x`
-            <a class="change-avatar" @click=${this.openFileSelection} title="${i18n_profile_picture}">
-                <converse-avatar class="avatar" .data=${this.data} height="${this.height}" width="${this.width}"></converse-avatar>
-            </a>
-            <input @change=${this.updateFilePreview} class="hidden" name="image" type="file"/>
-        `;
+    return x`<a class="change-avatar" @click="${this.openFileSelection}" title="${i18n_profile_picture}"><converse-avatar class="avatar" .data="${this.data}" height="${this.height}" width="${this.width}"></converse-avatar></a><input @change="${this.updateFilePreview}" class="hidden" name="image" type="file">`;
   }
   openFileSelection(ev) {
     ev.preventDefault();
@@ -65334,10 +63905,7 @@ shared_api.elements.define('converse-image-picker', ImagePicker);
 
 
 
-const tplOmemoPage = el => x`
-    <div class="tab-pane ${el.tab === 'omemo' ? 'active' : ''}" id="omemo-tabpanel" role="tabpanel" aria-labelledby="omemo-tab">
-        ${el.tab === 'omemo' ? x`<converse-omemo-profile></converse-omemo-profile>` : ''}
-    </div>`;
+const tplOmemoPage = el => x`<div class="tab-pane ${el.tab === 'omemo' ? 'active' : ''}" id="omemo-tabpanel" role="tabpanel" aria-labelledby="omemo-tab">${el.tab === 'omemo' ? x`<converse-omemo-profile></converse-omemo-profile>` : ''}</div>`;
 /* harmony default export */ const profile_modal = (el => {
   const o = {
     ...el.model.toJSON(),
@@ -65354,95 +63922,18 @@ const tplOmemoPage = el => x`
   const i18n_omemo = __('OMEMO');
   const i18n_profile = __('Profile');
   const ii18n_reset_password = __('Reset Password');
-  const navigation_tabs = [x`<li role="presentation" class="nav-item">
-            <a class="nav-link ${el.tab === "profile" ? "active" : ""}"
-               id="profile-tab"
-               href="#profile-tabpanel"
-               aria-controls="profile-tabpanel"
-               role="tab"
-               @click=${ev => el.switchTab(ev)}
-               data-name="profile"
-               data-toggle="tab">${i18n_profile}</a>
-            </li>`];
-  navigation_tabs.push(x`<li role="presentation" class="nav-item">
-                <a class="nav-link ${el.tab === "passwordreset" ? "active" : ""}"
-                id="passwordreset-tab"
-                href="#passwordreset-tabpanel"
-                aria-controls="passwordreset-tabpanel"
-                role="tab"
-                @click=${ev => el.switchTab(ev)}
-                data-name="passwordreset"
-                data-toggle="tab">${ii18n_reset_password}</a>
-        </li>`);
+  const navigation_tabs = [x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "profile" ? "active" : ""}" id="profile-tab" href="#profile-tabpanel" aria-controls="profile-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="profile" data-toggle="tab">${i18n_profile}</a></li>`];
+  navigation_tabs.push(x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "passwordreset" ? "active" : ""}" id="passwordreset-tab" href="#passwordreset-tabpanel" aria-controls="passwordreset-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="passwordreset" data-toggle="tab">${ii18n_reset_password}</a></li>`);
   if (shared_converse.pluggable.plugins['converse-omemo']?.enabled(shared_converse)) {
-    navigation_tabs.push(x`<li role="presentation" class="nav-item">
-                <a class="nav-link ${el.tab === "omemo" ? "active" : ""}"
-                   id="omemo-tab"
-                   href="#omemo-tabpanel"
-                   aria-controls="omemo-tabpanel"
-                   role="tab"
-                   @click=${ev => el.switchTab(ev)}
-                   data-name="omemo"
-                   data-toggle="tab">${i18n_omemo}</a>
-            </li>`);
+    navigation_tabs.push(x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "omemo" ? "active" : ""}" id="omemo-tab" href="#omemo-tabpanel" aria-controls="omemo-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="omemo" data-toggle="tab">${i18n_omemo}</a></li>`);
   }
-  return x`
-        <ul class="nav nav-pills justify-content-center">${navigation_tabs}</ul>
-        <div class="tab-content">
-            <div class="tab-pane ${el.tab === 'profile' ? 'active' : ''}" id="profile-tabpanel" role="tabpanel" aria-labelledby="profile-tab">
-                <form class="converse-form converse-form--modal profile-form" action="#" @submit=${ev => el.onFormSubmitted(ev)}>
-                    <div class="row">
-                        <div class="col-auto">
-                            <converse-image-picker .data="${{
+  return x`<ul class="nav nav-pills justify-content-center">${navigation_tabs}</ul><div class="tab-content"><div class="tab-pane ${el.tab === 'profile' ? 'active' : ''}" id="profile-tabpanel" role="tabpanel" aria-labelledby="profile-tab"><form class="converse-form converse-form--modal profile-form" action="#" @submit="${ev => el.onFormSubmitted(ev)}"><div class="row"><div class="col-auto"><converse-image-picker .data="${{
     image: o.image,
     image_type: o.image_type
-  }}" width="128" height="128"></converse-image-picker>
-                        </div>
-                        <div class="col">
-                            <div class="form-group">
-                                <label class="col-form-label">${i18n_jid}:</label>
-                                <div>${o.jid}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="vcard-fullname" class="col-form-label">${i18n_fullname}:</label>
-                        <input id="vcard-fullname" type="text" class="form-control" name="fn" value="${o.fullname || ''}"/>
-                    </div>
-                    <div class="form-group">
-                        <label for="vcard-nickname" class="col-form-label">${i18n_nickname}:</label>
-                        <input id="vcard-nickname" type="text" class="form-control" name="nickname" value="${o.nickname || ''}"/>
-                    </div>
-                    <div class="form-group">
-                        <label for="vcard-url" class="col-form-label">${i18n_url}:</label>
-                        <input id="vcard-url" type="url" class="form-control" name="url" value="${o.url || ''}"/>
-                    </div>
-                    <div class="form-group">
-                        <label for="vcard-email" class="col-form-label">${i18n_email}:</label>
-                        <input id="vcard-email" type="email" class="form-control" name="email" value="${o.email || ''}"/>
-                    </div>
-                    <div class="form-group">
-                        <label for="vcard-role" class="col-form-label">${i18n_role}:</label>
-                        <input id="vcard-role" type="text" class="form-control" name="role" value="${o.role || ''}" aria-describedby="vcard-role-help"/>
-                        <small id="vcard-role-help" class="form-text text-muted">${i18n_role_help}</small>
-                    </div>
-                    <hr/>
-                    <div class="form-group">
-                        <button type="submit" class="save-form btn btn-primary">${i18n_save}</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="tab-pane ${el.tab === 'passwordreset' ? 'active' : ''}" id="passwordreset-tabpanel" role="tabpanel" aria-labelledby="passwordreset-tab">
-                ${el.tab === 'passwordreset' ? x`<converse-change-password-form></converse-change-password-form>` : ''}
-            </div>
-
-            ${shared_converse.pluggable.plugins['converse-omemo']?.enabled(shared_converse) ? tplOmemoPage(el) : ''}
-        </div>
-    </div>`;
+  }}" width="128" height="128"></converse-image-picker></div><div class="col"><div class="form-group"><label class="col-form-label">${i18n_jid}:</label><div>${o.jid}</div></div></div></div><div class="form-group"><label for="vcard-fullname" class="col-form-label">${i18n_fullname}:</label> <input id="vcard-fullname" type="text" class="form-control" name="fn" value="${o.fullname || ''}"></div><div class="form-group"><label for="vcard-nickname" class="col-form-label">${i18n_nickname}:</label> <input id="vcard-nickname" type="text" class="form-control" name="nickname" value="${o.nickname || ''}"></div><div class="form-group"><label for="vcard-url" class="col-form-label">${i18n_url}:</label> <input id="vcard-url" type="url" class="form-control" name="url" value="${o.url || ''}"></div><div class="form-group"><label for="vcard-email" class="col-form-label">${i18n_email}:</label> <input id="vcard-email" type="email" class="form-control" name="email" value="${o.email || ''}"></div><div class="form-group"><label for="vcard-role" class="col-form-label">${i18n_role}:</label> <input id="vcard-role" type="text" class="form-control" name="role" value="${o.role || ''}" aria-describedby="vcard-role-help"> <small id="vcard-role-help" class="form-text text-muted">${i18n_role_help}</small></div><hr><div class="form-group"><button type="submit" class="save-form btn btn-primary">${i18n_save}</button></div></form></div><div class="tab-pane ${el.tab === 'passwordreset' ? 'active' : ''}" id="passwordreset-tabpanel" role="tabpanel" aria-labelledby="passwordreset-tab">${el.tab === 'passwordreset' ? x`<converse-change-password-form></converse-change-password-form>` : ''}</div>${shared_converse.pluggable.plugins['converse-omemo']?.enabled(shared_converse) ? tplOmemoPage(el) : ''}</div>`;
 });
 // EXTERNAL MODULE: ./node_modules/client-compress/dist/index.js
-var dist = __webpack_require__(4923);
+var dist = __webpack_require__(326);
 var dist_default = /*#__PURE__*/__webpack_require__.n(dist);
 ;// CONCATENATED MODULE: ./src/plugins/profile/templates/password-reset.js
 
@@ -65452,45 +63943,7 @@ var dist_default = /*#__PURE__*/__webpack_require__.n(dist);
   const i18n_passwords_must_match = __('The new passwords must match');
   const i18n_new_password = __('New password');
   const i18n_confirm_password = __('Confirm new password');
-  return x`<form class="converse-form passwordreset-form" method="POST" @submit=${ev => el.onSubmit(ev)}>
-        ${el.alert_message ? x`<div class="alert alert-danger" role="alert">${el.alert_message}</div>` : ''}
-
-        <div class="form-group">
-            <label for="converse_password_reset_new">${i18n_new_password}</label>
-            <input
-                class="form-control ${el.passwords_mismatched ? 'error' : ''}"
-                type="password"
-                value=""
-                name="password"
-                required="required"
-                id="converse_password_reset_new"
-                autocomplete="new-password"
-                minlength="8"
-                ?disabled="${el.alert_message}"
-            />
-        </div>
-        <div class="form-group">
-            <label for="converse_password_reset_check">${i18n_confirm_password}</label>
-            <input
-                class="form-control ${el.passwords_mismatched ? 'error' : ''}"
-                type="password"
-                value=""
-                name="password_check"
-                required="required"
-                id="converse_password_reset_check"
-                autocomplete="new-password"
-                minlength="8"
-                ?disabled="${el.alert_message}"
-                @input=${ev => el.checkPasswordsMatch(ev)}
-            />
-            ${el.passwords_mismatched ? x`<span class="error">${i18n_passwords_must_match}</span>` : ''}
-        </div>
-
-        <input class="save-form btn btn-primary"
-               type="submit"
-               value=${i18n_submit}
-               ?disabled="${el.alert_message}" />
-    </form>`;
+  return x`<form class="converse-form passwordreset-form" method="POST" @submit="${ev => el.onSubmit(ev)}">${el.alert_message ? x`<div class="alert alert-danger" role="alert">${el.alert_message}</div>` : ''}<div class="form-group"><label for="converse_password_reset_new">${i18n_new_password}</label> <input class="form-control ${el.passwords_mismatched ? 'error' : ''}" type="password" name="password" required="required" id="converse_password_reset_new" autocomplete="new-password" minlength="8" ?disabled="${el.alert_message}"></div><div class="form-group"><label for="converse_password_reset_check">${i18n_confirm_password}</label> <input class="form-control ${el.passwords_mismatched ? 'error' : ''}" type="password" name="password_check" required="required" id="converse_password_reset_check" autocomplete="new-password" minlength="8" ?disabled="${el.alert_message}" @input="${ev => el.checkPasswordsMatch(ev)}"> ${el.passwords_mismatched ? x`<span class="error">${i18n_passwords_must_match}</span>` : ''}</div><input class="save-form btn btn-primary" type="submit" value="${i18n_submit}" ?disabled="${el.alert_message}"></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/password-reset.js
 
@@ -65668,30 +64121,7 @@ shared_api.elements.define('converse-profile-modal', ProfileModal);
 const user_settings_tplNavigation = el => {
   const i18n_about = __('About');
   const i18n_commands = __('Commands');
-  return x`
-        <ul class="nav nav-pills justify-content-center">
-            <li role="presentation" class="nav-item">
-                <a class="nav-link ${el.tab === "about" ? "active" : ""}"
-                   id="about-tab"
-                   href="#about-tabpanel"
-                   aria-controls="about-tabpanel"
-                   role="tab"
-                   data-toggle="tab"
-                   data-name="about"
-                   @click=${ev => el.switchTab(ev)}>${i18n_about}</a>
-            </li>
-            <li role="presentation" class="nav-item">
-                <a class="nav-link ${el.tab === "commands" ? "active" : ""}"
-                   id="commands-tab"
-                   href="#commands-tabpanel"
-                   aria-controls="commands-tabpanel"
-                   role="tab"
-                   data-toggle="tab"
-                   data-name="commands"
-                   @click=${ev => el.switchTab(ev)}>${i18n_commands}</a>
-            </li>
-        </ul>
-    `;
+  return x`<ul class="nav nav-pills justify-content-center"><li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "about" ? "active" : ""}" id="about-tab" href="#about-tabpanel" aria-controls="about-tabpanel" role="tab" data-toggle="tab" data-name="about" @click="${ev => el.switchTab(ev)}">${i18n_about}</a></li><li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "commands" ? "active" : ""}" id="commands-tab" href="#commands-tabpanel" aria-controls="commands-tabpanel" role="tab" data-toggle="tab" data-name="commands" @click="${ev => el.switchTab(ev)}">${i18n_commands}</a></li></ul>`;
 };
 /* harmony default export */ const templates_user_settings = (el => {
   const first_subtitle = __('%1$s Open Source %2$s XMPP chat client brought to you by %3$s Opkode %2$s', '<a target="_blank" rel="nofollow" href="https://conversejs.org">', '</a>', '<a target="_blank" rel="nofollow" href="https://opkode.com">');
@@ -65699,33 +64129,7 @@ const user_settings_tplNavigation = el => {
   const show_client_info = shared_api.settings.get('show_client_info');
   const allow_adhoc_commands = shared_api.settings.get('allow_adhoc_commands');
   const show_both_tabs = show_client_info && allow_adhoc_commands;
-  return x`
-        ${show_both_tabs ? user_settings_tplNavigation(el) : ''}
-
-        <div class="tab-content">
-            ${show_client_info ? x`
-                <div class="tab-pane tab-pane--columns ${el.tab === 'about' ? 'active' : ''}"
-                        id="about-tabpanel" role="tabpanel" aria-labelledby="about-tab">
-
-                    <span class="modal-alert"></span>
-                    <br/>
-                    <div class="container">
-                        <h6 class="brand-heading">Converse</h6>
-                        <p class="brand-subtitle">${shared_converse.VERSION_NAME}</p>
-                        <p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(first_subtitle))}</p>
-                        <p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(second_subtitle))}</p>
-                    </div>
-                </div>` : ''}
-
-            ${allow_adhoc_commands ? x`
-                <div class="tab-pane tab-pane--columns ${el.tab === 'commands' ? 'active' : ''}"
-                        id="commands-tabpanel"
-                        role="tabpanel"
-                        aria-labelledby="commands-tab">
-                    <converse-adhoc-commands/>
-                </div> ` : ''}
-        </div>
-`;
+  return x`${show_both_tabs ? user_settings_tplNavigation(el) : ''}<div class="tab-content">${show_client_info ? x`<div class="tab-pane tab-pane--columns ${el.tab === 'about' ? 'active' : ''}" id="about-tabpanel" role="tabpanel" aria-labelledby="about-tab"><span class="modal-alert"></span><br><div class="container"><h6 class="brand-heading">Converse</h6><p class="brand-subtitle">${shared_converse.VERSION_NAME}</p><p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(first_subtitle))}</p><p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(second_subtitle))}</p></div></div>` : ''} ${allow_adhoc_commands ? x`<div class="tab-pane tab-pane--columns ${el.tab === 'commands' ? 'active' : ''}" id="commands-tabpanel" role="tabpanel" aria-labelledby="commands-tab"><converse-adhoc-commands></div>` : ''}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/modals/user-settings.js
 
@@ -65792,15 +64196,11 @@ async function logOut(ev) {
 
 function tplSignout() {
   const i18n_logout = __('Log out');
-  return x`<a class="controlbox-heading__btn logout align-self-center" title="${i18n_logout}" @click=${logOut}>
-        <converse-icon class="fa fa-sign-out-alt" size="1em"></converse-icon>
-    </a>`;
+  return x`<a class="controlbox-heading__btn logout align-self-center" title="${i18n_logout}" @click="${logOut}"><converse-icon class="fa fa-sign-out-alt" size="1em"></converse-icon></a>`;
 }
 function tplUserSettingsButton(o) {
   const i18n_details = __('Show details about this chat client');
-  return x`<a class="controlbox-heading__btn show-client-info align-self-center" title="${i18n_details}" @click=${o.showUserSettingsModal}>
-        <converse-icon class="fa fa-cog" size="1em"></converse-icon>
-    </a>`;
+  return x`<a class="controlbox-heading__btn show-client-info align-self-center" title="${i18n_details}" @click="${o.showUserSettingsModal}"><converse-icon class="fa fa-cog" size="1em"></converse-icon></a>`;
 }
 /* harmony default export */ const profile = (el => {
   const chat_status = el.model.get('status') || 'offline';
@@ -65817,26 +64217,7 @@ function tplUserSettingsButton(o) {
   } else {
     [classes, color] = ['fa fa-circle chat-status', 'subdued-color'];
   }
-  return x`
-        <div class="userinfo controlbox-padded">
-            <div class="controlbox-section profile d-flex">
-                <a class="show-profile" href="#" @click=${el.showProfileModal}>
-                    <converse-avatar class="avatar align-self-center"
-                        .data=${el.model.vcard?.attributes}
-                        nonce=${el.model.vcard?.get('vcard_updated')}
-                        height="40" width="40"></converse-avatar>
-                </a>
-                <span class="username w-100 align-self-center">${el.model.getDisplayName()}</span>
-                ${show_settings_button ? tplUserSettingsButton(el) : ''}
-                ${shared_api.settings.get('allow_logout') ? tplSignout() : ''}
-            </div>
-            <div class="d-flex xmpp-status">
-                <a class="change-status" title="${i18n_change_status}" data-toggle="modal" data-target="#changeStatusModal" @click=${el.showStatusChangeModal}>
-                    <span class="${chat_status} w-100 align-self-center" data-value="${chat_status}">
-                    <converse-icon color="var(--${color})" style="margin-top: -0.1em" size="0.82em" class="${classes}"></converse-icon> ${status_message}</span>
-                </a>
-            </div>
-        </div>`;
+  return x`<div class="userinfo controlbox-padded"><div class="controlbox-section profile d-flex"><a class="show-profile" href="#" @click="${el.showProfileModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a><span class="username w-100 align-self-center">${el.model.getDisplayName()}</span> ${show_settings_button ? tplUserSettingsButton(el) : ''} ${shared_api.settings.get('allow_logout') ? tplSignout() : ''}</div><div class="d-flex xmpp-status"><a class="change-status" title="${i18n_change_status}" data-toggle="modal" data-target="#changeStatusModal" @click="${el.showStatusChangeModal}"><span class="${chat_status} w-100 align-self-center" data-value="${chat_status}"><converse-icon color="var(--${color})" style="margin-top:-.1em" size="0.82em" class="${classes}"></converse-icon>${status_message}</span></a></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/statusview.js
 
@@ -66754,16 +65135,7 @@ function getOMEMOToolbarButton(toolbar_el, buttons) {
   } else {
     color = `var(--muc-toolbar-btn-disabled-color)`;
   }
-  buttons.push(x`
-        <button class="toggle-omemo" title="${title}" data-disabled=${!model.get('omemo_supported')} @click=${toggleOMEMO}>
-            <converse-icon
-                class="fa ${model.get('omemo_active') ? `fa-lock` : `fa-unlock`}"
-                path-prefix="${shared_api.settings.get('assets_path')}"
-                size="1em"
-                color="${color}"
-            ></converse-icon>
-        </button>
-    `);
+  buttons.push(x`<button class="toggle-omemo" title="${title}" data-disabled="${!model.get('omemo_supported')}" @click="${toggleOMEMO}"><converse-icon class="fa ${model.get('omemo_active') ? `fa-lock` : `fa-unlock`}" path-prefix="${shared_api.settings.get('assets_path')}" size="1em" color="${color}"></converse-icon></button>`);
   return buttons;
 }
 async function getBundlesAndBuildSessions(chatbox) {
@@ -66873,25 +65245,7 @@ const device_fingerprint = (el, device) => {
   const i18n_trusted = __('Trusted');
   const i18n_untrusted = __('Untrusted');
   if (device.get('bundle') && device.get('bundle').fingerprint) {
-    return x`
-            <li class="list-group-item">
-                <form class="fingerprint-trust">
-                    <div class="btn-group btn-group-toggle">
-                        <label class="btn btn--small ${device.get('trusted') === 1 ? 'btn-primary active' : 'btn-secondary'}"
-                                @click=${el.toggleDeviceTrust}>
-                            <input type="radio" name="${device.get('id')}" value="1"
-                                ?checked=${device.get('trusted') !== -1}>${i18n_trusted}
-                        </label>
-                        <label class="btn btn--small ${device.get('trusted') === -1 ? 'btn-primary active' : 'btn-secondary'}"
-                                @click=${el.toggleDeviceTrust}>
-                            <input type="radio" name="${device.get('id')}" value="-1"
-                                ?checked=${device.get('trusted') === -1}>${i18n_untrusted}
-                        </label>
-                    </div>
-                    <code class="fingerprint">${formatFingerprint(device.get('bundle').fingerprint)}</code>
-                </form>
-            </li>
-        `;
+    return x`<li class="list-group-item"><form class="fingerprint-trust"><div class="btn-group btn-group-toggle"><label class="btn btn--small ${device.get('trusted') === 1 ? 'btn-primary active' : 'btn-secondary'}" @click="${el.toggleDeviceTrust}"><input type="radio" name="${device.get('id')}" value="1" ?checked="${device.get('trusted') !== -1}">${i18n_trusted}</label> <label class="btn btn--small ${device.get('trusted') === -1 ? 'btn-primary active' : 'btn-secondary'}" @click="${el.toggleDeviceTrust}"><input type="radio" name="${device.get('id')}" value="-1" ?checked="${device.get('trusted') === -1}">${i18n_untrusted}</label></div><code class="fingerprint">${formatFingerprint(device.get('bundle').fingerprint)}</code></form></li>`;
   } else {
     return '';
   }
@@ -66900,13 +65254,7 @@ const device_fingerprint = (el, device) => {
   const i18n_fingerprints = __('OMEMO Fingerprints');
   const i18n_no_devices = __("No OMEMO-enabled devices found");
   const devices = el.devicelist.devices;
-  return x`
-        <hr/>
-        <ul class="list-group fingerprints">
-            <li class="list-group-item active">${i18n_fingerprints}</li>
-            ${devices.length ? devices.map(device => device_fingerprint(el, device)) : x`<li class="list-group-item"> ${i18n_no_devices} </li>`}
-        </ul>
-    `;
+  return x`<hr><ul class="list-group fingerprints"><li class="list-group-item active">${i18n_fingerprints}</li>${devices.length ? devices.map(device => device_fingerprint(el, device)) : x`<li class="list-group-item">${i18n_no_devices}</li>`}</ul>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/omemo/fingerprints.js
 
@@ -66944,72 +65292,30 @@ shared_api.elements.define('converse-omemo-fingerprints', Fingerprints);
 
 
 
-const fingerprint = el => x`
-    <span class="fingerprint">${formatFingerprint(el.current_device.get('bundle').fingerprint)}</span>`;
+const fingerprint = el => x`<span class="fingerprint">${formatFingerprint(el.current_device.get('bundle').fingerprint)}</span>`;
 const device_with_fingerprint = el => {
   const i18n_fingerprint_checkbox_label = __('Checkbox for selecting the following fingerprint');
-  return x`
-        <li class="fingerprint-removal-item list-group-item">
-            <label>
-            <input type="checkbox" value="${el.device.get('id')}"
-                aria-label="${i18n_fingerprint_checkbox_label}"/>
-            <span class="fingerprint">${formatFingerprint(el.device.get('bundle').fingerprint)}</span>
-            </label>
-        </li>
-    `;
+  return x`<li class="fingerprint-removal-item list-group-item"><label><input type="checkbox" value="${el.device.get('id')}" aria-label="${i18n_fingerprint_checkbox_label}"> <span class="fingerprint">${formatFingerprint(el.device.get('bundle').fingerprint)}</span></label></li>`;
 };
 const device_without_fingerprint = el => {
   const i18n_device_without_fingerprint = __('Device without a fingerprint');
   const i18n_fingerprint_checkbox_label = __('Checkbox for selecting the following device');
-  return x`
-        <li class="fingerprint-removal-item list-group-item">
-            <label>
-            <input type="checkbox" value="${el.device.get('id')}"
-                aria-label="${i18n_fingerprint_checkbox_label}"/>
-            <span>${i18n_device_without_fingerprint}</span>
-            </label>
-        </li>
-    `;
+  return x`<li class="fingerprint-removal-item list-group-item"><label><input type="checkbox" value="${el.device.get('id')}" aria-label="${i18n_fingerprint_checkbox_label}"> <span>${i18n_device_without_fingerprint}</span></label></li>`;
 };
-const device_item = el => x`
-    ${el.device.get('bundle') && el.device.get('bundle').fingerprint ? device_with_fingerprint(el) : device_without_fingerprint(el)}
-`;
+const device_item = el => x`${el.device.get('bundle') && el.device.get('bundle').fingerprint ? device_with_fingerprint(el) : device_without_fingerprint(el)}`;
 const device_list = el => {
   const i18n_other_devices = __('Other OMEMO-enabled devices');
   const i18n_other_devices_label = __('Checkbox to select fingerprints of all other OMEMO devices');
   const i18n_remove_devices = __('Remove checked devices and close');
   const i18n_select_all = __('Select all');
-  return x`
-        <ul class="list-group fingerprints">
-            <li class="list-group-item active">
-                <label>
-                    <input type="checkbox" class="select-all" @change=${el.selectAll} title="${i18n_select_all}" aria-label="${i18n_other_devices_label}"/>
-                    ${i18n_other_devices}
-                </label>
-            </li>
-            ${el.other_devices?.map(device => device_item(Object.assign({
+  return x`<ul class="list-group fingerprints"><li class="list-group-item active"><label><input type="checkbox" class="select-all" @change="${el.selectAll}" title="${i18n_select_all}" aria-label="${i18n_other_devices_label}"> ${i18n_other_devices}</label></li>${el.other_devices?.map(device => device_item(Object.assign({
     device
-  }, el)))}
-        </ul>
-        <div class="form-group"><button type="submit" class="save-form btn btn-primary">${i18n_remove_devices}</button></div>
-    `;
+  }, el)))}</ul><div class="form-group"><button type="submit" class="save-form btn btn-primary">${i18n_remove_devices}</button></div>`;
 };
 /* harmony default export */ const templates_profile = (el => {
   const i18n_fingerprint = __("This device's OMEMO fingerprint");
   const i18n_generate = __('Generate new keys and fingerprint');
-  return x`
-        <form class="converse-form fingerprint-removal" @submit=${el.removeSelectedFingerprints}>
-            <ul class="list-group fingerprints">
-                <li class="list-group-item active">${i18n_fingerprint}</li>
-                <li class="list-group-item">
-                    ${el.current_device && el.current_device.get('bundle') && el.current_device.get('bundle').fingerprint ? fingerprint(el) : spinner()}
-                </li>
-            </ul>
-            <div class="form-group">
-                <button type="button" class="generate-bundle btn btn-danger" @click=${el.generateOMEMODeviceBundle}>${i18n_generate}</button>
-            </div>
-            ${el.other_devices?.length ? device_list(el) : ''}
-        </form>`;
+  return x`<form class="converse-form fingerprint-removal" @submit="${el.removeSelectedFingerprints}"><ul class="list-group fingerprints"><li class="list-group-item active">${i18n_fingerprint}</li><li class="list-group-item">${el.current_device && el.current_device.get('bundle') && el.current_device.get('bundle').fingerprint ? fingerprint(el) : spinner()}</li></ul><div class="form-group"><button type="button" class="generate-bundle btn btn-danger" @click="${el.generateOMEMODeviceBundle}">${i18n_generate}</button></div>${el.other_devices?.length ? device_list(el) : ''}</form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/omemo/profile.js
 
@@ -68018,11 +66324,7 @@ public_converse.plugins.add('converse-push', {
 /* harmony default export */ const switch_form = (() => {
   const i18n_has_account = __('Already have a chat account?');
   const i18n_login = __('Log in here');
-  return x`
-        <div class="switch-form">
-            <p>${i18n_has_account}</p>
-            <p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p>
-        </div>`;
+  return x`<div class="switch-form"><p>${i18n_has_account}</p><p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/register/templates/registration_form.js
 
@@ -68034,30 +66336,7 @@ public_converse.plugins.add('converse-push', {
   const i18n_legend = __('Account Registration:');
   const i18n_register = __('Register');
   const registration_domain = shared_api.settings.get('registration_domain');
-  return x`
-        <form id="converse-register" class="converse-form" @submit=${ev => el.onFormSubmission(ev)}>
-            <legend class="col-form-label">${i18n_legend} ${el.domain}</legend>
-            <p class="title">${el.title}</p>
-            <p class="form-help instructions">${el.instructions}</p>
-            <div class="form-errors hidden"></div>
-            ${el.form_fields}
-
-            <fieldset class="buttons form-group">
-                ${el.fields ? x`
-                          <input type="submit" class="btn btn-primary" value="${i18n_register}" />
-                      ` : ''}
-                ${registration_domain ? '' : x`
-                          <input
-                              type="button"
-                              class="btn btn-secondary button-cancel"
-                              value="${i18n_choose_provider}"
-                              @click=${ev => el.renderProviderChoiceForm(ev)}
-                          />
-                      `}
-                ${switch_form()}
-            </fieldset>
-        </form>
-    `;
+  return x`<form id="converse-register" class="converse-form" @submit="${ev => el.onFormSubmission(ev)}"><legend class="col-form-label">${i18n_legend} ${el.domain}</legend><p class="title">${el.title}</p><p class="form-help instructions">${el.instructions}</p><div class="form-errors hidden"></div>${el.form_fields}<fieldset class="buttons form-group">${el.fields ? x`<input type="submit" class="btn btn-primary" value="${i18n_register}">` : ''} ${registration_domain ? '' : x`<input type="button" class="btn btn-secondary button-cancel" value="${i18n_choose_provider}" @click="${ev => el.renderProviderChoiceForm(ev)}">`} ${switch_form()}</fieldset></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/register/templates/register_panel.js
 
@@ -68069,75 +66348,36 @@ public_converse.plugins.add('converse-push', {
 const tplFormRequest = el => {
   const default_domain = shared_api.settings.get('registration_domain');
   const i18n_cancel = __('Cancel');
-  return x`
-        <form id="converse-register" class="converse-form no-scrolling" @submit=${ev => el.onFormSubmission(ev)}>
-            ${spinner({
+  return x`<form id="converse-register" class="converse-form no-scrolling" @submit="${ev => el.onFormSubmission(ev)}">${spinner({
     'classes': 'hor_centered'
-  })}
-            ${default_domain ? '' : x`
-                    <button class="btn btn-secondary button-cancel hor_centered"
-                            @click=${ev => el.renderProviderChoiceForm(ev)}>${i18n_cancel}</button>
-                  `}
-        </form>
-    `;
+  })} ${default_domain ? '' : x`<button class="btn btn-secondary button-cancel hor_centered" @click="${ev => el.renderProviderChoiceForm(ev)}">${i18n_cancel}</button>`}</form>`;
 };
 const tplDomainInput = () => {
   const domain_placeholder = shared_api.settings.get('domain_placeholder');
   const i18n_providers = __('Tip: A list of public XMPP providers is available');
   const i18n_providers_link = __('here');
   const href_providers = shared_api.settings.get('providers_link');
-  return x`
-        <input class="form-control" required="required" type="text" name="domain" placeholder="${domain_placeholder}" />
-        <p class="form-text text-muted">
-            ${i18n_providers}
-            <a href="${href_providers}" class="url" target="_blank" rel="noopener">${i18n_providers_link}</a>.
-        </p>
-    `;
+  return x`<input class="form-control" required="required" type="text" name="domain" placeholder="${domain_placeholder}"><p class="form-text text-muted">${i18n_providers} <a href="${href_providers}" class="url" target="_blank" rel="noopener">${i18n_providers_link}</a>.</p>`;
 };
 const tplFetchFormButtons = () => {
   const i18n_register = __('Fetch registration form');
   const i18n_existing_account = __('Already have a chat account?');
   const i18n_login = __('Log in here');
-  return x`
-        <fieldset class="form-group buttons">
-            <input class="btn btn-primary" type="submit" value="${i18n_register}" />
-        </fieldset>
-        <div class="switch-form">
-            <p>${i18n_existing_account}</p>
-            <p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p>
-        </div>
-    `;
+  return x`<fieldset class="form-group buttons"><input class="btn btn-primary" type="submit" value="${i18n_register}"></fieldset><div class="switch-form"><p>${i18n_existing_account}</p><p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p></div>`;
 };
 const tplChooseProvider = el => {
   const default_domain = shared_api.settings.get('registration_domain');
   const i18n_create_account = __('Create your account');
   const i18n_choose_provider = __('Please enter the XMPP provider to register with:');
   const show_form_buttons = !default_domain && el.status === CHOOSE_PROVIDER;
-  return x`
-        <form id="converse-register" class="converse-form" @submit=${ev => el.onFormSubmission(ev)}>
-            <legend class="col-form-label">${i18n_create_account}</legend>
-            <div class="form-group">
-                <label>${i18n_choose_provider}</label>
-
-                ${default_domain ? default_domain : tplDomainInput()}
-            </div>
-            ${show_form_buttons ? tplFetchFormButtons() : ''}
-        </form>
-    `;
+  return x`<form id="converse-register" class="converse-form" @submit="${ev => el.onFormSubmission(ev)}"><legend class="col-form-label">${i18n_create_account}</legend><div class="form-group"><label>${i18n_choose_provider}</label> ${default_domain ? default_domain : tplDomainInput()}</div>${show_form_buttons ? tplFetchFormButtons() : ''}</form>`;
 };
 const CHOOSE_PROVIDER = 0;
 const FETCHING_FORM = 1;
 const REGISTRATION_FORM = 2;
 const REGISTRATION_FORM_ERROR = 3;
 /* harmony default export */ const register_panel = (el => {
-  return x`
-        <converse-brand-logo></converse-brand-logo>
-        ${el.alert_message ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''}
-        ${el.status === CHOOSE_PROVIDER ? tplChooseProvider(el) : ''}
-        ${el.status === FETCHING_FORM ? tplFormRequest(el) : ''}
-        ${el.status === REGISTRATION_FORM ? registration_form(el) : ''}
-        ${el.status === REGISTRATION_FORM_ERROR ? switch_form() : ''}
-    `;
+  return x`<converse-brand-logo></converse-brand-logo>${el.alert_message ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''} ${el.status === CHOOSE_PROVIDER ? tplChooseProvider(el) : ''} ${el.status === FETCHING_FORM ? tplFormRequest(el) : ''} ${el.status === REGISTRATION_FORM ? registration_form(el) : ''} ${el.status === REGISTRATION_FORM_ERROR ? switch_form() : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/register/utils.js
 
@@ -68183,8 +66423,8 @@ function webForm2xForm(field) {
   return utils_core.toStanza(tplXformField(name, Array.isArray(value) ? value.map(tplXformValue) : tplXformValue(value)));
 }
 utils_core.webForm2xForm = webForm2xForm;
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/register/styles/register.scss
-var register = __webpack_require__(354);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/register/styles/register.scss
+var register = __webpack_require__(3538);
 ;// CONCATENATED MODULE: ./src/plugins/register/styles/register.scss
 
       
@@ -68790,17 +67030,7 @@ function search_getAutoCompleteList(query) {
 const nickname_input = el => {
   const i18n_nickname = __('Nickname');
   const i18n_required_field = __('This field is required');
-  return x`
-            <div class="form-group" >
-                <label for="nickname">${i18n_nickname}:</label>
-                <input type="text"
-                    title="${i18n_required_field}"
-                    required="required"
-                    name="nickname"
-                    value="${el.model.get('nick') || ''}"
-                    class="form-control"/>
-            </div>
-    `;
+  return x`<div class="form-group"><label for="nickname">${i18n_nickname}:</label> <input type="text" title="${i18n_required_field}" required="required" name="nickname" value="${el.model.get('nick') || ''}" class="form-control"></div>`;
 };
 /* harmony default export */ const add_muc = (el => {
   const i18n_join = __('Join');
@@ -68812,31 +67042,12 @@ const nickname_input = el => {
   const label_room_address = muc_domain ? __('Groupchat name') : __('Groupchat address');
   const muc_roomid_policy_error_msg = el.muc_roomid_policy_error_msg;
   const muc_roomid_policy_hint = shared_api.settings.get('muc_roomid_policy_hint');
-  return x`
-        <form class="converse-form add-chatroom" @submit=${ev => el.openChatRoom(ev)}>
-            <div class="form-group">
-                <label for="chatroom">${label_room_address}:</label>
-                ${muc_roomid_policy_error_msg ? x`<label class="roomid-policy-error">${muc_roomid_policy_error_msg}</label>` : ''}
-                <converse-autocomplete
-                    .getAutoCompleteList=${search_getAutoCompleteList}
-                    ?autofocus=${true}
-                    min_chars="3"
-                    position="below"
-                    placeholder="${placeholder}"
-                    class="add-muc-autocomplete"
-                    name="chatroom">
-                </converse-autocomplete>
-            </div>
-            ${muc_roomid_policy_hint ? x`<div class="form-group">${unsafe_html_o(purify_default().sanitize(muc_roomid_policy_hint, {
+  return x`<form class="converse-form add-chatroom" @submit="${ev => el.openChatRoom(ev)}"><div class="form-group"><label for="chatroom">${label_room_address}:</label> ${muc_roomid_policy_error_msg ? x`<label class="roomid-policy-error">${muc_roomid_policy_error_msg}</label>` : ''}<converse-autocomplete .getAutoCompleteList="${search_getAutoCompleteList}" ?autofocus="${true}" min_chars="3" position="below" placeholder="${placeholder}" class="add-muc-autocomplete" name="chatroom"></converse-autocomplete></div>${muc_roomid_policy_hint ? x`<div class="form-group">${unsafe_html_o(purify_default().sanitize(muc_roomid_policy_hint, {
     'ALLOWED_TAGS': ['b', 'br', 'em']
-  }))}</div>` : ''}
-            ${!shared_api.settings.get('locked_muc_nickname') ? nickname_input(el) : ''}
-            <input type="submit" class="btn btn-primary" name="join" value="${i18n_join || ''}" ?disabled=${muc_roomid_policy_error_msg}/>
-        </form>
-    `;
+  }))}</div>` : ''} ${!shared_api.settings.get('locked_muc_nickname') ? nickname_input(el) : ''} <input type="submit" class="btn btn-primary" name="join" value="${i18n_join || ''}" ?disabled="${muc_roomid_policy_error_msg}/"></form>`;
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/muc-views/styles/add-muc-modal.scss
-var add_muc_modal = __webpack_require__(1602);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/add-muc-modal.scss
+var add_muc_modal = __webpack_require__(5902);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/styles/add-muc-modal.scss
 
       
@@ -68993,28 +67204,7 @@ function head(array) {
   const i18n_semi_anon = __('Semi-anonymous');
   const i18n_temp_room = __('Temporary');
   const i18n_unmoderated = __('Unmoderated');
-  return x`
-    <div class="room-info">
-        <p class="room-info"><strong>${i18n_jid}</strong> ${o.jid}</p>
-        <p class="room-info"><strong>${i18n_desc}</strong> ${o.desc}</p>
-        <p class="room-info"><strong>${i18n_occ}</strong> ${o.occ}</p>
-        <p class="room-info"><strong>${i18n_features}</strong>
-            <ul>
-                ${o.passwordprotected ? x`<li class="room-info locked">${i18n_requires_auth}</li>` : ''}
-                ${o.hidden ? x`<li class="room-info">${i18n_hidden}</li>` : ''}
-                ${o.membersonly ? x`<li class="room-info">${i18n_requires_invite}</li>` : ''}
-                ${o.moderated ? x`<li class="room-info">${i18n_moderated}</li>` : ''}
-                ${o.nonanonymous ? x`<li class="room-info">${i18n_non_anon}</li>` : ''}
-                ${o.open ? x`<li class="room-info">${i18n_open_room}</li>` : ''}
-                ${o.persistent ? x`<li class="room-info">${i18n_permanent_room}</li>` : ''}
-                ${o.publicroom ? x`<li class="room-info">${i18n_public}</li>` : ''}
-                ${o.semianonymous ? x`<li class="room-info">${i18n_semi_anon}</li>` : ''}
-                ${o.temporary ? x`<li class="room-info">${i18n_temp_room}</li>` : ''}
-                ${o.unmoderated ? x`<li class="room-info">${i18n_unmoderated}</li>` : ''}
-            </ul>
-        </p>
-    </div>
-`;
+  return x`<div class="room-info"><p class="room-info"><strong>${i18n_jid}</strong> ${o.jid}</p><p class="room-info"><strong>${i18n_desc}</strong> ${o.desc}</p><p class="room-info"><strong>${i18n_occ}</strong> ${o.occ}</p><p class="room-info"><strong>${i18n_features}</strong></p><ul>${o.passwordprotected ? x`<li class="room-info locked">${i18n_requires_auth}</li>` : ''} ${o.hidden ? x`<li class="room-info">${i18n_hidden}</li>` : ''} ${o.membersonly ? x`<li class="room-info">${i18n_requires_invite}</li>` : ''} ${o.moderated ? x`<li class="room-info">${i18n_moderated}</li>` : ''} ${o.nonanonymous ? x`<li class="room-info">${i18n_non_anon}</li>` : ''} ${o.open ? x`<li class="room-info">${i18n_open_room}</li>` : ''} ${o.persistent ? x`<li class="room-info">${i18n_permanent_room}</li>` : ''} ${o.publicroom ? x`<li class="room-info">${i18n_public}</li>` : ''} ${o.semianonymous ? x`<li class="room-info">${i18n_semi_anon}</li>` : ''} ${o.temporary ? x`<li class="room-info">${i18n_temp_room}</li>` : ''} ${o.unmoderated ? x`<li class="room-info">${i18n_unmoderated}</li>` : ''}</ul><p></p></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/muc-list.js
 
@@ -69024,54 +67214,15 @@ function head(array) {
 const muc_list_form = o => {
   const i18n_query = __('Show groupchats');
   const i18n_server_address = __('Server address');
-  return x`
-        <form class="converse-form list-chatrooms"
-            @submit=${o.submitForm}>
-            <div class="form-group">
-                <label for="chatroom">${i18n_server_address}:</label>
-                <input type="text"
-                    autofocus
-                    @change=${o.setDomainFromEvent}
-                    value="${o.muc_domain || ''}"
-                    required="required"
-                    name="server"
-                    class="form-control"
-                    placeholder="${o.server_placeholder}"/>
-            </div>
-            <input type="submit" class="btn btn-primary" name="list" value="${i18n_query}"/>
-        </form>
-    `;
+  return x`<form class="converse-form list-chatrooms" @submit="${o.submitForm}"><div class="form-group"><label for="chatroom">${i18n_server_address}:</label> <input type="text" autofocus @change="${o.setDomainFromEvent}" value="${o.muc_domain || ''}" required="required" name="server" class="form-control" placeholder="${o.server_placeholder}"></div><input type="submit" class="btn btn-primary" name="list" value="${i18n_query}"></form>`;
 };
 const tplItem = (o, item) => {
   const i18n_info_title = __('Show more information on this groupchat');
   const i18n_open_title = __('Click to open this groupchat');
-  return x`
-        <li class="room-item list-group-item">
-            <div class="available-chatroom d-flex flex-row">
-                <a class="open-room available-room w-100"
-                    @click=${o.openRoom}
-                    data-room-jid="${item.jid}"
-                    data-room-name="${item.name}"
-                    title="${i18n_open_title}"
-                    href="#">${item.name || item.jid}</a>
-                    <a class="right room-info icon-room-info"
-                    @click=${o.toggleRoomInfo}
-                    data-room-jid="${item.jid}"
-                    title="${i18n_info_title}"
-                    href="#"></a>
-            </div>
-        </li>
-    `;
+  return x`<li class="room-item list-group-item"><div class="available-chatroom d-flex flex-row"><a class="open-room available-room w-100" @click="${o.openRoom}" data-room-jid="${item.jid}" data-room-name="${item.name}" title="${i18n_open_title}" href="#">${item.name || item.jid}</a> <a class="right room-info icon-room-info" @click="${o.toggleRoomInfo}" data-room-jid="${item.jid}" title="${i18n_info_title}" href="#"></a></div></li>`;
 };
 /* harmony default export */ const muc_list = (o => {
-  return x`
-        ${o.show_form ? muc_list_form(o) : ''}
-        <ul class="available-chatrooms list-group">
-            ${o.loading_items ? x`<li class="list-group-item"> ${spinner()} </li>` : ''}
-            ${o.feedback_text ? x`<li class="list-group-item active">${o.feedback_text}</li>` : ''}
-            ${repeat_c(o.items, item => item.jid, item => tplItem(o, item))}
-        </ul>
-    `;
+  return x`${o.show_form ? muc_list_form(o) : ''}<ul class="available-chatrooms list-group">${o.loading_items ? x`<li class="list-group-item">${spinner()}</li>` : ''} ${o.feedback_text ? x`<li class="list-group-item active">${o.feedback_text}</li>` : ''} ${repeat_c(o.items, item => item.jid, item => tplItem(o, item))}</ul>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/modals/muc-list.js
 
@@ -69256,52 +67407,14 @@ function isCurrentlyOpen(room) {
 function tplBookmark(room) {
   const bm = room.get('bookmarked') ?? false;
   const i18n_bookmark = __('Bookmark');
-  return x`
-        <a class="list-item-action add-bookmark"
-            data-room-jid="${room.get('jid')}"
-            data-bookmark-name="${room.getDisplayName()}"
-            @click=${ev => addBookmarkViaEvent(ev)}
-            title="${i18n_bookmark}">
-
-            <converse-icon class="fa ${bm ? 'fa-bookmark' : 'fa-bookmark-empty'}"
-                           size="1.2em"
-                           color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon>
-        </a>`;
+  return x`<a class="list-item-action add-bookmark" data-room-jid="${room.get('jid')}" data-bookmark-name="${room.getDisplayName()}" @click="${ev => addBookmarkViaEvent(ev)}" title="${i18n_bookmark}"><converse-icon class="fa ${bm ? 'fa-bookmark' : 'fa-bookmark-empty'}" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a>`;
 }
 const tplUnreadIndicator = room => x`<span class="list-item-badge badge badge--muc msgs-indicator">${room.get('num_unread')}</span>`;
 const tplActivityIndicator = () => x`<span class="list-item-badge badge badge--muc msgs-indicator"></span>`;
 function tplRoomItem(el, room) {
   const i18n_leave_room = __('Leave this groupchat');
   const has_unread_msgs = room.get('num_unread_general') || room.get('has_activity');
-  return x`
-        <div class="list-item controlbox-padded available-chatroom d-flex flex-row ${isCurrentlyOpen(room) ? 'open' : ''} ${has_unread_msgs ? 'unread-msgs' : ''}"
-            data-room-jid="${room.get('jid')}">
-
-            ${room.get('num_unread') ? tplUnreadIndicator(room) : room.get('has_activity') ? tplActivityIndicator() : ''}
-
-            <a class="list-item-link open-room available-room w-100"
-                data-room-jid="${room.get('jid')}"
-                title="${__('Click to open this groupchat')}"
-                @click=${ev => el.openRoom(ev)}>${room.getDisplayName()}</a>
-
-            ${shared_api.settings.get('allow_bookmarks') ? tplBookmark(room) : ''}
-
-            <a class="list-item-action room-info"
-                data-room-jid="${room.get('jid')}"
-                title="${__('Show more information on this groupchat')}"
-                @click=${ev => el.showRoomDetailsModal(ev)}>
-
-                <converse-icon class="fa fa-info-circle" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon>
-            </a>
-
-            <a class="list-item-action close-room"
-                data-room-jid="${room.get('jid')}"
-                data-room-name="${room.getDisplayName()}"
-                title="${i18n_leave_room}"
-                @click=${ev => el.closeRoom(ev)}>
-                <converse-icon class="fa fa-sign-out-alt" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon>
-            </a>
-        </div>`;
+  return x`<div class="list-item controlbox-padded available-chatroom d-flex flex-row ${isCurrentlyOpen(room) ? 'open' : ''} ${has_unread_msgs ? 'unread-msgs' : ''}" data-room-jid="${room.get('jid')}">${room.get('num_unread') ? tplUnreadIndicator(room) : room.get('has_activity') ? tplActivityIndicator() : ''} <a class="list-item-link open-room available-room w-100" data-room-jid="${room.get('jid')}" title="${__('Click to open this groupchat')}" @click="${ev => el.openRoom(ev)}">${room.getDisplayName()}</a> ${shared_api.settings.get('allow_bookmarks') ? tplBookmark(room) : ''} <a class="list-item-action room-info" data-room-jid="${room.get('jid')}" title="${__('Show more information on this groupchat')}" @click="${ev => el.showRoomDetailsModal(ev)}"><converse-icon class="fa fa-info-circle" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a><a class="list-item-action close-room" data-room-jid="${room.get('jid')}" data-room-name="${room.getDisplayName()}" title="${i18n_leave_room}" @click="${ev => el.closeRoom(ev)}"><converse-icon class="fa fa-sign-out-alt" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a></div>`;
 }
 /* harmony default export */ const roomslist = (el => {
   const {
@@ -69317,48 +67430,13 @@ function tplRoomItem(el, room) {
   const i18n_title_new_room = __('Add a new groupchat');
   const i18n_show_bookmarks = __('Show bookmarked groupchats');
   const is_closed = el.model.get('toggle_state') === CLOSED;
-  return x`
-        <div class="d-flex controlbox-padded">
-            <span class="w-100 controlbox-heading controlbox-heading--groupchats">
-                <a class="list-toggle open-rooms-toggle" title="${i18n_desc_rooms}" @click=${ev => el.toggleRoomsList(ev)}>
-                    <converse-icon
-                        class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}"
-                        size="1em"
-                        color="var(--muc-color)"></converse-icon>
-                    ${i18n_heading_chatrooms}
-                </a>
-            </span>
-
-            <a class="controlbox-heading__btn show-bookmark-list-modal"
-                @click=${ev => shared_api.modal.show('converse-bookmark-list-modal', {
+  return x`<div class="d-flex controlbox-padded"><span class="w-100 controlbox-heading controlbox-heading--groupchats"><a class="list-toggle open-rooms-toggle" title="${i18n_desc_rooms}" @click="${ev => el.toggleRoomsList(ev)}"><converse-icon class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}" size="1em" color="var(--muc-color)"></converse-icon>${i18n_heading_chatrooms} </a></span><a class="controlbox-heading__btn show-bookmark-list-modal" @click="${ev => shared_api.modal.show('converse-bookmark-list-modal', {
     'model': el.model
-  }, ev)}
-                title="${i18n_show_bookmarks}"
-                data-toggle="modal">
-                    <converse-icon class="fa fa-bookmark right" size="1em"></converse-icon>
-            </a>
-
-            <a class="controlbox-heading__btn show-list-muc-modal"
-                @click=${ev => shared_api.modal.show('converse-muc-list-modal', {
+  }, ev)}" title="${i18n_show_bookmarks}" data-toggle="modal"><converse-icon class="fa fa-bookmark right" size="1em"></converse-icon></a><a class="controlbox-heading__btn show-list-muc-modal" @click="${ev => shared_api.modal.show('converse-muc-list-modal', {
     'model': el.model
-  }, ev)}
-                title="${i18n_title_list_rooms}" data-toggle="modal" data-target="#muc-list-modal">
-                    <converse-icon class="fa fa-list-ul right" size="1em"></converse-icon>
-            </a>
-            <a class="controlbox-heading__btn show-add-muc-modal"
-                @click=${ev => shared_api.modal.show('converse-add-muc-modal', {
+  }, ev)}" title="${i18n_title_list_rooms}" data-toggle="modal" data-target="#muc-list-modal"><converse-icon class="fa fa-list-ul right" size="1em"></converse-icon></a><a class="controlbox-heading__btn show-add-muc-modal" @click="${ev => shared_api.modal.show('converse-add-muc-modal', {
     'model': el.model
-  }, ev)}
-                title="${i18n_title_new_room}" data-toggle="modal" data-target="#add-chatrooms-modal">
-                    <converse-icon class="fa fa-plus right" size="1em"></converse-icon>
-            </a>
-        </div>
-
-        <div class="list-container list-container--openrooms ${rooms.length ? '' : 'hidden'}">
-            <div class="items-list rooms-list open-rooms-list ${is_closed ? 'collapsed' : ''}">
-                ${rooms.map(room => tplRoomItem(el, room))}
-            </div>
-        </div>`;
+  }, ev)}" title="${i18n_title_new_room}" data-toggle="modal" data-target="#add-chatrooms-modal"><converse-icon class="fa fa-plus right" size="1em"></converse-icon></a></div><div class="list-container list-container--openrooms ${rooms.length ? '' : 'hidden'}"><div class="items-list rooms-list open-rooms-list ${is_closed ? 'collapsed' : ''}">${rooms.map(room => tplRoomItem(el, room))}</div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/roomslist/view.js
 
@@ -69462,234 +67540,7 @@ public_converse.plugins.add('converse-roomslist', {
 });
 ;// CONCATENATED MODULE: ./src/shared/templates/icons.js
 
-/* harmony default export */ const icons = (() => x`
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!--
-    Font Awesome Free 5.13.0 by @fontawesome - https://fontawesome.com
-    License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
-    -->
-    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-    <symbol id="icon-address-book" viewBox="0 0 448 512">
-        <path d="M436 160c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20V48c0-26.5-21.5-48-48-48H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h320c26.5 0 48-21.5 48-48v-48h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20zm-228-32c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm112 236.8c0 10.6-10 19.2-22.4 19.2H118.4C106 384 96 375.4 96 364.8v-19.2c0-31.8 30.1-57.6 67.2-57.6h5c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h5c37.1 0 67.2 25.8 67.2 57.6v19.2z"></path>
-    </symbol>
-    <symbol id="icon-angle-double-down" viewBox="0 0 320 512">
-        <path d="M143 256.3L7 120.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0L313 86.3c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.4 9.5-24.6 9.5-34 .1zm34 192l136-136c9.4-9.4 9.4-24.6 0-33.9l-22.6-22.6c-9.4-9.4-24.6-9.4-33.9 0L160 352.1l-96.4-96.4c-9.4-9.4-24.6-9.4-33.9 0L7 278.3c-9.4 9.4-9.4 24.6 0 33.9l136 136c9.4 9.5 24.6 9.5 34 .1z"></path>
-    </symbol>
-    <symbol id="icon-angle-double-left" viewBox="0 0 448 512">
-        <path d="M223.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L319.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L393.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34zm-192 34l136 136c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9L127.9 256l96.4-96.4c9.4-9.4 9.4-24.6 0-33.9L201.7 103c-9.4-9.4-24.6-9.4-33.9 0l-136 136c-9.5 9.4-9.5 24.6-.1 34z"></path>
-    </symbol>
-    <symbol id="icon-angle-double-right" viewBox="0 0 448 512">
-        <path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34zm192-34l-136-136c-9.4-9.4-24.6-9.4-33.9 0l-22.6 22.6c-9.4 9.4-9.4 24.6 0 33.9l96.4 96.4-96.4 96.4c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l136-136c9.4-9.2 9.4-24.4 0-33.8z"></path>
-    </symbol>
-    <symbol id="icon-angle-double-up" viewBox="0 0 320 512">
-        <path d="M177 255.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 351.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 425.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1zm-34-192L7 199.7c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l96.4-96.4 96.4 96.4c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9l-136-136c-9.2-9.4-24.4-9.4-33.8 0z"></path>
-    </symbol>
-    <symbol id="icon-angle-down" viewBox="0 0 320 512">
-        <path d="M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z"></path>
-    </symbol>
-    <symbol id="icon-angle-left" viewBox="0 0 256 512">
-        <path d="M31.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L127.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L201.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34z"></path>
-    </symbol>
-    <symbol id="icon-angle-right" viewBox="0 0 256 512">
-        <path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z"></path>
-    </symbol>
-    <symbol id="icon-angle-up" viewBox="0 0 320 512">
-        <path d="M177 159.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 255.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 329.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1z"></path>
-    </symbol>
-    <symbol id="icon-arrow-alt-circle-down" viewBox="0 0 512 512">
-        <path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zM212 140v116h-70.9c-10.7 0-16.1 13-8.5 20.5l114.9 114.3c4.7 4.7 12.2 4.7 16.9 0l114.9-114.3c7.6-7.6 2.2-20.5-8.5-20.5H300V140c0-6.6-5.4-12-12-12h-64c-6.6 0-12 5.4-12 12z"></path>
-    </symbol>
-    <symbol id="icon-arrow-alt-circle-left" viewBox="0 0 512 512">
-        <path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm116-292H256v-70.9c0-10.7-13-16.1-20.5-8.5L121.2 247.5c-4.7 4.7-4.7 12.2 0 16.9l114.3 114.9c7.6 7.6 20.5 2.2 20.5-8.5V300h116c6.6 0 12-5.4 12-12v-64c0-6.6-5.4-12-12-12z"></path>
-    </symbol>
-    <symbol id="icon-arrow-alt-circle-right" viewBox="0 0 512 512">
-        <path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zM140 300h116v70.9c0 10.7 13 16.1 20.5 8.5l114.3-114.9c4.7-4.7 4.7-12.2 0-16.9l-114.3-115c-7.6-7.6-20.5-2.2-20.5 8.5V212H140c-6.6 0-12 5.4-12 12v64c0 6.6 5.4 12 12 12z"></path>
-    </symbol>
-    <symbol id="icon-arrow-alt-circle-up" viewBox="0 0 512 512">
-        <path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm292 116V256h70.9c10.7 0 16.1-13 8.5-20.5L264.5 121.2c-4.7-4.7-12.2-4.7-16.9 0l-115 114.3c-7.6 7.6-2.2 20.5 8.5 20.5H212v116c0 6.6 5.4 12 12 12h64c6.6 0 12-5.4 12-12z"></path>
-    </symbol>
-    <symbol id="icon-arrow-circle-down" viewBox="0 0 512 512">
-        <path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-143.6-28.9L288 302.6V120c0-13.3-10.7-24-24-24h-16c-13.3 0-24 10.7-24 24v182.6l-72.4-75.5c-9.3-9.7-24.8-9.9-34.3-.4l-10.9 11c-9.4 9.4-9.4 24.6 0 33.9L239 404.3c9.4 9.4 24.6 9.4 33.9 0l132.7-132.7c9.4-9.4 9.4-24.6 0-33.9l-10.9-11c-9.5-9.5-25-9.3-34.3.4z"></path>
-    </symbol>
-    <symbol id="icon-arrow-circle-left" viewBox="0 0 512 512">
-        <path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm28.9-143.6L209.4 288H392c13.3 0 24-10.7 24-24v-16c0-13.3-10.7-24-24-24H209.4l75.5-72.4c9.7-9.3 9.9-24.8.4-34.3l-11-10.9c-9.4-9.4-24.6-9.4-33.9 0L107.7 239c-9.4 9.4-9.4 24.6 0 33.9l132.7 132.7c9.4 9.4 24.6 9.4 33.9 0l11-10.9c9.5-9.5 9.3-25-.4-34.3z"></path>
-    </symbol>
-    <symbol id="icon-arrow-circle-right" viewBox="0 0 512 512">
-        <path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zm-28.9 143.6l75.5 72.4H120c-13.3 0-24 10.7-24 24v16c0 13.3 10.7 24 24 24h182.6l-75.5 72.4c-9.7 9.3-9.9 24.8-.4 34.3l11 10.9c9.4 9.4 24.6 9.4 33.9 0L404.3 273c9.4-9.4 9.4-24.6 0-33.9L271.6 106.3c-9.4-9.4-24.6-9.4-33.9 0l-11 10.9c-9.5 9.6-9.3 25.1.4 34.4z"></path>
-    </symbol>
-    <symbol id="icon-arrow-circle-up" viewBox="0 0 512 512">
-        <path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm143.6 28.9l72.4-75.5V392c0 13.3 10.7 24 24 24h16c13.3 0 24-10.7 24-24V209.4l72.4 75.5c9.3 9.7 24.8 9.9 34.3.4l10.9-11c9.4-9.4 9.4-24.6 0-33.9L273 107.7c-9.4-9.4-24.6-9.4-33.9 0L106.3 240.4c-9.4 9.4-9.4 24.6 0 33.9l10.9 11c9.6 9.5 25.1 9.3 34.4-.4z"></path>
-    </symbol>
-    <symbol id="icon-arrow-down" viewBox="0 0 448 512">
-        <path d="M413.1 222.5l22.2 22.2c9.4 9.4 9.4 24.6 0 33.9L241 473c-9.4 9.4-24.6 9.4-33.9 0L12.7 278.6c-9.4-9.4-9.4-24.6 0-33.9l22.2-22.2c9.5-9.5 25-9.3 34.3.4L184 343.4V56c0-13.3 10.7-24 24-24h32c13.3 0 24 10.7 24 24v287.4l114.8-120.5c9.3-9.8 24.8-10 34.3-.4z"></path>
-    </symbol>
-    <symbol id="icon-arrow-left" viewBox="0 0 448 512">
-        <path d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"></path>
-    </symbol>
-    <symbol id="icon-arrow-right" viewBox="0 0 448 512">
-        <path d="M190.5 66.9l22.2-22.2c9.4-9.4 24.6-9.4 33.9 0L441 239c9.4 9.4 9.4 24.6 0 33.9L246.6 467.3c-9.4 9.4-24.6 9.4-33.9 0l-22.2-22.2c-9.5-9.5-9.3-25 .4-34.3L311.4 296H24c-13.3 0-24-10.7-24-24v-32c0-13.3 10.7-24 24-24h287.4L190.9 101.2c-9.8-9.3-10-24.8-.4-34.3z"></path>
-    </symbol>
-    <symbol id="icon-arrow-up" viewBox="0 0 448 512">
-        <path d="M34.9 289.5l-22.2-22.2c-9.4-9.4-9.4-24.6 0-33.9L207 39c9.4-9.4 24.6-9.4 33.9 0l194.3 194.3c9.4 9.4 9.4 24.6 0 33.9L413 289.4c-9.5 9.5-25 9.3-34.3-.4L264 168.6V456c0 13.3-10.7 24-24 24h-32c-13.3 0-24-10.7-24-24V168.6L69.2 289.1c-9.3 9.8-24.8 10-34.3.4z"></path>
-    </symbol>
-    <symbol id="icon-arrows-alt" viewBox="0 0 512 512">
-        <path d="M352.201 425.775l-79.196 79.196c-9.373 9.373-24.568 9.373-33.941 0l-79.196-79.196c-15.119-15.119-4.411-40.971 16.971-40.97h51.162L228 284H127.196v51.162c0 21.382-25.851 32.09-40.971 16.971L7.029 272.937c-9.373-9.373-9.373-24.569 0-33.941L86.225 159.8c15.119-15.119 40.971-4.411 40.971 16.971V228H228V127.196h-51.23c-21.382 0-32.09-25.851-16.971-40.971l79.196-79.196c9.373-9.373 24.568-9.373 33.941 0l79.196 79.196c15.119 15.119 4.411 40.971-16.971 40.971h-51.162V228h100.804v-51.162c0-21.382 25.851-32.09 40.97-16.971l79.196 79.196c9.373 9.373 9.373 24.569 0 33.941L425.773 352.2c-15.119 15.119-40.971 4.411-40.97-16.971V284H284v100.804h51.23c21.382 0 32.09 25.851 16.971 40.971z"></path>
-    </symbol>
-    <symbol id="icon-arrows-alt-h" viewBox="0 0 512 512">
-        <path d="M377.941 169.941V216H134.059v-46.059c0-21.382-25.851-32.09-40.971-16.971L7.029 239.029c-9.373 9.373-9.373 24.568 0 33.941l86.059 86.059c15.119 15.119 40.971 4.411 40.971-16.971V296h243.882v46.059c0 21.382 25.851 32.09 40.971 16.971l86.059-86.059c9.373-9.373 9.373-24.568 0-33.941l-86.059-86.059c-15.119-15.12-40.971-4.412-40.971 16.97z"></path>
-    </symbol>
-    <symbol id="icon-arrows-alt-v" viewBox="0 0 256 512">
-        <path d="M214.059 377.941H168V134.059h46.059c21.382 0 32.09-25.851 16.971-40.971L144.971 7.029c-9.373-9.373-24.568-9.373-33.941 0L24.971 93.088c-15.119 15.119-4.411 40.971 16.971 40.971H88v243.882H41.941c-21.382 0-32.09 25.851-16.971 40.971l86.059 86.059c9.373 9.373 24.568 9.373 33.941 0l86.059-86.059c15.12-15.119 4.412-40.971-16.97-40.971z"></path>
-    </symbol>
-    <symbol id="icon-bars" viewBox="0 0 448 512">
-        <path d="M16 132h416c8.837 0 16-7.163 16-16V76c0-8.837-7.163-16-16-16H16C7.163 60 0 67.163 0 76v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16z"></path>
-    </symbol>
-    <symbol id="icon-bookmark" viewBox="0 0 384 512">
-        <path d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path>
-    </symbol>
-    <symbol id="icon-bookmark-empty" viewBox="0 0 384 512">
-        <path d="M0 48C0 21.5 21.5 0 48 0l0 48V441.4l130.1-92.9c8.3-6 19.6-6 27.9 0L336 441.4V48H48V0H336c26.5 0 48 21.5 48 48V488c0 9-5 17.2-13 21.3s-17.6 3.4-24.9-1.8L192 397.5 37.9 507.5c-7.3 5.2-16.9 5.9-24.9 1.8S0 497 0 488V48z"/>
-    </symbol>
-    <symbol id="icon-caret-down" viewBox="0 0 320 512">
-        <path d="M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z"></path>
-    </symbol>
-    <symbol id="icon-caret-right" viewBox="0 0 192 512">
-        <path d="M0 384.662V127.338c0-17.818 21.543-26.741 34.142-14.142l128.662 128.662c7.81 7.81 7.81 20.474 0 28.284L34.142 398.804C21.543 411.404 0 402.48 0 384.662z"></path>
-    </symbol>
-    <symbol id="icon-check" viewBox="0 0 512 512">
-        <path d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"></path>
-    </symbol>
-    <symbol id="icon-circle" viewBox="0 0 512 512">
-        <path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8z"></path>
-    </symbol>
-    <symbol id="icon-cog" viewBox="0 0 512 512">
-        <path d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z"></path>
-    </symbol>
-    <symbol id="icon-database" viewBox="0 0 448 512">
-        <path d="M448 73.143v45.714C448 159.143 347.667 192 224 192S0 159.143 0 118.857V73.143C0 32.857 100.333 0 224 0s224 32.857 224 73.143zM448 176v102.857C448 319.143 347.667 352 224 352S0 319.143 0 278.857V176c48.125 33.143 136.208 48.572 224 48.572S399.874 209.143 448 176zm0 160v102.857C448 479.143 347.667 512 224 512S0 479.143 0 438.857V336c48.125 33.143 136.208 48.572 224 48.572S399.874 369.143 448 336z"></path>
-    </symbol>
-    <symbol id="icon-edit" viewBox="0 0 576 512">
-        <path d="M402.6 83.2l90.2 90.2c3.8 3.8 3.8 10 0 13.8L274.4 405.6l-92.8 10.3c-12.4 1.4-22.9-9.1-21.5-21.5l10.3-92.8L388.8 83.2c3.8-3.8 10-3.8 13.8 0zm162-22.9l-48.8-48.8c-15.2-15.2-39.9-15.2-55.2 0l-35.4 35.4c-3.8 3.8-3.8 10 0 13.8l90.2 90.2c3.8 3.8 10 3.8 13.8 0l35.4-35.4c15.2-15.3 15.2-40 0-55.2zM384 346.2V448H64V128h229.8c3.2 0 6.2-1.3 8.5-3.5l40-40c7.6-7.6 2.2-20.5-8.5-20.5H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V306.2c0-10.7-12.9-16-20.5-8.5l-40 40c-2.2 2.3-3.5 5.3-3.5 8.5z"></path>
-    </symbol>
-    <symbol id="icon-eye" viewBox="0 0 576 512">
-        <path d="M572.52 241.4C518.29 135.59 410.93 64 288 64S57.68 135.64 3.48 241.41a32.35 32.35 0 0 0 0 29.19C57.71 376.41 165.07 448 288 448s230.32-71.64 284.52-177.41a32.35 32.35 0 0 0 0-29.19zM288 400a144 144 0 1 1 144-144 143.93 143.93 0 0 1-144 144zm0-240a95.31 95.31 0 0 0-25.31 3.79 47.85 47.85 0 0 1-66.9 66.9A95.78 95.78 0 1 0 288 160z"></path>
-    </symbol>
-    <symbol id="icon-eye-slash" viewBox="0 0 640 512">
-        <path d="M320 400c-75.85 0-137.25-58.71-142.9-133.11L72.2 185.82c-13.79 17.3-26.48 35.59-36.72 55.59a32.35 32.35 0 0 0 0 29.19C89.71 376.41 197.07 448 320 448c26.91 0 52.87-4 77.89-10.46L346 397.39a144.13 144.13 0 0 1-26 2.61zm313.82 58.1l-110.55-85.44a331.25 331.25 0 0 0 81.25-102.07 32.35 32.35 0 0 0 0-29.19C550.29 135.59 442.93 64 320 64a308.15 308.15 0 0 0-147.32 37.7L45.46 3.37A16 16 0 0 0 23 6.18L3.37 31.45A16 16 0 0 0 6.18 53.9l588.36 454.73a16 16 0 0 0 22.46-2.81l19.64-25.27a16 16 0 0 0-2.82-22.45zm-183.72-142l-39.3-30.38A94.75 94.75 0 0 0 416 256a94.76 94.76 0 0 0-121.31-92.21A47.65 47.65 0 0 1 304 192a46.64 46.64 0 0 1-1.54 10l-73.61-56.89A142.31 142.31 0 0 1 320 112a143.92 143.92 0 0 1 144 144c0 21.63-5.29 41.79-13.9 60.11z"></path>
-    </symbol>
-    <symbol id="icon-gavel" viewBox="0 0 512 512">
-        <path d="M504.971 199.362l-22.627-22.627c-9.373-9.373-24.569-9.373-33.941 0l-5.657 5.657L329.608 69.255l5.657-5.657c9.373-9.373 9.373-24.569 0-33.941L312.638 7.029c-9.373-9.373-24.569-9.373-33.941 0L154.246 131.48c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l5.657-5.657 39.598 39.598-81.04 81.04-5.657-5.657c-12.497-12.497-32.758-12.497-45.255 0L9.373 412.118c-12.497 12.497-12.497 32.758 0 45.255l45.255 45.255c12.497 12.497 32.758 12.497 45.255 0l114.745-114.745c12.497-12.497 12.497-32.758 0-45.255l-5.657-5.657 81.04-81.04 39.598 39.598-5.657 5.657c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l124.451-124.451c9.372-9.372 9.372-24.568 0-33.941z"></path>
-    </symbol>
-    <symbol id="icon-globe" viewBox="0 0 496 512">
-        <path d="M336.5 160C322 70.7 287.8 8 248 8s-74 62.7-88.5 152h177zM152 256c0 22.2 1.2 43.5 3.3 64h185.3c2.1-20.5 3.3-41.8 3.3-64s-1.2-43.5-3.3-64H155.3c-2.1 20.5-3.3 41.8-3.3 64zm324.7-96c-28.6-67.9-86.5-120.4-158-141.6 24.4 33.8 41.2 84.7 50 141.6h108zM177.2 18.4C105.8 39.6 47.8 92.1 19.3 160h108c8.7-56.9 25.5-107.8 49.9-141.6zM487.4 192H372.7c2.1 21 3.3 42.5 3.3 64s-1.2 43-3.3 64h114.6c5.5-20.5 8.6-41.8 8.6-64s-3.1-43.5-8.5-64zM120 256c0-21.5 1.2-43 3.3-64H8.6C3.2 212.5 0 233.8 0 256s3.2 43.5 8.6 64h114.6c-2-21-3.2-42.5-3.2-64zm39.5 96c14.5 89.3 48.7 152 88.5 152s74-62.7 88.5-152h-177zm159.3 141.6c71.4-21.2 129.4-73.7 158-141.6h-108c-8.8 56.9-25.6 107.8-50 141.6zM19.3 352c28.6 67.9 86.5 120.4 158 141.6-24.4-33.8-41.2-84.7-50-141.6h-108z"></path>
-    </symbol>
-    <symbol id="icon-id-card" viewBox="0 0 576 512">
-        <path d="M528 32H48C21.5 32 0 53.5 0 80v16h576V80c0-26.5-21.5-48-48-48zM0 432c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V128H0v304zm352-232c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zM176 192c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zM67.1 396.2C75.5 370.5 99.6 352 128 352h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.9-5.2 19.8-15.6 19.8H82.7c-10.4 0-18.8-10-15.6-19.8z"></path>
-    </symbol>
-    <symbol id="icon-id-card-alt" viewBox="0 0 576 512">
-        <path d="M528 64H384v96H192V64H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48zM288 224c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm93.3 224H194.7c-10.4 0-18.8-10-15.6-19.8 8.3-25.6 32.4-44.2 60.9-44.2h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.8-5.2 19.8-15.6 19.8zM352 32c0-17.7-14.3-32-32-32h-64c-17.7 0-32 14.3-32 32v96h128V32z"></path>
-    </symbol>
-    <symbol id="icon-info" viewBox="0 0 192 512">
-        <path d="M20 424.229h20V279.771H20c-11.046 0-20-8.954-20-20V212c0-11.046 8.954-20 20-20h112c11.046 0 20 8.954 20 20v212.229h20c11.046 0 20 8.954 20 20V492c0 11.046-8.954 20-20 20H20c-11.046 0-20-8.954-20-20v-47.771c0-11.046 8.954-20 20-20zM96 0C56.235 0 24 32.235 24 72s32.235 72 72 72 72-32.235 72-72S135.764 0 96 0z"></path>
-    </symbol>
-    <symbol id="icon-info-circle" viewBox="0 0 512 512">
-        <path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></path>
-    </symbol>
-    <symbol id="icon-list-ul" viewBox="0 0 512 512">
-        <path d="M48 48a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm448 16H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-320H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16zm0 160H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16z"></path>
-    </symbol>
-    <symbol id="icon-lock" viewBox="0 0 448 512">
-        <path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path>
-    </symbol>
-    <symbol id="icon-lock-open" viewBox="0 0 576 512">
-        <path d="M423.5 0C339.5.3 272 69.5 272 153.5V224H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48h-48v-71.1c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v80c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-80C576 68 507.5-.3 423.5 0z"></path>
-    </symbol>
-    <symbol id="icon-minus" viewBox="0 0 448 512">
-        <path d="M416 208H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path>
-    </symbol>
-    <symbol id="icon-minus-circle" viewBox="0 0 512 512">
-        <path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zM124 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H124z"></path>
-    </symbol>
-    <symbol id="icon-minus-square" viewBox="0 0 448 512">
-        <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM92 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H92z"></path>
-    </symbol>
-    <symbol id="icon-paper-plane" viewBox="0 0 512 512">
-        <path d="M476 3.2L12.5 270.6c-18.1 10.4-15.8 35.6 2.2 43.2L121 358.4l287.3-253.2c5.5-4.9 13.3 2.6 8.6 8.3L176 407v80.5c0 23.6 28.5 32.9 42.5 15.8L282 426l124.6 52.2c14.2 6 30.4-2.9 33-18.2l72-432C515 7.8 493.3-6.8 476 3.2z"></path>
-    </symbol>
-    <symbol id="icon-paperclip" viewBox="0 0 448 512">
-        <path d="M43.246 466.142c-58.43-60.289-57.341-157.511 1.386-217.581L254.392 34c44.316-45.332 116.351-45.336 160.671 0 43.89 44.894 43.943 117.329 0 162.276L232.214 383.128c-29.855 30.537-78.633 30.111-107.982-.998-28.275-29.97-27.368-77.473 1.452-106.953l143.743-146.835c6.182-6.314 16.312-6.422 22.626-.241l22.861 22.379c6.315 6.182 6.422 16.312.241 22.626L171.427 319.927c-4.932 5.045-5.236 13.428-.648 18.292 4.372 4.634 11.245 4.711 15.688.165l182.849-186.851c19.613-20.062 19.613-52.725-.011-72.798-19.189-19.627-49.957-19.637-69.154 0L90.39 293.295c-34.763 35.56-35.299 93.12-1.191 128.313 34.01 35.093 88.985 35.137 123.058.286l172.06-175.999c6.177-6.319 16.307-6.433 22.626-.256l22.877 22.364c6.319 6.177 6.434 16.307.256 22.626l-172.06 175.998c-59.576 60.938-155.943 60.216-214.77-.485z"></path>
-    </symbol>
-    <symbol id="icon-pencil-alt" viewBox="0 0 512 512">
-        <path d="M497.9 142.1l-46.1 46.1c-4.7 4.7-12.3 4.7-17 0l-111-111c-4.7-4.7-4.7-12.3 0-17l46.1-46.1c18.7-18.7 49.1-18.7 67.9 0l60.1 60.1c18.8 18.7 18.8 49.1 0 67.9zM284.2 99.8L21.6 362.4.4 483.9c-2.9 16.4 11.4 30.6 27.8 27.8l121.5-21.3 262.6-262.6c4.7-4.7 4.7-12.3 0-17l-111-111c-4.8-4.7-12.4-4.7-17.1 0zM124.1 339.9c-5.5-5.5-5.5-14.3 0-19.8l154-154c5.5-5.5 14.3-5.5 19.8 0s5.5 14.3 0 19.8l-154 154c-5.5 5.5-14.3 5.5-19.8 0zM88 424h48v36.3l-64.5 11.3-31.1-31.1L51.7 376H88v48z"></path>
-    </symbol>
-    <symbol id="icon-phone" viewBox="0 0 512 512">
-        <path d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path>
-    </symbol>
-    <symbol id="icon-plus" viewBox="0 0 448 512">
-        <path d="M416 208H272V64c0-17.67-14.33-32-32-32h-32c-17.67 0-32 14.33-32 32v144H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h144v144c0 17.67 14.33 32 32 32h32c17.67 0 32-14.33 32-32V304h144c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path>
-    </symbol>
-    <symbol id="icon-plus-circle" viewBox="0 0 512 512">
-        <path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm144 276c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92h-92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path>
-    </symbol>
-    <symbol id="icon-plus-square" viewBox="0 0 448 512">
-        <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm-32 252c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92H92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path>
-    </symbol>
-    <symbol id="icon-save" viewBox="0 0 448 512">
-        <path d="M433.941 129.941l-83.882-83.882A48 48 0 0 0 316.118 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h352c26.51 0 48-21.49 48-48V163.882a48 48 0 0 0-14.059-33.941zM224 416c-35.346 0-64-28.654-64-64 0-35.346 28.654-64 64-64s64 28.654 64 64c0 35.346-28.654 64-64 64zm96-304.52V212c0 6.627-5.373 12-12 12H76c-6.627 0-12-5.373-12-12V108c0-6.627 5.373-12 12-12h228.52c3.183 0 6.235 1.264 8.485 3.515l3.48 3.48A11.996 11.996 0 0 1 320 111.48z"></path>
-    </symbol>
-    <symbol id="icon-sign-out-alt" viewBox="0 0 512 512">
-        <path d="M497 273L329 441c-15 15-41 4.5-41-17v-96H152c-13.3 0-24-10.7-24-24v-96c0-13.3 10.7-24 24-24h136V88c0-21.4 25.9-32 41-17l168 168c9.3 9.4 9.3 24.6 0 34zM192 436v-40c0-6.6-5.4-12-12-12H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h84c6.6 0 12-5.4 12-12V76c0-6.6-5.4-12-12-12H96c-53 0-96 43-96 96v192c0 53 43 96 96 96h84c6.6 0 12-5.4 12-12z"></path>
-    </symbol>
-    <symbol id="icon-smile" viewBox="0 0 496 512">
-        <path d="M248 8C111 8 0 119 0 256s111 248 248 248 248-111 248-248S385 8 248 8zm80 168c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm-160 0c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm194.8 170.2C334.3 380.4 292.5 400 248 400s-86.3-19.6-114.8-53.8c-13.6-16.3 11-36.7 24.6-20.5 22.4 26.9 55.2 42.2 90.2 42.2s67.8-15.4 90.2-42.2c13.4-16.2 38.1 4.2 24.6 20.5z"></path>
-    </symbol>
-    <symbol id="icon-snowflake" viewBox="0 0 448 512">
-        <path d="M440.3 345.2l-33.8-19.5 26-7c8.2-2.2 13.1-10.7 10.9-18.9l-4-14.9c-2.2-8.2-10.7-13.1-18.9-10.9l-70.8 19-63.9-37 63.8-36.9 70.8 19c8.2 2.2 16.7-2.7 18.9-10.9l4-14.9c2.2-8.2-2.7-16.7-10.9-18.9l-26-7 33.8-19.5c7.4-4.3 9.9-13.7 5.7-21.1L430.4 119c-4.3-7.4-13.7-9.9-21.1-5.7l-33.8 19.5 7-26c2.2-8.2-2.7-16.7-10.9-18.9l-14.9-4c-8.2-2.2-16.7 2.7-18.9 10.9l-19 70.8-62.8 36.2v-77.5l53.7-53.7c6.2-6.2 6.2-16.4 0-22.6l-11.3-11.3c-6.2-6.2-16.4-6.2-22.6 0L256 56.4V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v40.4l-19.7-19.7c-6.2-6.2-16.4-6.2-22.6 0L138.3 48c-6.3 6.2-6.3 16.4 0 22.6l53.7 53.7v77.5l-62.8-36.2-19-70.8c-2.2-8.2-10.7-13.1-18.9-10.9l-14.9 4c-8.2 2.2-13.1 10.7-10.9 18.9l7 26-33.8-19.5c-7.4-4.3-16.8-1.7-21.1 5.7L2.1 145.7c-4.3 7.4-1.7 16.8 5.7 21.1l33.8 19.5-26 7c-8.3 2.2-13.2 10.7-11 19l4 14.9c2.2 8.2 10.7 13.1 18.9 10.9l70.8-19 63.8 36.9-63.8 36.9-70.8-19c-8.2-2.2-16.7 2.7-18.9 10.9l-4 14.9c-2.2 8.2 2.7 16.7 10.9 18.9l26 7-33.8 19.6c-7.4 4.3-9.9 13.7-5.7 21.1l15.5 26.8c4.3 7.4 13.7 9.9 21.1 5.7l33.8-19.5-7 26c-2.2 8.2 2.7 16.7 10.9 18.9l14.9 4c8.2 2.2 16.7-2.7 18.9-10.9l19-70.8 62.8-36.2v77.5l-53.7 53.7c-6.3 6.2-6.3 16.4 0 22.6l11.3 11.3c6.2 6.2 16.4 6.2 22.6 0l19.7-19.7V496c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-40.4l19.7 19.7c6.2 6.2 16.4 6.2 22.6 0l11.3-11.3c6.2-6.2 6.2-16.4 0-22.6L256 387.7v-77.5l62.8 36.2 19 70.8c2.2 8.2 10.7 13.1 18.9 10.9l14.9-4c8.2-2.2 13.1-10.7 10.9-18.9l-7-26 33.8 19.5c7.4 4.3 16.8 1.7 21.1-5.7l15.5-26.8c4.3-7.3 1.8-16.8-5.6-21z"></path>
-    </symbol>
-    <symbol id="icon-spinner" viewBox="0 0 512 512">
-        <path d="M304 48c0 26.51-21.49 48-48 48s-48-21.49-48-48 21.49-48 48-48 48 21.49 48 48zm-48 368c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zm208-208c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zM96 256c0-26.51-21.49-48-48-48S0 229.49 0 256s21.49 48 48 48 48-21.49 48-48zm12.922 99.078c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.491-48-48-48zm294.156 0c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.49-48-48-48zM108.922 60.922c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.491-48-48-48z"></path>
-    </symbol>
-    <symbol id="icon-sync" viewBox="0 0 512 512">
-        <path d="M440.65 12.57l4 82.77A247.16 247.16 0 0 0 255.83 8C134.73 8 33.91 94.92 12.29 209.82A12 12 0 0 0 24.09 224h49.05a12 12 0 0 0 11.67-9.26 175.91 175.91 0 0 1 317-56.94l-101.46-4.86a12 12 0 0 0-12.57 12v47.41a12 12 0 0 0 12 12H500a12 12 0 0 0 12-12V12a12 12 0 0 0-12-12h-47.37a12 12 0 0 0-11.98 12.57zM255.83 432a175.61 175.61 0 0 1-146-77.8l101.8 4.87a12 12 0 0 0 12.57-12v-47.4a12 12 0 0 0-12-12H12a12 12 0 0 0-12 12V500a12 12 0 0 0 12 12h47.35a12 12 0 0 0 12-12.6l-4.15-82.57A247.17 247.17 0 0 0 255.83 504c121.11 0 221.93-86.92 243.55-201.82a12 12 0 0 0-11.8-14.18h-49.05a12 12 0 0 0-11.67 9.26A175.86 175.86 0 0 1 255.83 432z"></path>
-    </symbol>
-    <symbol id="icon-times" viewBox="0 0 352 512">
-        <path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path>
-    </symbol>
-    <symbol id="icon-times-circle" viewBox="0 0 512 512">
-        <path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm121.6 313.1c4.7 4.7 4.7 12.3 0 17L338 377.6c-4.7 4.7-12.3 4.7-17 0L256 312l-65.1 65.6c-4.7 4.7-12.3 4.7-17 0L134.4 338c-4.7-4.7-4.7-12.3 0-17l65.6-65-65.6-65.1c-4.7-4.7-4.7-12.3 0-17l39.6-39.6c4.7-4.7 12.3-4.7 17 0l65 65.7 65.1-65.6c4.7-4.7 12.3-4.7 17 0l39.6 39.6c4.7 4.7 4.7 12.3 0 17L312 256l65.6 65.1z"></path>
-    </symbol>
-    <symbol id="icon-trash" viewBox="0 0 448 512">
-        <path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"></path>
-    </symbol>
-    <symbol id="icon-trash-alt" viewBox="0 0 448 512">
-        <path d="M32 464a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V128H32zm272-256a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zM432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16z"></path>
-    </symbol>
-    <symbol id="icon-unlock" viewBox="0 0 448 512">
-        <path d="M400 256H152V152.9c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v16c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-16C376 68 307.5-.3 223.5 0 139.5.3 72 69.5 72 153.5V256H48c-26.5 0-48 21.5-48 48v160c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V304c0-26.5-21.5-48-48-48z"></path>
-    </symbol>
-    <symbol id="icon-user" viewBox="0 0 448 512">
-        <path d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path>
-    </symbol>
-    <symbol id="icon-user-cog" viewBox="0 0 640 512">
-        <path d="M610.5 373.3c2.6-14.1 2.6-28.5 0-42.6l25.8-14.9c3-1.7 4.3-5.2 3.3-8.5-6.7-21.6-18.2-41.2-33.2-57.4-2.3-2.5-6-3.1-9-1.4l-25.8 14.9c-10.9-9.3-23.4-16.5-36.9-21.3v-29.8c0-3.4-2.4-6.4-5.7-7.1-22.3-5-45-4.8-66.2 0-3.3.7-5.7 3.7-5.7 7.1v29.8c-13.5 4.8-26 12-36.9 21.3l-25.8-14.9c-2.9-1.7-6.7-1.1-9 1.4-15 16.2-26.5 35.8-33.2 57.4-1 3.3.4 6.8 3.3 8.5l25.8 14.9c-2.6 14.1-2.6 28.5 0 42.6l-25.8 14.9c-3 1.7-4.3 5.2-3.3 8.5 6.7 21.6 18.2 41.1 33.2 57.4 2.3 2.5 6 3.1 9 1.4l25.8-14.9c10.9 9.3 23.4 16.5 36.9 21.3v29.8c0 3.4 2.4 6.4 5.7 7.1 22.3 5 45 4.8 66.2 0 3.3-.7 5.7-3.7 5.7-7.1v-29.8c13.5-4.8 26-12 36.9-21.3l25.8 14.9c2.9 1.7 6.7 1.1 9-1.4 15-16.2 26.5-35.8 33.2-57.4 1-3.3-.4-6.8-3.3-8.5l-25.8-14.9zM496 400.5c-26.8 0-48.5-21.8-48.5-48.5s21.8-48.5 48.5-48.5 48.5 21.8 48.5 48.5-21.7 48.5-48.5 48.5zM224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm201.2 226.5c-2.3-1.2-4.6-2.6-6.8-3.9l-7.9 4.6c-6 3.4-12.8 5.3-19.6 5.3-10.9 0-21.4-4.6-28.9-12.6-18.3-19.8-32.3-43.9-40.2-69.6-5.5-17.7 1.9-36.4 17.9-45.7l7.9-4.6c-.1-2.6-.1-5.2 0-7.8l-7.9-4.6c-16-9.2-23.4-28-17.9-45.7.9-2.9 2.2-5.8 3.2-8.7-3.8-.3-7.5-1.2-11.4-1.2h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c10.1 0 19.5-3.2 27.2-8.5-1.2-3.8-2-7.7-2-11.8v-9.2z"></path>
-    </symbol>
-    <symbol id="icon-user-plus" viewBox="0 0 640 512">
-        <path d="M624 208h-64v-64c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v64h-64c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h64v64c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-64h64c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm-400 48c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path>
-    </symbol>
-    <symbol id="icon-user-secret" viewBox="0 0 448 512">
-        <path d="M383.9 308.3l23.9-62.6c4-10.5-3.7-21.7-15-21.7h-58.5c11-18.9 17.8-40.6 17.8-64v-.3c39.2-7.8 64-19.1 64-31.7 0-13.3-27.3-25.1-70.1-33-9.2-32.8-27-65.8-40.6-82.8-9.5-11.9-25.9-15.6-39.5-8.8l-27.6 13.8c-9 4.5-19.6 4.5-28.6 0L182.1 3.4c-13.6-6.8-30-3.1-39.5 8.8-13.5 17-31.4 50-40.6 82.8-42.7 7.9-70 19.7-70 33 0 12.6 24.8 23.9 64 31.7v.3c0 23.4 6.8 45.1 17.8 64H56.3c-11.5 0-19.2 11.7-14.7 22.3l25.8 60.2C27.3 329.8 0 372.7 0 422.4v44.8C0 491.9 20.1 512 44.8 512h358.4c24.7 0 44.8-20.1 44.8-44.8v-44.8c0-48.4-25.8-90.4-64.1-114.1zM176 480l-41.6-192 49.6 32 24 40-32 120zm96 0l-32-120 24-40 49.6-32L272 480zm41.7-298.5c-3.9 11.9-7 24.6-16.5 33.4-10.1 9.3-48 22.4-64-25-2.8-8.4-15.4-8.4-18.3 0-17 50.2-56 32.4-64 25-9.5-8.8-12.7-21.5-16.5-33.4-.8-2.5-6.3-5.7-6.3-5.8v-10.8c28.3 3.6 61 5.8 96 5.8s67.7-2.1 96-5.8v10.8c-.1.1-5.6 3.2-6.4 5.8z"></path>
-    </symbol>
-    <symbol id="icon-users" viewBox="0 0 640 512">
-        <path d="M96 224c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm448 0c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm32 32h-64c-17.6 0-33.5 7.1-45.1 18.6 40.3 22.1 68.9 62 75.1 109.4h66c17.7 0 32-14.3 32-32v-32c0-35.3-28.7-64-64-64zm-256 0c61.9 0 112-50.1 112-112S381.9 32 320 32 208 82.1 208 144s50.1 112 112 112zm76.8 32h-8.3c-20.8 10-43.9 16-68.5 16s-47.6-6-68.5-16h-8.3C179.6 288 128 339.6 128 403.2V432c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48v-28.8c0-63.6-51.6-115.2-115.2-115.2zm-223.7-13.4C161.5 263.1 145.6 256 128 256H64c-35.3 0-64 28.7-64 64v32c0 17.7 14.3 32 32 32h65.9c6.3-47.4 34.9-87.3 75.2-109.4z"></path>
-    </symbol>
-    <symbol id="icon-wrench" viewBox="0 0 512 512">
-        <path d="M507.73 109.1c-2.24-9.03-13.54-12.09-20.12-5.51l-74.36 74.36-67.88-11.31-11.31-67.88 74.36-74.36c6.62-6.62 3.43-17.9-5.66-20.16-47.38-11.74-99.55.91-136.58 37.93-39.64 39.64-50.55 97.1-34.05 147.2L18.74 402.76c-24.99 24.99-24.99 65.51 0 90.5 24.99 24.99 65.51 24.99 90.5 0l213.21-213.21c50.12 16.71 107.47 5.68 147.37-34.22 37.07-37.07 49.7-89.32 37.91-136.73zM64 472c-13.25 0-24-10.75-24-24 0-13.26 10.75-24 24-24s24 10.74 24 24c0 13.25-10.75 24-24 24z"></path>
-    </symbol>
-    <symbol id="icon-refresh" viewBox="0 0 512 512">
-        <path d="M464 16c-17.67 0-32 14.31-32 32v74.09C392.1 66.52 327.4 32 256 32C161.5 32 78.59 92.34 49.58 182.2c-5.438 16.81 3.797 34.88 20.61 40.28c16.89 5.5 34.88-3.812 40.3-20.59C130.9 138.5 189.4 96 256 96c50.5 0 96.26 24.55 124.4 64H336c-17.67 0-32 14.31-32 32s14.33 32 32 32h128c17.67 0 32-14.31 32-32V48C496 30.31 481.7 16 464 16zM441.8 289.6c-16.92-5.438-34.88 3.812-40.3 20.59C381.1 373.5 322.6 416 256 416c-50.5 0-96.25-24.55-124.4-64H176c17.67 0 32-14.31 32-32s-14.33-32-32-32h-128c-17.67 0-32 14.31-32 32v144c0 17.69 14.33 32 32 32s32-14.31 32-32v-74.09C119.9 445.5 184.6 480 255.1 480c94.45 0 177.4-60.34 206.4-150.2C467.9 313 458.6 294.1 441.8 289.6z"></path>
-    </symbol>
-    </svg>
-`);
+/* harmony default export */ const icons = (() => x`<?xml version="1.0" encoding="UTF-8"?> <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="icon-address-book" viewBox="0 0 448 512"><path d="M436 160c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20V48c0-26.5-21.5-48-48-48H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h320c26.5 0 48-21.5 48-48v-48h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20zm-228-32c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm112 236.8c0 10.6-10 19.2-22.4 19.2H118.4C106 384 96 375.4 96 364.8v-19.2c0-31.8 30.1-57.6 67.2-57.6h5c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h5c37.1 0 67.2 25.8 67.2 57.6v19.2z"></path></symbol><symbol id="icon-angle-double-down" viewBox="0 0 320 512"><path d="M143 256.3L7 120.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0L313 86.3c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.4 9.5-24.6 9.5-34 .1zm34 192l136-136c9.4-9.4 9.4-24.6 0-33.9l-22.6-22.6c-9.4-9.4-24.6-9.4-33.9 0L160 352.1l-96.4-96.4c-9.4-9.4-24.6-9.4-33.9 0L7 278.3c-9.4 9.4-9.4 24.6 0 33.9l136 136c9.4 9.5 24.6 9.5 34 .1z"></path></symbol><symbol id="icon-angle-double-left" viewBox="0 0 448 512"><path d="M223.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L319.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L393.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34zm-192 34l136 136c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9L127.9 256l96.4-96.4c9.4-9.4 9.4-24.6 0-33.9L201.7 103c-9.4-9.4-24.6-9.4-33.9 0l-136 136c-9.5 9.4-9.5 24.6-.1 34z"></path></symbol><symbol id="icon-angle-double-right" viewBox="0 0 448 512"><path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34zm192-34l-136-136c-9.4-9.4-24.6-9.4-33.9 0l-22.6 22.6c-9.4 9.4-9.4 24.6 0 33.9l96.4 96.4-96.4 96.4c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l136-136c9.4-9.2 9.4-24.4 0-33.8z"></path></symbol><symbol id="icon-angle-double-up" viewBox="0 0 320 512"><path d="M177 255.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 351.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 425.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1zm-34-192L7 199.7c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l96.4-96.4 96.4 96.4c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9l-136-136c-9.2-9.4-24.4-9.4-33.8 0z"></path></symbol><symbol id="icon-angle-down" viewBox="0 0 320 512"><path d="M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z"></path></symbol><symbol id="icon-angle-left" viewBox="0 0 256 512"><path d="M31.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L127.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L201.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34z"></path></symbol><symbol id="icon-angle-right" viewBox="0 0 256 512"><path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z"></path></symbol><symbol id="icon-angle-up" viewBox="0 0 320 512"><path d="M177 159.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 255.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 329.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1z"></path></symbol><symbol id="icon-arrow-alt-circle-down" viewBox="0 0 512 512"><path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zM212 140v116h-70.9c-10.7 0-16.1 13-8.5 20.5l114.9 114.3c4.7 4.7 12.2 4.7 16.9 0l114.9-114.3c7.6-7.6 2.2-20.5-8.5-20.5H300V140c0-6.6-5.4-12-12-12h-64c-6.6 0-12 5.4-12 12z"></path></symbol><symbol id="icon-arrow-alt-circle-left" viewBox="0 0 512 512"><path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm116-292H256v-70.9c0-10.7-13-16.1-20.5-8.5L121.2 247.5c-4.7 4.7-4.7 12.2 0 16.9l114.3 114.9c7.6 7.6 20.5 2.2 20.5-8.5V300h116c6.6 0 12-5.4 12-12v-64c0-6.6-5.4-12-12-12z"></path></symbol><symbol id="icon-arrow-alt-circle-right" viewBox="0 0 512 512"><path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zM140 300h116v70.9c0 10.7 13 16.1 20.5 8.5l114.3-114.9c4.7-4.7 4.7-12.2 0-16.9l-114.3-115c-7.6-7.6-20.5-2.2-20.5 8.5V212H140c-6.6 0-12 5.4-12 12v64c0 6.6 5.4 12 12 12z"></path></symbol><symbol id="icon-arrow-alt-circle-up" viewBox="0 0 512 512"><path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm292 116V256h70.9c10.7 0 16.1-13 8.5-20.5L264.5 121.2c-4.7-4.7-12.2-4.7-16.9 0l-115 114.3c-7.6 7.6-2.2 20.5 8.5 20.5H212v116c0 6.6 5.4 12 12 12h64c6.6 0 12-5.4 12-12z"></path></symbol><symbol id="icon-arrow-circle-down" viewBox="0 0 512 512"><path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-143.6-28.9L288 302.6V120c0-13.3-10.7-24-24-24h-16c-13.3 0-24 10.7-24 24v182.6l-72.4-75.5c-9.3-9.7-24.8-9.9-34.3-.4l-10.9 11c-9.4 9.4-9.4 24.6 0 33.9L239 404.3c9.4 9.4 24.6 9.4 33.9 0l132.7-132.7c9.4-9.4 9.4-24.6 0-33.9l-10.9-11c-9.5-9.5-25-9.3-34.3.4z"></path></symbol><symbol id="icon-arrow-circle-left" viewBox="0 0 512 512"><path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm28.9-143.6L209.4 288H392c13.3 0 24-10.7 24-24v-16c0-13.3-10.7-24-24-24H209.4l75.5-72.4c9.7-9.3 9.9-24.8.4-34.3l-11-10.9c-9.4-9.4-24.6-9.4-33.9 0L107.7 239c-9.4 9.4-9.4 24.6 0 33.9l132.7 132.7c9.4 9.4 24.6 9.4 33.9 0l11-10.9c9.5-9.5 9.3-25-.4-34.3z"></path></symbol><symbol id="icon-arrow-circle-right" viewBox="0 0 512 512"><path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zm-28.9 143.6l75.5 72.4H120c-13.3 0-24 10.7-24 24v16c0 13.3 10.7 24 24 24h182.6l-75.5 72.4c-9.7 9.3-9.9 24.8-.4 34.3l11 10.9c9.4 9.4 24.6 9.4 33.9 0L404.3 273c9.4-9.4 9.4-24.6 0-33.9L271.6 106.3c-9.4-9.4-24.6-9.4-33.9 0l-11 10.9c-9.5 9.6-9.3 25.1.4 34.4z"></path></symbol><symbol id="icon-arrow-circle-up" viewBox="0 0 512 512"><path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm143.6 28.9l72.4-75.5V392c0 13.3 10.7 24 24 24h16c13.3 0 24-10.7 24-24V209.4l72.4 75.5c9.3 9.7 24.8 9.9 34.3.4l10.9-11c9.4-9.4 9.4-24.6 0-33.9L273 107.7c-9.4-9.4-24.6-9.4-33.9 0L106.3 240.4c-9.4 9.4-9.4 24.6 0 33.9l10.9 11c9.6 9.5 25.1 9.3 34.4-.4z"></path></symbol><symbol id="icon-arrow-down" viewBox="0 0 448 512"><path d="M413.1 222.5l22.2 22.2c9.4 9.4 9.4 24.6 0 33.9L241 473c-9.4 9.4-24.6 9.4-33.9 0L12.7 278.6c-9.4-9.4-9.4-24.6 0-33.9l22.2-22.2c9.5-9.5 25-9.3 34.3.4L184 343.4V56c0-13.3 10.7-24 24-24h32c13.3 0 24 10.7 24 24v287.4l114.8-120.5c9.3-9.8 24.8-10 34.3-.4z"></path></symbol><symbol id="icon-arrow-left" viewBox="0 0 448 512"><path d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"></path></symbol><symbol id="icon-arrow-right" viewBox="0 0 448 512"><path d="M190.5 66.9l22.2-22.2c9.4-9.4 24.6-9.4 33.9 0L441 239c9.4 9.4 9.4 24.6 0 33.9L246.6 467.3c-9.4 9.4-24.6 9.4-33.9 0l-22.2-22.2c-9.5-9.5-9.3-25 .4-34.3L311.4 296H24c-13.3 0-24-10.7-24-24v-32c0-13.3 10.7-24 24-24h287.4L190.9 101.2c-9.8-9.3-10-24.8-.4-34.3z"></path></symbol><symbol id="icon-arrow-up" viewBox="0 0 448 512"><path d="M34.9 289.5l-22.2-22.2c-9.4-9.4-9.4-24.6 0-33.9L207 39c9.4-9.4 24.6-9.4 33.9 0l194.3 194.3c9.4 9.4 9.4 24.6 0 33.9L413 289.4c-9.5 9.5-25 9.3-34.3-.4L264 168.6V456c0 13.3-10.7 24-24 24h-32c-13.3 0-24-10.7-24-24V168.6L69.2 289.1c-9.3 9.8-24.8 10-34.3.4z"></path></symbol><symbol id="icon-arrows-alt" viewBox="0 0 512 512"><path d="M352.201 425.775l-79.196 79.196c-9.373 9.373-24.568 9.373-33.941 0l-79.196-79.196c-15.119-15.119-4.411-40.971 16.971-40.97h51.162L228 284H127.196v51.162c0 21.382-25.851 32.09-40.971 16.971L7.029 272.937c-9.373-9.373-9.373-24.569 0-33.941L86.225 159.8c15.119-15.119 40.971-4.411 40.971 16.971V228H228V127.196h-51.23c-21.382 0-32.09-25.851-16.971-40.971l79.196-79.196c9.373-9.373 24.568-9.373 33.941 0l79.196 79.196c15.119 15.119 4.411 40.971-16.971 40.971h-51.162V228h100.804v-51.162c0-21.382 25.851-32.09 40.97-16.971l79.196 79.196c9.373 9.373 9.373 24.569 0 33.941L425.773 352.2c-15.119 15.119-40.971 4.411-40.97-16.971V284H284v100.804h51.23c21.382 0 32.09 25.851 16.971 40.971z"></path></symbol><symbol id="icon-arrows-alt-h" viewBox="0 0 512 512"><path d="M377.941 169.941V216H134.059v-46.059c0-21.382-25.851-32.09-40.971-16.971L7.029 239.029c-9.373 9.373-9.373 24.568 0 33.941l86.059 86.059c15.119 15.119 40.971 4.411 40.971-16.971V296h243.882v46.059c0 21.382 25.851 32.09 40.971 16.971l86.059-86.059c9.373-9.373 9.373-24.568 0-33.941l-86.059-86.059c-15.119-15.12-40.971-4.412-40.971 16.97z"></path></symbol><symbol id="icon-arrows-alt-v" viewBox="0 0 256 512"><path d="M214.059 377.941H168V134.059h46.059c21.382 0 32.09-25.851 16.971-40.971L144.971 7.029c-9.373-9.373-24.568-9.373-33.941 0L24.971 93.088c-15.119 15.119-4.411 40.971 16.971 40.971H88v243.882H41.941c-21.382 0-32.09 25.851-16.971 40.971l86.059 86.059c9.373 9.373 24.568 9.373 33.941 0l86.059-86.059c15.12-15.119 4.412-40.971-16.97-40.971z"></path></symbol><symbol id="icon-bars" viewBox="0 0 448 512"><path d="M16 132h416c8.837 0 16-7.163 16-16V76c0-8.837-7.163-16-16-16H16C7.163 60 0 67.163 0 76v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16z"></path></symbol><symbol id="icon-bookmark" viewBox="0 0 384 512"><path d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></symbol><symbol id="icon-bookmark-empty" viewBox="0 0 384 512"><path d="M0 48C0 21.5 21.5 0 48 0l0 48V441.4l130.1-92.9c8.3-6 19.6-6 27.9 0L336 441.4V48H48V0H336c26.5 0 48 21.5 48 48V488c0 9-5 17.2-13 21.3s-17.6 3.4-24.9-1.8L192 397.5 37.9 507.5c-7.3 5.2-16.9 5.9-24.9 1.8S0 497 0 488V48z"/></symbol><symbol id="icon-caret-down" viewBox="0 0 320 512"><path d="M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z"></path></symbol><symbol id="icon-caret-right" viewBox="0 0 192 512"><path d="M0 384.662V127.338c0-17.818 21.543-26.741 34.142-14.142l128.662 128.662c7.81 7.81 7.81 20.474 0 28.284L34.142 398.804C21.543 411.404 0 402.48 0 384.662z"></path></symbol><symbol id="icon-check" viewBox="0 0 512 512"><path d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"></path></symbol><symbol id="icon-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8z"></path></symbol><symbol id="icon-cog" viewBox="0 0 512 512"><path d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z"></path></symbol><symbol id="icon-database" viewBox="0 0 448 512"><path d="M448 73.143v45.714C448 159.143 347.667 192 224 192S0 159.143 0 118.857V73.143C0 32.857 100.333 0 224 0s224 32.857 224 73.143zM448 176v102.857C448 319.143 347.667 352 224 352S0 319.143 0 278.857V176c48.125 33.143 136.208 48.572 224 48.572S399.874 209.143 448 176zm0 160v102.857C448 479.143 347.667 512 224 512S0 479.143 0 438.857V336c48.125 33.143 136.208 48.572 224 48.572S399.874 369.143 448 336z"></path></symbol><symbol id="icon-edit" viewBox="0 0 576 512"><path d="M402.6 83.2l90.2 90.2c3.8 3.8 3.8 10 0 13.8L274.4 405.6l-92.8 10.3c-12.4 1.4-22.9-9.1-21.5-21.5l10.3-92.8L388.8 83.2c3.8-3.8 10-3.8 13.8 0zm162-22.9l-48.8-48.8c-15.2-15.2-39.9-15.2-55.2 0l-35.4 35.4c-3.8 3.8-3.8 10 0 13.8l90.2 90.2c3.8 3.8 10 3.8 13.8 0l35.4-35.4c15.2-15.3 15.2-40 0-55.2zM384 346.2V448H64V128h229.8c3.2 0 6.2-1.3 8.5-3.5l40-40c7.6-7.6 2.2-20.5-8.5-20.5H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V306.2c0-10.7-12.9-16-20.5-8.5l-40 40c-2.2 2.3-3.5 5.3-3.5 8.5z"></path></symbol><symbol id="icon-eye" viewBox="0 0 576 512"><path d="M572.52 241.4C518.29 135.59 410.93 64 288 64S57.68 135.64 3.48 241.41a32.35 32.35 0 0 0 0 29.19C57.71 376.41 165.07 448 288 448s230.32-71.64 284.52-177.41a32.35 32.35 0 0 0 0-29.19zM288 400a144 144 0 1 1 144-144 143.93 143.93 0 0 1-144 144zm0-240a95.31 95.31 0 0 0-25.31 3.79 47.85 47.85 0 0 1-66.9 66.9A95.78 95.78 0 1 0 288 160z"></path></symbol><symbol id="icon-eye-slash" viewBox="0 0 640 512"><path d="M320 400c-75.85 0-137.25-58.71-142.9-133.11L72.2 185.82c-13.79 17.3-26.48 35.59-36.72 55.59a32.35 32.35 0 0 0 0 29.19C89.71 376.41 197.07 448 320 448c26.91 0 52.87-4 77.89-10.46L346 397.39a144.13 144.13 0 0 1-26 2.61zm313.82 58.1l-110.55-85.44a331.25 331.25 0 0 0 81.25-102.07 32.35 32.35 0 0 0 0-29.19C550.29 135.59 442.93 64 320 64a308.15 308.15 0 0 0-147.32 37.7L45.46 3.37A16 16 0 0 0 23 6.18L3.37 31.45A16 16 0 0 0 6.18 53.9l588.36 454.73a16 16 0 0 0 22.46-2.81l19.64-25.27a16 16 0 0 0-2.82-22.45zm-183.72-142l-39.3-30.38A94.75 94.75 0 0 0 416 256a94.76 94.76 0 0 0-121.31-92.21A47.65 47.65 0 0 1 304 192a46.64 46.64 0 0 1-1.54 10l-73.61-56.89A142.31 142.31 0 0 1 320 112a143.92 143.92 0 0 1 144 144c0 21.63-5.29 41.79-13.9 60.11z"></path></symbol><symbol id="icon-gavel" viewBox="0 0 512 512"><path d="M504.971 199.362l-22.627-22.627c-9.373-9.373-24.569-9.373-33.941 0l-5.657 5.657L329.608 69.255l5.657-5.657c9.373-9.373 9.373-24.569 0-33.941L312.638 7.029c-9.373-9.373-24.569-9.373-33.941 0L154.246 131.48c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l5.657-5.657 39.598 39.598-81.04 81.04-5.657-5.657c-12.497-12.497-32.758-12.497-45.255 0L9.373 412.118c-12.497 12.497-12.497 32.758 0 45.255l45.255 45.255c12.497 12.497 32.758 12.497 45.255 0l114.745-114.745c12.497-12.497 12.497-32.758 0-45.255l-5.657-5.657 81.04-81.04 39.598 39.598-5.657 5.657c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l124.451-124.451c9.372-9.372 9.372-24.568 0-33.941z"></path></symbol><symbol id="icon-globe" viewBox="0 0 496 512"><path d="M336.5 160C322 70.7 287.8 8 248 8s-74 62.7-88.5 152h177zM152 256c0 22.2 1.2 43.5 3.3 64h185.3c2.1-20.5 3.3-41.8 3.3-64s-1.2-43.5-3.3-64H155.3c-2.1 20.5-3.3 41.8-3.3 64zm324.7-96c-28.6-67.9-86.5-120.4-158-141.6 24.4 33.8 41.2 84.7 50 141.6h108zM177.2 18.4C105.8 39.6 47.8 92.1 19.3 160h108c8.7-56.9 25.5-107.8 49.9-141.6zM487.4 192H372.7c2.1 21 3.3 42.5 3.3 64s-1.2 43-3.3 64h114.6c5.5-20.5 8.6-41.8 8.6-64s-3.1-43.5-8.5-64zM120 256c0-21.5 1.2-43 3.3-64H8.6C3.2 212.5 0 233.8 0 256s3.2 43.5 8.6 64h114.6c-2-21-3.2-42.5-3.2-64zm39.5 96c14.5 89.3 48.7 152 88.5 152s74-62.7 88.5-152h-177zm159.3 141.6c71.4-21.2 129.4-73.7 158-141.6h-108c-8.8 56.9-25.6 107.8-50 141.6zM19.3 352c28.6 67.9 86.5 120.4 158 141.6-24.4-33.8-41.2-84.7-50-141.6h-108z"></path></symbol><symbol id="icon-id-card" viewBox="0 0 576 512"><path d="M528 32H48C21.5 32 0 53.5 0 80v16h576V80c0-26.5-21.5-48-48-48zM0 432c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V128H0v304zm352-232c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zM176 192c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zM67.1 396.2C75.5 370.5 99.6 352 128 352h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.9-5.2 19.8-15.6 19.8H82.7c-10.4 0-18.8-10-15.6-19.8z"></path></symbol><symbol id="icon-id-card-alt" viewBox="0 0 576 512"><path d="M528 64H384v96H192V64H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48zM288 224c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm93.3 224H194.7c-10.4 0-18.8-10-15.6-19.8 8.3-25.6 32.4-44.2 60.9-44.2h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.8-5.2 19.8-15.6 19.8zM352 32c0-17.7-14.3-32-32-32h-64c-17.7 0-32 14.3-32 32v96h128V32z"></path></symbol><symbol id="icon-info" viewBox="0 0 192 512"><path d="M20 424.229h20V279.771H20c-11.046 0-20-8.954-20-20V212c0-11.046 8.954-20 20-20h112c11.046 0 20 8.954 20 20v212.229h20c11.046 0 20 8.954 20 20V492c0 11.046-8.954 20-20 20H20c-11.046 0-20-8.954-20-20v-47.771c0-11.046 8.954-20 20-20zM96 0C56.235 0 24 32.235 24 72s32.235 72 72 72 72-32.235 72-72S135.764 0 96 0z"></path></symbol><symbol id="icon-info-circle" viewBox="0 0 512 512"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></path></symbol><symbol id="icon-list-ul" viewBox="0 0 512 512"><path d="M48 48a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm448 16H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-320H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16zm0 160H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16z"></path></symbol><symbol id="icon-lock" viewBox="0 0 448 512"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path></symbol><symbol id="icon-lock-open" viewBox="0 0 576 512"><path d="M423.5 0C339.5.3 272 69.5 272 153.5V224H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48h-48v-71.1c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v80c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-80C576 68 507.5-.3 423.5 0z"></path></symbol><symbol id="icon-minus" viewBox="0 0 448 512"><path d="M416 208H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></symbol><symbol id="icon-minus-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zM124 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H124z"></path></symbol><symbol id="icon-minus-square" viewBox="0 0 448 512"><path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM92 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H92z"></path></symbol><symbol id="icon-paper-plane" viewBox="0 0 512 512"><path d="M476 3.2L12.5 270.6c-18.1 10.4-15.8 35.6 2.2 43.2L121 358.4l287.3-253.2c5.5-4.9 13.3 2.6 8.6 8.3L176 407v80.5c0 23.6 28.5 32.9 42.5 15.8L282 426l124.6 52.2c14.2 6 30.4-2.9 33-18.2l72-432C515 7.8 493.3-6.8 476 3.2z"></path></symbol><symbol id="icon-paperclip" viewBox="0 0 448 512"><path d="M43.246 466.142c-58.43-60.289-57.341-157.511 1.386-217.581L254.392 34c44.316-45.332 116.351-45.336 160.671 0 43.89 44.894 43.943 117.329 0 162.276L232.214 383.128c-29.855 30.537-78.633 30.111-107.982-.998-28.275-29.97-27.368-77.473 1.452-106.953l143.743-146.835c6.182-6.314 16.312-6.422 22.626-.241l22.861 22.379c6.315 6.182 6.422 16.312.241 22.626L171.427 319.927c-4.932 5.045-5.236 13.428-.648 18.292 4.372 4.634 11.245 4.711 15.688.165l182.849-186.851c19.613-20.062 19.613-52.725-.011-72.798-19.189-19.627-49.957-19.637-69.154 0L90.39 293.295c-34.763 35.56-35.299 93.12-1.191 128.313 34.01 35.093 88.985 35.137 123.058.286l172.06-175.999c6.177-6.319 16.307-6.433 22.626-.256l22.877 22.364c6.319 6.177 6.434 16.307.256 22.626l-172.06 175.998c-59.576 60.938-155.943 60.216-214.77-.485z"></path></symbol><symbol id="icon-pencil-alt" viewBox="0 0 512 512"><path d="M497.9 142.1l-46.1 46.1c-4.7 4.7-12.3 4.7-17 0l-111-111c-4.7-4.7-4.7-12.3 0-17l46.1-46.1c18.7-18.7 49.1-18.7 67.9 0l60.1 60.1c18.8 18.7 18.8 49.1 0 67.9zM284.2 99.8L21.6 362.4.4 483.9c-2.9 16.4 11.4 30.6 27.8 27.8l121.5-21.3 262.6-262.6c4.7-4.7 4.7-12.3 0-17l-111-111c-4.8-4.7-12.4-4.7-17.1 0zM124.1 339.9c-5.5-5.5-5.5-14.3 0-19.8l154-154c5.5-5.5 14.3-5.5 19.8 0s5.5 14.3 0 19.8l-154 154c-5.5 5.5-14.3 5.5-19.8 0zM88 424h48v36.3l-64.5 11.3-31.1-31.1L51.7 376H88v48z"></path></symbol><symbol id="icon-phone" viewBox="0 0 512 512"><path d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></symbol><symbol id="icon-plus" viewBox="0 0 448 512"><path d="M416 208H272V64c0-17.67-14.33-32-32-32h-32c-17.67 0-32 14.33-32 32v144H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h144v144c0 17.67 14.33 32 32 32h32c17.67 0 32-14.33 32-32V304h144c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></symbol><symbol id="icon-plus-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm144 276c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92h-92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path></symbol><symbol id="icon-plus-square" viewBox="0 0 448 512"><path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm-32 252c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92H92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path></symbol><symbol id="icon-save" viewBox="0 0 448 512"><path d="M433.941 129.941l-83.882-83.882A48 48 0 0 0 316.118 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h352c26.51 0 48-21.49 48-48V163.882a48 48 0 0 0-14.059-33.941zM224 416c-35.346 0-64-28.654-64-64 0-35.346 28.654-64 64-64s64 28.654 64 64c0 35.346-28.654 64-64 64zm96-304.52V212c0 6.627-5.373 12-12 12H76c-6.627 0-12-5.373-12-12V108c0-6.627 5.373-12 12-12h228.52c3.183 0 6.235 1.264 8.485 3.515l3.48 3.48A11.996 11.996 0 0 1 320 111.48z"></path></symbol><symbol id="icon-sign-out-alt" viewBox="0 0 512 512"><path d="M497 273L329 441c-15 15-41 4.5-41-17v-96H152c-13.3 0-24-10.7-24-24v-96c0-13.3 10.7-24 24-24h136V88c0-21.4 25.9-32 41-17l168 168c9.3 9.4 9.3 24.6 0 34zM192 436v-40c0-6.6-5.4-12-12-12H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h84c6.6 0 12-5.4 12-12V76c0-6.6-5.4-12-12-12H96c-53 0-96 43-96 96v192c0 53 43 96 96 96h84c6.6 0 12-5.4 12-12z"></path></symbol><symbol id="icon-smile" viewBox="0 0 496 512"><path d="M248 8C111 8 0 119 0 256s111 248 248 248 248-111 248-248S385 8 248 8zm80 168c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm-160 0c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm194.8 170.2C334.3 380.4 292.5 400 248 400s-86.3-19.6-114.8-53.8c-13.6-16.3 11-36.7 24.6-20.5 22.4 26.9 55.2 42.2 90.2 42.2s67.8-15.4 90.2-42.2c13.4-16.2 38.1 4.2 24.6 20.5z"></path></symbol><symbol id="icon-snowflake" viewBox="0 0 448 512"><path d="M440.3 345.2l-33.8-19.5 26-7c8.2-2.2 13.1-10.7 10.9-18.9l-4-14.9c-2.2-8.2-10.7-13.1-18.9-10.9l-70.8 19-63.9-37 63.8-36.9 70.8 19c8.2 2.2 16.7-2.7 18.9-10.9l4-14.9c2.2-8.2-2.7-16.7-10.9-18.9l-26-7 33.8-19.5c7.4-4.3 9.9-13.7 5.7-21.1L430.4 119c-4.3-7.4-13.7-9.9-21.1-5.7l-33.8 19.5 7-26c2.2-8.2-2.7-16.7-10.9-18.9l-14.9-4c-8.2-2.2-16.7 2.7-18.9 10.9l-19 70.8-62.8 36.2v-77.5l53.7-53.7c6.2-6.2 6.2-16.4 0-22.6l-11.3-11.3c-6.2-6.2-16.4-6.2-22.6 0L256 56.4V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v40.4l-19.7-19.7c-6.2-6.2-16.4-6.2-22.6 0L138.3 48c-6.3 6.2-6.3 16.4 0 22.6l53.7 53.7v77.5l-62.8-36.2-19-70.8c-2.2-8.2-10.7-13.1-18.9-10.9l-14.9 4c-8.2 2.2-13.1 10.7-10.9 18.9l7 26-33.8-19.5c-7.4-4.3-16.8-1.7-21.1 5.7L2.1 145.7c-4.3 7.4-1.7 16.8 5.7 21.1l33.8 19.5-26 7c-8.3 2.2-13.2 10.7-11 19l4 14.9c2.2 8.2 10.7 13.1 18.9 10.9l70.8-19 63.8 36.9-63.8 36.9-70.8-19c-8.2-2.2-16.7 2.7-18.9 10.9l-4 14.9c-2.2 8.2 2.7 16.7 10.9 18.9l26 7-33.8 19.6c-7.4 4.3-9.9 13.7-5.7 21.1l15.5 26.8c4.3 7.4 13.7 9.9 21.1 5.7l33.8-19.5-7 26c-2.2 8.2 2.7 16.7 10.9 18.9l14.9 4c8.2 2.2 16.7-2.7 18.9-10.9l19-70.8 62.8-36.2v77.5l-53.7 53.7c-6.3 6.2-6.3 16.4 0 22.6l11.3 11.3c6.2 6.2 16.4 6.2 22.6 0l19.7-19.7V496c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-40.4l19.7 19.7c6.2 6.2 16.4 6.2 22.6 0l11.3-11.3c6.2-6.2 6.2-16.4 0-22.6L256 387.7v-77.5l62.8 36.2 19 70.8c2.2 8.2 10.7 13.1 18.9 10.9l14.9-4c8.2-2.2 13.1-10.7 10.9-18.9l-7-26 33.8 19.5c7.4 4.3 16.8 1.7 21.1-5.7l15.5-26.8c4.3-7.3 1.8-16.8-5.6-21z"></path></symbol><symbol id="icon-spinner" viewBox="0 0 512 512"><path d="M304 48c0 26.51-21.49 48-48 48s-48-21.49-48-48 21.49-48 48-48 48 21.49 48 48zm-48 368c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zm208-208c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zM96 256c0-26.51-21.49-48-48-48S0 229.49 0 256s21.49 48 48 48 48-21.49 48-48zm12.922 99.078c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.491-48-48-48zm294.156 0c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.49-48-48-48zM108.922 60.922c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.491-48-48-48z"></path></symbol><symbol id="icon-sync" viewBox="0 0 512 512"><path d="M440.65 12.57l4 82.77A247.16 247.16 0 0 0 255.83 8C134.73 8 33.91 94.92 12.29 209.82A12 12 0 0 0 24.09 224h49.05a12 12 0 0 0 11.67-9.26 175.91 175.91 0 0 1 317-56.94l-101.46-4.86a12 12 0 0 0-12.57 12v47.41a12 12 0 0 0 12 12H500a12 12 0 0 0 12-12V12a12 12 0 0 0-12-12h-47.37a12 12 0 0 0-11.98 12.57zM255.83 432a175.61 175.61 0 0 1-146-77.8l101.8 4.87a12 12 0 0 0 12.57-12v-47.4a12 12 0 0 0-12-12H12a12 12 0 0 0-12 12V500a12 12 0 0 0 12 12h47.35a12 12 0 0 0 12-12.6l-4.15-82.57A247.17 247.17 0 0 0 255.83 504c121.11 0 221.93-86.92 243.55-201.82a12 12 0 0 0-11.8-14.18h-49.05a12 12 0 0 0-11.67 9.26A175.86 175.86 0 0 1 255.83 432z"></path></symbol><symbol id="icon-times" viewBox="0 0 352 512"><path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path></symbol><symbol id="icon-times-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm121.6 313.1c4.7 4.7 4.7 12.3 0 17L338 377.6c-4.7 4.7-12.3 4.7-17 0L256 312l-65.1 65.6c-4.7 4.7-12.3 4.7-17 0L134.4 338c-4.7-4.7-4.7-12.3 0-17l65.6-65-65.6-65.1c-4.7-4.7-4.7-12.3 0-17l39.6-39.6c4.7-4.7 12.3-4.7 17 0l65 65.7 65.1-65.6c4.7-4.7 12.3-4.7 17 0l39.6 39.6c4.7 4.7 4.7 12.3 0 17L312 256l65.6 65.1z"></path></symbol><symbol id="icon-trash" viewBox="0 0 448 512"><path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"></path></symbol><symbol id="icon-trash-alt" viewBox="0 0 448 512"><path d="M32 464a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V128H32zm272-256a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zM432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16z"></path></symbol><symbol id="icon-unlock" viewBox="0 0 448 512"><path d="M400 256H152V152.9c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v16c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-16C376 68 307.5-.3 223.5 0 139.5.3 72 69.5 72 153.5V256H48c-26.5 0-48 21.5-48 48v160c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V304c0-26.5-21.5-48-48-48z"></path></symbol><symbol id="icon-user" viewBox="0 0 448 512"><path d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path></symbol><symbol id="icon-user-cog" viewBox="0 0 640 512"><path d="M610.5 373.3c2.6-14.1 2.6-28.5 0-42.6l25.8-14.9c3-1.7 4.3-5.2 3.3-8.5-6.7-21.6-18.2-41.2-33.2-57.4-2.3-2.5-6-3.1-9-1.4l-25.8 14.9c-10.9-9.3-23.4-16.5-36.9-21.3v-29.8c0-3.4-2.4-6.4-5.7-7.1-22.3-5-45-4.8-66.2 0-3.3.7-5.7 3.7-5.7 7.1v29.8c-13.5 4.8-26 12-36.9 21.3l-25.8-14.9c-2.9-1.7-6.7-1.1-9 1.4-15 16.2-26.5 35.8-33.2 57.4-1 3.3.4 6.8 3.3 8.5l25.8 14.9c-2.6 14.1-2.6 28.5 0 42.6l-25.8 14.9c-3 1.7-4.3 5.2-3.3 8.5 6.7 21.6 18.2 41.1 33.2 57.4 2.3 2.5 6 3.1 9 1.4l25.8-14.9c10.9 9.3 23.4 16.5 36.9 21.3v29.8c0 3.4 2.4 6.4 5.7 7.1 22.3 5 45 4.8 66.2 0 3.3-.7 5.7-3.7 5.7-7.1v-29.8c13.5-4.8 26-12 36.9-21.3l25.8 14.9c2.9 1.7 6.7 1.1 9-1.4 15-16.2 26.5-35.8 33.2-57.4 1-3.3-.4-6.8-3.3-8.5l-25.8-14.9zM496 400.5c-26.8 0-48.5-21.8-48.5-48.5s21.8-48.5 48.5-48.5 48.5 21.8 48.5 48.5-21.7 48.5-48.5 48.5zM224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm201.2 226.5c-2.3-1.2-4.6-2.6-6.8-3.9l-7.9 4.6c-6 3.4-12.8 5.3-19.6 5.3-10.9 0-21.4-4.6-28.9-12.6-18.3-19.8-32.3-43.9-40.2-69.6-5.5-17.7 1.9-36.4 17.9-45.7l7.9-4.6c-.1-2.6-.1-5.2 0-7.8l-7.9-4.6c-16-9.2-23.4-28-17.9-45.7.9-2.9 2.2-5.8 3.2-8.7-3.8-.3-7.5-1.2-11.4-1.2h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c10.1 0 19.5-3.2 27.2-8.5-1.2-3.8-2-7.7-2-11.8v-9.2z"></path></symbol><symbol id="icon-user-plus" viewBox="0 0 640 512"><path d="M624 208h-64v-64c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v64h-64c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h64v64c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-64h64c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm-400 48c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path></symbol><symbol id="icon-user-secret" viewBox="0 0 448 512"><path d="M383.9 308.3l23.9-62.6c4-10.5-3.7-21.7-15-21.7h-58.5c11-18.9 17.8-40.6 17.8-64v-.3c39.2-7.8 64-19.1 64-31.7 0-13.3-27.3-25.1-70.1-33-9.2-32.8-27-65.8-40.6-82.8-9.5-11.9-25.9-15.6-39.5-8.8l-27.6 13.8c-9 4.5-19.6 4.5-28.6 0L182.1 3.4c-13.6-6.8-30-3.1-39.5 8.8-13.5 17-31.4 50-40.6 82.8-42.7 7.9-70 19.7-70 33 0 12.6 24.8 23.9 64 31.7v.3c0 23.4 6.8 45.1 17.8 64H56.3c-11.5 0-19.2 11.7-14.7 22.3l25.8 60.2C27.3 329.8 0 372.7 0 422.4v44.8C0 491.9 20.1 512 44.8 512h358.4c24.7 0 44.8-20.1 44.8-44.8v-44.8c0-48.4-25.8-90.4-64.1-114.1zM176 480l-41.6-192 49.6 32 24 40-32 120zm96 0l-32-120 24-40 49.6-32L272 480zm41.7-298.5c-3.9 11.9-7 24.6-16.5 33.4-10.1 9.3-48 22.4-64-25-2.8-8.4-15.4-8.4-18.3 0-17 50.2-56 32.4-64 25-9.5-8.8-12.7-21.5-16.5-33.4-.8-2.5-6.3-5.7-6.3-5.8v-10.8c28.3 3.6 61 5.8 96 5.8s67.7-2.1 96-5.8v10.8c-.1.1-5.6 3.2-6.4 5.8z"></path></symbol><symbol id="icon-users" viewBox="0 0 640 512"><path d="M96 224c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm448 0c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm32 32h-64c-17.6 0-33.5 7.1-45.1 18.6 40.3 22.1 68.9 62 75.1 109.4h66c17.7 0 32-14.3 32-32v-32c0-35.3-28.7-64-64-64zm-256 0c61.9 0 112-50.1 112-112S381.9 32 320 32 208 82.1 208 144s50.1 112 112 112zm76.8 32h-8.3c-20.8 10-43.9 16-68.5 16s-47.6-6-68.5-16h-8.3C179.6 288 128 339.6 128 403.2V432c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48v-28.8c0-63.6-51.6-115.2-115.2-115.2zm-223.7-13.4C161.5 263.1 145.6 256 128 256H64c-35.3 0-64 28.7-64 64v32c0 17.7 14.3 32 32 32h65.9c6.3-47.4 34.9-87.3 75.2-109.4z"></path></symbol><symbol id="icon-wrench" viewBox="0 0 512 512"><path d="M507.73 109.1c-2.24-9.03-13.54-12.09-20.12-5.51l-74.36 74.36-67.88-11.31-11.31-67.88 74.36-74.36c6.62-6.62 3.43-17.9-5.66-20.16-47.38-11.74-99.55.91-136.58 37.93-39.64 39.64-50.55 97.1-34.05 147.2L18.74 402.76c-24.99 24.99-24.99 65.51 0 90.5 24.99 24.99 65.51 24.99 90.5 0l213.21-213.21c50.12 16.71 107.47 5.68 147.37-34.22 37.07-37.07 49.7-89.32 37.91-136.73zM64 472c-13.25 0-24-10.75-24-24 0-13.26 10.75-24 24-24s24 10.74 24 24c0 13.25-10.75 24-24 24z"></path></symbol><symbol id="icon-refresh" viewBox="0 0 512 512"><path d="M464 16c-17.67 0-32 14.31-32 32v74.09C392.1 66.52 327.4 32 256 32C161.5 32 78.59 92.34 49.58 182.2c-5.438 16.81 3.797 34.88 20.61 40.28c16.89 5.5 34.88-3.812 40.3-20.59C130.9 138.5 189.4 96 256 96c50.5 0 96.26 24.55 124.4 64H336c-17.67 0-32 14.31-32 32s14.33 32 32 32h128c17.67 0 32-14.31 32-32V48C496 30.31 481.7 16 464 16zM441.8 289.6c-16.92-5.438-34.88 3.812-40.3 20.59C381.1 373.5 322.6 416 256 416c-50.5 0-96.25-24.55-124.4-64H176c17.67 0 32-14.31 32-32s-14.33-32-32-32h-128c-17.67 0-32 14.31-32 32v144c0 17.69 14.33 32 32 32s32-14.31 32-32v-74.09C119.9 445.5 184.6 480 255.1 480c94.45 0 177.4-60.34 206.4-150.2C467.9 313 458.6 294.1 441.8 289.6z"></path></symbol></svg>`);
 ;// CONCATENATED MODULE: ./src/shared/components/font-awesome.js
 
 
@@ -69708,11 +67559,7 @@ shared_api.elements.define('converse-fontawesome', FontAwesome);
 /* harmony default export */ const templates_root = (() => {
   const extra_classes = shared_api.settings.get('singleton') ? ['converse-singleton'] : [];
   extra_classes.push(`converse-${shared_api.settings.get('view_mode')}`);
-  return x`
-        <converse-chats class="converse-chatboxes row no-gutters ${extra_classes.join(' ')}"></converse-chats>
-        <div id="converse-modals" class="modals"></div>
-        <converse-fontawesome></converse-fontawesome>
-    `;
+  return x`<converse-chats class="converse-chatboxes row no-gutters ${extra_classes.join(' ')}"></converse-chats><div id="converse-modals" class="modals"></div><converse-fontawesome></converse-fontawesome>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rootview/utils.js
 
@@ -69738,8 +67585,8 @@ function ensureElement() {
     }
   }
 }
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/rootview/styles/root.scss
-var styles_root = __webpack_require__(4412);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/rootview/styles/root.scss
+var styles_root = __webpack_require__(7089);
 ;// CONCATENATED MODULE: ./src/plugins/rootview/styles/root.scss
 
       
@@ -69841,39 +67688,7 @@ public_converse.plugins.add('converse-rootview', {
   const i18n_group = __('Group');
   const i18n_nickname = __('Name');
   const i18n_xmpp_address = __('XMPP Address');
-  return x`
-        <form class="converse-form add-xmpp-contact" @submit=${ev => el.addContactFromForm(ev)}>
-            <div class="modal-body">
-                <span class="modal-alert"></span>
-                <div class="form-group add-xmpp-contact__jid">
-                    <label class="clearfix" for="jid">${i18n_xmpp_address}:</label>
-                    <div class="suggestion-box suggestion-box__jid">
-                        <ul class="suggestion-box__results suggestion-box__results--below" hidden=""></ul>
-                        <input type="text" name="jid" ?required=${!shared_api.settings.get('xhr_user_search_url')}
-                            value="${el.model.get('jid') || ''}"
-                            class="form-control suggestion-box__input"
-                            placeholder="${i18n_contact_placeholder}"/>
-                        <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span>
-                    </div>
-                </div>
-
-                <div class="form-group add-xmpp-contact__name">
-                    <label class="clearfix" for="name">${i18n_nickname}:</label>
-                    <div class="suggestion-box suggestion-box__name">
-                        <ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul>
-                        <input type="text" name="name" value="${el.model.get('nickname') || ''}"
-                            class="form-control suggestion-box__input"/>
-                        <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span>
-                    </div>
-                </div>
-                <div class="form-group add-xmpp-contact__group">
-                    <label class="clearfix" for="name">${i18n_group}:</label>
-                    <converse-autocomplete .list=${getGroupsAutoCompleteList()} name="group"></converse-autocomplete>
-                </div>
-                <div class="form-group"><div class="invalid-feedback">${i18n_error_message}</div></div>
-                <button type="submit" class="btn btn-primary">${i18n_add}</button>
-            </div>
-        </form>`;
+  return x`<form class="converse-form add-xmpp-contact" @submit="${ev => el.addContactFromForm(ev)}"><div class="modal-body"><span class="modal-alert"></span><div class="form-group add-xmpp-contact__jid"><label class="clearfix" for="jid">${i18n_xmpp_address}:</label><div class="suggestion-box suggestion-box__jid"><ul class="suggestion-box__results suggestion-box__results--below" hidden=""></ul><input type="text" name="jid" ?required="${!shared_api.settings.get('xhr_user_search_url')}" value="${el.model.get('jid') || ''}" class="form-control suggestion-box__input" placeholder="${i18n_contact_placeholder}"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></div><div class="form-group add-xmpp-contact__name"><label class="clearfix" for="name">${i18n_nickname}:</label><div class="suggestion-box suggestion-box__name"><ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul><input type="text" name="name" value="${el.model.get('nickname') || ''}" class="form-control suggestion-box__input"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></div><div class="form-group add-xmpp-contact__group"><label class="clearfix" for="name">${i18n_group}:</label><converse-autocomplete .list="${getGroupsAutoCompleteList()}" name="group"></converse-autocomplete></div><div class="form-group"><div class="invalid-feedback">${i18n_error_message}</div></div><button type="submit" class="btn btn-primary">${i18n_add}</button></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/modals/add-contact.js
 
@@ -69915,7 +67730,7 @@ class AddContactModal extends modal_modal {
     this.jid_auto_complete = new shared_converse.AutoComplete(el, {
       'data': (text, input) => `${input.slice(0, input.indexOf("@"))}@${text}`,
       'filter': shared_converse.FILTER_STARTSWITH,
-      'list': [...new Set(shared_converse.roster.map(item => Strophe.getDomainFromJid(item.get('jid'))))]
+      'list': [...new Set(shared_converse.roster.map(item => core.getDomainFromJid(item.get('jid'))))]
     });
   }
   initGroupAutoComplete() {
@@ -69926,7 +67741,7 @@ class AddContactModal extends modal_modal {
     this.jid_auto_complete = new shared_converse.AutoComplete(el, {
       'data': (text, input) => `${input.slice(0, input.indexOf("@"))}@${text}`,
       'filter': shared_converse.FILTER_STARTSWITH,
-      'list': [...new Set(shared_converse.roster.map(item => Strophe.getDomainFromJid(item.get('jid'))))]
+      'list': [...new Set(shared_converse.roster.map(item => core.getDomainFromJid(item.get('jid'))))]
     });
   }
   initXHRAutoComplete() {
@@ -69992,7 +67807,7 @@ class AddContactModal extends modal_modal {
       addClass('is-invalid', this.querySelector('input[name="jid"]'));
       addClass('d-block', el);
       return false;
-    } else if (shared_converse.roster.get(Strophe.getBareJidFromJid(jid))) {
+    } else if (shared_converse.roster.get(core.getBareJidFromJid(jid))) {
       el.textContent = __('This contact has already been added');
       addClass('d-block', el);
       return false;
@@ -70067,23 +67882,12 @@ function renderContact(contact) {
     extra_classes.push(subscription);
     extra_classes.push(contact.presence.get('show'));
   }
-  return x`
-        <li class="list-item d-flex controlbox-padded ${extra_classes.join(' ')}" data-status="${contact.presence.get('show')}">
-            <converse-roster-contact .model=${contact}></converse-roster-contact>
-        </li>`;
+  return x`<li class="list-item d-flex controlbox-padded ${extra_classes.join(' ')}" data-status="${contact.presence.get('show')}"><converse-roster-contact .model="${contact}"></converse-roster-contact></li>`;
 }
 /* harmony default export */ const group = (o => {
   const i18n_title = __('Click to hide these contacts');
   const collapsed = shared_converse.roster.state.get('collapsed_groups');
-  return x`
-        <div class="roster-group" data-group="${o.name}">
-            <a href="#" class="list-toggle group-toggle controlbox-padded" title="${i18n_title}" @click=${ev => toggleGroup(ev, o.name)}>
-                <converse-icon color="var(--chat-head-color-dark)" size="1em" class="fa ${collapsed.includes(o.name) ? 'fa-caret-right' : 'fa-caret-down'}"></converse-icon> ${o.name}
-            </a>
-            <ul class="items-list roster-group-contacts ${collapsed.includes(o.name) ? 'collapsed' : ''}" data-group="${o.name}">
-                ${repeat_c(o.contacts, c => c.get('jid'), renderContact)}
-            </ul>
-        </div>`;
+  return x`<div class="roster-group" data-group="${o.name}"><a href="#" class="list-toggle group-toggle controlbox-padded" title="${i18n_title}" @click="${ev => toggleGroup(ev, o.name)}"><converse-icon color="var(--chat-head-color-dark)" size="1em" class="fa ${collapsed.includes(o.name) ? 'fa-caret-right' : 'fa-caret-down'}"></converse-icon>${o.name}</a><ul class="items-list roster-group-contacts ${collapsed.includes(o.name) ? 'collapsed' : ''}" data-group="${o.name}">${repeat_c(o.contacts, c => c.get('jid'), renderContact)}</ul></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/templates/roster.js
 
@@ -70103,45 +67907,14 @@ function renderContact(contact) {
   const groupnames = Object.keys(contacts_map).filter(shouldShowGroup);
   const is_closed = el.model.get('toggle_state') === shared_converse.CLOSED;
   groupnames.sort(groupsComparator);
-  return x`
-        <div class="d-flex controlbox-padded">
-            <span class="w-100 controlbox-heading controlbox-heading--contacts">
-                <a class="list-toggle open-contacts-toggle" title="${i18n_toggle_contacts}" @click=${el.toggleRoster}>
-                    <converse-icon
-                        class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}"
-                        size="1em"
-                        color="var(--chat-color)"></converse-icon>
-                    ${i18n_heading_contacts}
-                </a>
-            </span>
-            <a class="controlbox-heading__btn sync-contacts"
-               @click=${ev => el.syncContacts(ev)}
-               title="${i18n_title_sync_contacts}">
-
-                <converse-icon class="fa fa-sync right ${el.syncing_contacts ? 'fa-spin' : ''}" size="1em"></converse-icon>
-            </a>
-            ${shared_api.settings.get('allow_contact_requests') ? x`
-                <a class="controlbox-heading__btn add-contact"
-                    @click=${ev => el.showAddContactModal(ev)}
-                    title="${i18n_title_add_contact}"
-                    data-toggle="modal"
-                    data-target="#add-contact-modal">
-                    <converse-icon class="fa fa-user-plus right" size="1.25em"></converse-icon>
-                </a>` : ''}
-        </div>
-
-        <div class="list-container roster-contacts ${is_closed ? 'hidden' : ''}">
-            <converse-roster-filter @update=${() => el.requestUpdate()}></converse-roster-filter>
-            ${repeat_c(groupnames, n => n, name => {
+  return x`<div class="d-flex controlbox-padded"><span class="w-100 controlbox-heading controlbox-heading--contacts"><a class="list-toggle open-contacts-toggle" title="${i18n_toggle_contacts}" @click="${el.toggleRoster}"><converse-icon class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}" size="1em" color="var(--chat-color)"></converse-icon>${i18n_heading_contacts} </a></span><a class="controlbox-heading__btn sync-contacts" @click="${ev => el.syncContacts(ev)}" title="${i18n_title_sync_contacts}"><converse-icon class="fa fa-sync right ${el.syncing_contacts ? 'fa-spin' : ''}" size="1em"></converse-icon></a>${shared_api.settings.get('allow_contact_requests') ? x`<a class="controlbox-heading__btn add-contact" @click="${ev => el.showAddContactModal(ev)}" title="${i18n_title_add_contact}" data-toggle="modal" data-target="#add-contact-modal"><converse-icon class="fa fa-user-plus right" size="1.25em"></converse-icon></a>` : ''}</div><div class="list-container roster-contacts ${is_closed ? 'hidden' : ''}"><converse-roster-filter @update="${() => el.requestUpdate()}"></converse-roster-filter>${repeat_c(groupnames, n => n, name => {
     const contacts = contacts_map[name].filter(c => shouldShowContact(c, name));
     contacts.sort(contactsComparator);
     return contacts.length ? group({
       contacts,
       name
     }) : '';
-  })}
-        </div>
-    `;
+  })}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/rosterview.js
 
@@ -70226,23 +67999,7 @@ class RosterView extends CustomElement {
 shared_api.elements.define('converse-roster', RosterView);
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/templates/requesting_contact.js
 
-/* harmony default export */ const requesting_contact = (o => x`
-   <a class="open-chat w-100" href="#" @click=${o.openChat}>
-      <span class="req-contact-name w-100" title="JID: ${o.jid}">${o.display_name}</span>
-   </a>
-   <a class="accept-xmpp-request list-item-action list-item-action--visible"
-      @click=${o.acceptRequest}
-      aria-label="${o.desc_accept}" title="${o.desc_accept}" href="#">
-
-      <converse-icon class="fa fa-check" size="1em"></converse-icon>
-   </a>
-
-   <a class="decline-xmpp-request list-item-action list-item-action--visible"
-      @click=${o.declineRequest}
-      aria-label="${o.desc_decline}" title="${o.desc_decline}" href="#">
-
-      <converse-icon class="fa fa-times" size="1em"></converse-icon>
-   </a>`);
+/* harmony default export */ const requesting_contact = (o => x`<a class="open-chat w-100" href="#" @click="${o.openChat}"><span class="req-contact-name w-100" title="JID: ${o.jid}">${o.display_name}</span> </a><a class="accept-xmpp-request list-item-action list-item-action--visible" @click="${o.acceptRequest}" aria-label="${o.desc_accept}" title="${o.desc_accept}" href="#"><converse-icon class="fa fa-check" size="1em"></converse-icon></a><a class="decline-xmpp-request list-item-action list-item-action--visible" @click="${o.declineRequest}" aria-label="${o.desc_decline}" title="${o.desc_decline}" href="#"><converse-icon class="fa fa-times" size="1em"></converse-icon></a>`);
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/constants.js
 
 const STATUSES = {
@@ -70261,11 +68018,7 @@ const STATUSES = {
 const tplRemoveLink = (el, item) => {
   const display_name = item.getDisplayName();
   const i18n_remove = __('Click to remove %1$s as a contact', display_name);
-  return x`
-      <a class="list-item-action remove-xmpp-contact" @click=${el.removeContact} title="${i18n_remove}" href="#">
-         <converse-icon class="fa fa-trash-alt" size="1.5em"></converse-icon>
-      </a>
-   `;
+  return x`<a class="list-item-action remove-xmpp-contact" @click="${el.removeContact}" title="${i18n_remove}" href="#"><converse-icon class="fa fa-trash-alt" size="1.5em"></converse-icon></a>`;
 };
 /* harmony default export */ const roster_item = ((el, item) => {
   const show = item.presence.get('show') || 'offline';
@@ -70283,24 +68036,7 @@ const tplRemoveLink = (el, item) => {
   const num_unread = item.get('num_unread') || 0;
   const display_name = item.getDisplayName();
   const i18n_chat = __('Click to chat with %1$s (XMPP address: %2$s)', display_name, el.model.get('jid'));
-  return x`
-   <a class="list-item-link cbox-list-item open-chat ${num_unread ? 'unread-msgs' : ''}" title="${i18n_chat}" href="#" @click=${el.openChat}>
-      <span>
-         <converse-avatar
-            class="avatar"
-            .data=${el.model.vcard?.attributes}
-            nonce=${el.model.vcard?.get('vcard_updated')}
-            height="30" width="30"></converse-avatar>
-         <converse-icon
-            title="${desc_status}"
-            color="var(--${color})"
-            size="1em"
-            class="${classes} chat-status chat-status--avatar"></converse-icon>
-      </span>
-      ${num_unread ? x`<span class="msgs-indicator">${num_unread}</span>` : ''}
-      <span class="contact-name contact-name--${el.show} ${num_unread ? 'unread-msgs' : ''}">${display_name}</span>
-   </a>
-   ${shared_api.settings.get('allow_contact_removal') ? tplRemoveLink(el, item) : ''}`;
+  return x`<a class="list-item-link cbox-list-item open-chat ${num_unread ? 'unread-msgs' : ''}" title="${i18n_chat}" href="#" @click="${el.openChat}"><span><converse-avatar class="avatar" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="30" width="30"></converse-avatar><converse-icon title="${desc_status}" color="var(--${color})" size="1em" class="${classes} chat-status chat-status--avatar"></converse-icon></span>${num_unread ? x`<span class="msgs-indicator">${num_unread}</span>` : ''} <span class="contact-name contact-name--${el.show} ${num_unread ? 'unread-msgs' : ''}">${display_name}</span> </a>${shared_api.settings.get('allow_contact_removal') ? tplRemoveLink(el, item) : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/contactview.js
 
@@ -70395,37 +68131,7 @@ shared_api.elements.define('converse-roster-contact', contactview_RosterContact)
   const label_away = __('Away');
   const label_xa = __('Extended Away');
   const label_offline = __('Offline');
-  return x`
-        <form class="controlbox-padded roster-filter-form input-button-group ${!o.visible ? 'hidden' : 'fade-in'}"
-            @submit=${o.submitFilter}>
-            <div class="form-inline flex-nowrap">
-                <div class="filter-by d-flex flex-nowrap">
-                    <converse-icon size="1em" @click=${o.changeTypeFilter} class="fa fa-user clickable ${o.filter_type === 'contacts' ? 'selected' : ''}" data-type="contacts" title="${title_contact_filter}"></converse-icon>
-                    <converse-icon size="1em" @click=${o.changeTypeFilter} class="fa fa-users clickable ${o.filter_type === 'groups' ? 'selected' : ''}" data-type="groups" title="${title_group_filter}"></converse-icon>
-                    <converse-icon size="1em" @click=${o.changeTypeFilter} class="fa fa-circle clickable ${o.filter_type === 'state' ? 'selected' : ''}" data-type="state" title="${title_status_filter}"></converse-icon>
-                </div>
-                <div class="btn-group">
-                    <input .value="${o.filter_text || ''}"
-                        @keydown=${o.liveFilter}
-                        class="roster-filter form-control ${o.filter_type === 'state' ? 'hidden' : ''}"
-                        placeholder="${i18n_placeholder}"/>
-                    <converse-icon size="1em" class="fa fa-times clear-input ${!o.filter_text || o.filter_type === 'state' ? 'hidden' : ''}"
-                        @click=${o.clearFilter}>
-                    </converse-icon>
-                </div>
-                <select class="form-control state-type ${o.filter_type !== 'state' ? 'hidden' : ''}"
-                        @change=${o.changeChatStateFilter}>
-                    <option value="">${label_any}</option>
-                    <option ?selected=${o.chat_state === 'unread_messages'} value="unread_messages">${label_unread_messages}</option>
-                    <option ?selected=${o.chat_state === 'online'} value="online">${label_online}</option>
-                    <option ?selected=${o.chat_state === 'chat'} value="chat">${label_chatty}</option>
-                    <option ?selected=${o.chat_state === 'dnd'} value="dnd">${label_busy}</option>
-                    <option ?selected=${o.chat_state === 'away'} value="away">${label_away}</option>
-                    <option ?selected=${o.chat_state === 'xa'} value="xa">${label_xa}</option>
-                    <option ?selected=${o.chat_state === 'offline'} value="offline">${label_offline}</option>
-                </select>
-            </div>
-        </form>`;
+  return x`<form class="controlbox-padded roster-filter-form input-button-group ${!o.visible ? 'hidden' : 'fade-in'}" @submit="${o.submitFilter}"><div class="form-inline flex-nowrap"><div class="filter-by d-flex flex-nowrap"><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-user clickable ${o.filter_type === 'contacts' ? 'selected' : ''}" data-type="contacts" title="${title_contact_filter}"></converse-icon><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-users clickable ${o.filter_type === 'groups' ? 'selected' : ''}" data-type="groups" title="${title_group_filter}"></converse-icon><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-circle clickable ${o.filter_type === 'state' ? 'selected' : ''}" data-type="state" title="${title_status_filter}"></converse-icon></div><div class="btn-group"><input .value="${o.filter_text || ''}" @keydown="${o.liveFilter}" class="roster-filter form-control ${o.filter_type === 'state' ? 'hidden' : ''}" placeholder="${i18n_placeholder}"><converse-icon size="1em" class="fa fa-times clear-input ${!o.filter_text || o.filter_type === 'state' ? 'hidden' : ''}" @click="${o.clearFilter}"></converse-icon></div><select class="form-control state-type ${o.filter_type !== 'state' ? 'hidden' : ''}" @change="${o.changeChatStateFilter}"><option value="">${label_any}</option><option ?selected="${o.chat_state === 'unread_messages'}" value="unread_messages">${label_unread_messages}</option><option ?selected="${o.chat_state === 'online'}" value="online">${label_online}</option><option ?selected="${o.chat_state === 'chat'}" value="chat">${label_chatty}</option><option ?selected="${o.chat_state === 'dnd'}" value="dnd">${label_busy}</option><option ?selected="${o.chat_state === 'away'}" value="away">${label_away}</option><option ?selected="${o.chat_state === 'xa'}" value="xa">${label_xa}</option><option ?selected="${o.chat_state === 'offline'}" value="offline">${label_offline}</option></select></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/filterview.js
 
@@ -70512,8 +68218,8 @@ class RosterFilterView extends CustomElement {
   }
 }
 shared_api.elements.define('converse-roster-filter', RosterFilterView);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/rosterview/styles/roster.scss
-var styles_roster = __webpack_require__(9107);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/rosterview/styles/roster.scss
+var styles_roster = __webpack_require__(3925);
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/styles/roster.scss
 
       
@@ -70583,8 +68289,8 @@ public_converse.plugins.add('converse-rosterview', {
     shared_api.listen.on('afterTearDown', () => shared_converse.rotergroups?.off().reset());
   }
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/singleton/singleton.scss
-var singleton = __webpack_require__(2886);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/singleton/singleton.scss
+var singleton = __webpack_require__(705);
 ;// CONCATENATED MODULE: ./src/plugins/singleton/singleton.scss
 
       
@@ -70768,11 +68474,7 @@ function onMouseUp(ev) {
 ;// CONCATENATED MODULE: ./src/plugins/dragresize/templates/dragresize.js
 
 
-/* harmony default export */ const dragresize = (() => x`
-    <div class="dragresize dragresize-top" @mousedown="${onStartVerticalResize}"></div>
-    <div class="dragresize dragresize-topleft" @mousedown="${onStartDiagonalResize}"></div>
-    <div class="dragresize dragresize-left" @mousedown="${onStartHorizontalResize}"></div>
-`);
+/* harmony default export */ const dragresize = (() => x`<div class="dragresize dragresize-top" @mousedown="${onStartVerticalResize}"></div><div class="dragresize dragresize-topleft" @mousedown="${onStartDiagonalResize}"></div><div class="dragresize dragresize-left" @mousedown="${onStartHorizontalResize}"></div>`);
 ;// CONCATENATED MODULE: ./src/plugins/dragresize/components/dragresize.js
 
 
@@ -70979,8 +68681,8 @@ public_converse.plugins.add('converse-dragresize', {
     shared_api.listen.on('startVerticalResize', dragresizeOverIframeHandler);
   }
 });
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[5].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[5].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[5].use[3]!./src/plugins/fullscreen/styles/fullscreen.scss
-var fullscreen = __webpack_require__(567);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/fullscreen/styles/fullscreen.scss
+var fullscreen = __webpack_require__(6763);
 ;// CONCATENATED MODULE: ./src/plugins/fullscreen/styles/fullscreen.scss
 
       
@@ -71088,16 +68790,16 @@ public_converse.initialize = function (settings, callback) {
 
 /***/ }),
 
-/***/ 5422:
+/***/ 7690:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71111,16 +68813,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 9989:
+/***/ 148:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71134,16 +68836,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 7092:
+/***/ 298:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71157,16 +68859,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 3584:
+/***/ 263:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71180,16 +68882,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 2:
+/***/ 110:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71203,16 +68905,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 9870:
+/***/ 7740:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71226,16 +68928,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 4937:
+/***/ 4706:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71249,16 +68951,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 567:
+/***/ 6763:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71272,16 +68974,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 3806:
+/***/ 2118:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71295,16 +68997,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 2846:
+/***/ 7537:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71318,16 +69020,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 7038:
+/***/ 7725:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71341,16 +69043,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 5784:
+/***/ 4540:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71364,16 +69066,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 975:
+/***/ 1064:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71387,16 +69089,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 1602:
+/***/ 5902:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71410,16 +69112,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 1693:
+/***/ 2832:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71433,16 +69135,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 6205:
+/***/ 4891:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71456,16 +69158,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 3774:
+/***/ 5777:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71479,16 +69181,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 2430:
+/***/ 1067:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71502,16 +69204,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 2339:
+/***/ 4083:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71525,16 +69227,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 3284:
+/***/ 7428:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71548,16 +69250,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 9592:
+/***/ 6714:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71571,16 +69273,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 354:
+/***/ 3538:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71594,16 +69296,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 4412:
+/***/ 7089:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71617,16 +69319,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 9107:
+/***/ 3925:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71640,16 +69342,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 2886:
+/***/ 705:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71663,16 +69365,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 6022:
+/***/ 2642:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71686,16 +69388,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 180:
+/***/ 7233:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71709,16 +69411,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 4659:
+/***/ 8765:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71732,16 +69434,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 4311:
+/***/ 2432:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71755,16 +69457,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 4912:
+/***/ 1540:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71778,16 +69480,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 6380:
+/***/ 6933:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71801,16 +69503,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 563:
+/***/ 7643:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71824,16 +69526,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 8899:
+/***/ 9833:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71847,16 +69549,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 1165:
+/***/ 8906:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71870,16 +69572,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 1484:
+/***/ 9211:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71893,16 +69595,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 8069:
+/***/ 9478:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71916,16 +69618,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 2484:
+/***/ 8916:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71939,16 +69641,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 8211:
+/***/ 2533:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71962,16 +69664,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 9575:
+/***/ 2864:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -71985,16 +69687,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 8334:
+/***/ 17:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -72008,16 +69710,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 1815:
+/***/ 6407:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -72031,16 +69733,16 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 /***/ }),
 
-/***/ 6305:
+/***/ 5152:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4216);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3245);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7705);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1223);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
 // Imports
 
@@ -72059,575 +69761,575 @@ ___CSS_LOADER_EXPORT___.push([module.id, ``, "",{"version":3,"sources":[],"names
 
 var map = {
 	"./af.js": [
-		3014,
+		5172,
 		9210
 	],
 	"./am.js": [
-		6185,
+		6692,
 		5073
 	],
 	"./ar-dz.js": [
-		3308,
+		8438,
 		9406
 	],
 	"./ar-iq.js": [
-		3659,
+		4421,
 		2990
 	],
 	"./ar-kw.js": [
-		9029,
+		7985,
 		9897
 	],
 	"./ar-ly.js": [
-		6318,
+		5725,
 		3521
 	],
 	"./ar-ma.js": [
-		1057,
+		3150,
 		5313
 	],
 	"./ar-sa.js": [
-		5061,
+		829,
 		485
 	],
 	"./ar-tn.js": [
-		7558,
+		2766,
 		8040
 	],
 	"./ar.js": [
-		4439,
+		7806,
 		6755
 	],
 	"./az.js": [
-		4890,
+		9032,
 		4963
 	],
 	"./be.js": [
-		9499,
+		6264,
 		9478
 	],
 	"./bg.js": [
-		9735,
+		9210,
 		578
 	],
 	"./bi.js": [
-		6381,
+		1637,
 		2984
 	],
 	"./bm.js": [
-		93,
+		455,
 		2263
 	],
 	"./bn-bd.js": [
-		2098,
+		9404,
 		1351
 	],
 	"./bn.js": [
-		7392,
+		227,
 		280
 	],
 	"./bo.js": [
-		2027,
+		6396,
 		9950
 	],
 	"./br.js": [
-		9802,
+		5300,
 		760
 	],
 	"./bs.js": [
-		6698,
+		299,
 		9833
 	],
 	"./ca.js": [
-		5230,
+		4795,
 		102
 	],
 	"./cs.js": [
-		8272,
+		9491,
 		7400
 	],
 	"./cv.js": [
-		2960,
+		5327,
 		4481
 	],
 	"./cy.js": [
-		6961,
+		8806,
 		6740
 	],
 	"./da.js": [
-		4771,
+		249,
 		2548
 	],
 	"./de-at.js": [
-		1078,
+		7692,
 		7175
 	],
 	"./de-ch.js": [
-		8630,
+		5109,
 		1679
 	],
 	"./de.js": [
-		6377,
+		7255,
 		52
 	],
 	"./dv.js": [
-		5326,
+		9064,
 		5569
 	],
 	"./el.js": [
-		4005,
+		6503,
 		1606
 	],
 	"./en-au.js": [
-		4567,
+		9880,
 		5485
 	],
 	"./en-ca.js": [
-		3666,
+		373,
 		4035
 	],
 	"./en-gb.js": [
-		5500,
+		992,
 		6031
 	],
 	"./en-ie.js": [
-		4791,
+		8800,
 		8129
 	],
 	"./en-il.js": [
-		4962,
+		8715,
 		3463
 	],
 	"./en-in.js": [
-		5294,
+		1973,
 		6898
 	],
 	"./en-nz.js": [
-		9101,
+		8201,
 		8547
 	],
 	"./en-sg.js": [
-		1228,
+		4653,
 		1735
 	],
 	"./en-tt.js": [
-		224,
+		933,
 		6105
 	],
 	"./en.js": [
-		164,
+		8455,
 		535
 	],
 	"./eo.js": [
-		6504,
+		416,
 		5121
 	],
 	"./es-do.js": [
-		6824,
+		6236,
 		8758
 	],
 	"./es-mx.js": [
-		2262,
+		5534,
 		7416
 	],
 	"./es-pr.js": [
-		7634,
+		7974,
 		911
 	],
 	"./es-us.js": [
-		4976,
+		656,
 		3208
 	],
 	"./es.js": [
-		2791,
+		5121,
 		3411
 	],
 	"./et.js": [
-		4419,
+		4097,
 		4153
 	],
 	"./eu.js": [
-		3371,
+		6167,
 		1396
 	],
 	"./fa.js": [
-		2523,
+		962,
 		5544
 	],
 	"./fi.js": [
-		3072,
+		4149,
 		2130
 	],
 	"./fo.js": [
-		8348,
+		2400,
 		8745
 	],
 	"./fr-ca.js": [
-		3056,
+		3853,
 		7363
 	],
 	"./fr-ch.js": [
-		4623,
+		8346,
 		7952
 	],
 	"./fr.js": [
-		8876,
+		9341,
 		1910
 	],
 	"./fy.js": [
-		2559,
+		3079,
 		6376
 	],
 	"./ga.js": [
-		523,
+		8642,
 		688
 	],
 	"./gd.js": [
-		1365,
+		9044,
 		5050
 	],
 	"./gl.js": [
-		1575,
+		907,
 		5818
 	],
 	"./gom-latn.js": [
-		488,
+		7037,
 		825
 	],
 	"./gu.js": [
-		8417,
+		2489,
 		3623
 	],
 	"./he.js": [
-		4092,
+		3622,
 		9372
 	],
 	"./hi.js": [
-		8184,
+		8979,
 		8010
 	],
 	"./hr.js": [
-		4323,
+		8424,
 		7419
 	],
 	"./ht.js": [
-		2458,
+		3512,
 		5822
 	],
 	"./hu.js": [
-		5639,
+		5955,
 		8214
 	],
 	"./hy-am.js": [
-		9300,
+		5042,
 		5407
 	],
 	"./id.js": [
-		5100,
+		4263,
 		9513
 	],
 	"./is.js": [
-		2552,
+		6505,
 		1194
 	],
 	"./it-ch.js": [
-		4677,
+		2268,
 		6010
 	],
 	"./it.js": [
-		4434,
+		9021,
 		1880
 	],
 	"./ja.js": [
-		451,
+		3418,
 		1107
 	],
 	"./jv.js": [
-		5852,
+		2242,
 		4305
 	],
 	"./ka.js": [
-		4253,
+		4063,
 		5186
 	],
 	"./kk.js": [
-		6864,
+		3834,
 		5206
 	],
 	"./km.js": [
-		8445,
+		3957,
 		2475
 	],
 	"./kn.js": [
-		860,
+		949,
 		7523
 	],
 	"./ko.js": [
-		3206,
+		3636,
 		3446
 	],
 	"./ku.js": [
-		7514,
+		769,
 		7024
 	],
 	"./ky.js": [
-		160,
+		5833,
 		5055
 	],
 	"./lb.js": [
-		5364,
+		9660,
 		5215
 	],
 	"./lo.js": [
-		3531,
+		9915,
 		1204
 	],
 	"./lt.js": [
-		9452,
+		397,
 		7899
 	],
 	"./lv.js": [
-		4158,
+		5677,
 		631
 	],
 	"./me.js": [
-		705,
+		8768,
 		145
 	],
 	"./mi.js": [
-		9346,
+		8689,
 		7454
 	],
 	"./mk.js": [
-		2487,
+		4815,
 		4951
 	],
 	"./ml.js": [
-		1357,
+		5311,
 		7679
 	],
 	"./mn.js": [
-		5060,
+		1469,
 		8618
 	],
 	"./mr.js": [
-		6481,
+		1364,
 		5600
 	],
 	"./ms-my.js": [
-		1387,
+		1817,
 		882
 	],
 	"./ms.js": [
-		939,
+		6540,
 		9095
 	],
 	"./mt.js": [
-		9454,
+		338,
 		9665
 	],
 	"./my.js": [
-		7878,
+		4787,
 		5166
 	],
 	"./nb.js": [
-		8011,
+		4949,
 		646
 	],
 	"./ne.js": [
-		8472,
+		387,
 		9030
 	],
 	"./nl-be.js": [
-		4390,
+		3449,
 		3155
 	],
 	"./nl.js": [
-		7409,
+		3943,
 		1520
 	],
 	"./nn.js": [
-		2117,
+		5972,
 		7050
 	],
 	"./oc-lnc.js": [
-		3190,
+		1504,
 		7203
 	],
 	"./pa-in.js": [
-		3341,
+		4559,
 		5850
 	],
 	"./pl.js": [
-		6262,
+		9885,
 		1211
 	],
 	"./pt-br.js": [
-		7375,
+		7147,
 		5274
 	],
 	"./pt.js": [
-		4374,
+		9069,
 		265
 	],
 	"./rn.js": [
-		9507,
+		1513,
 		4678
 	],
 	"./ro.js": [
-		3809,
+		6083,
 		8022
 	],
 	"./ru.js": [
-		6581,
+		9427,
 		559
 	],
 	"./rw.js": [
-		2285,
+		8169,
 		3221
 	],
 	"./sd.js": [
-		7256,
+		8204,
 		1298
 	],
 	"./se.js": [
-		5114,
+		9159,
 		1942
 	],
 	"./si.js": [
-		2237,
+		1274,
 		9333
 	],
 	"./sk.js": [
-		8777,
+		6145,
 		6783
 	],
 	"./sl.js": [
-		8173,
+		4834,
 		9625
 	],
 	"./sq.js": [
-		9195,
+		3504,
 		8603
 	],
 	"./sr-cyrl.js": [
-		3238,
+		4923,
 		3435
 	],
 	"./sr.js": [
-		8117,
+		674,
 		7390
 	],
 	"./ss.js": [
-		3471,
+		5520,
 		9238
 	],
 	"./sv-fi.js": [
-		7487,
+		3214,
 		9997
 	],
 	"./sv.js": [
-		516,
+		2992,
 		9652
 	],
 	"./sw.js": [
-		4925,
+		1772,
 		9733
 	],
 	"./ta.js": [
-		8639,
+		3670,
 		7645
 	],
 	"./te.js": [
-		4178,
+		4059,
 		7714
 	],
 	"./tet.js": [
-		9665,
+		9142,
 		555
 	],
 	"./tg.js": [
-		4256,
+		5333,
 		2446
 	],
 	"./th.js": [
-		6547,
+		1032,
 		1729
 	],
 	"./tk.js": [
-		8112,
+		8004,
 		5256
 	],
 	"./tl-ph.js": [
-		5310,
+		8987,
 		9443
 	],
 	"./tlh.js": [
-		3002,
+		735,
 		2814
 	],
 	"./tr.js": [
-		1945,
+		7422,
 		8665
 	],
 	"./tzl.js": [
-		376,
+		3290,
 		2843
 	],
 	"./tzm-latn.js": [
-		5004,
+		8958,
 		3933
 	],
 	"./tzm.js": [
-		362,
+		9630,
 		4342
 	],
 	"./ug-cn.js": [
-		3095,
+		756,
 		6890
 	],
 	"./uk.js": [
-		4019,
+		3568,
 		1619
 	],
 	"./ur.js": [
-		7159,
+		8754,
 		9568
 	],
 	"./uz-latn.js": [
-		5866,
+		5592,
 		1110
 	],
 	"./uz.js": [
-		1835,
+		6553,
 		3153
 	],
 	"./vi.js": [
-		6758,
+		7789,
 		8073
 	],
 	"./x-pseudo.js": [
-		9154,
+		6623,
 		4423
 	],
 	"./yo.js": [
-		4595,
+		923,
 		8692
 	],
 	"./zh-cn.js": [
-		7095,
+		4848,
 		9630
 	],
 	"./zh-hk.js": [
-		8586,
+		4817,
 		3755
 	],
 	"./zh-tw.js": [
-		7973,
+		3348,
 		6776
 	],
 	"./zh.js": [
-		4249,
+		3826,
 		8458
 	]
 };
@@ -73027,7 +70729,7 @@ var map = {
 		6227
 	],
 	"./pt_BR/LC_MESSAGES/converse.po": [
-		2774,
+		6380,
 		1455
 	],
 	"./ro/LC_MESSAGES/converse.po": [
@@ -73091,7 +70793,7 @@ module.exports = webpackAsyncContext;
 
 /***/ }),
 
-/***/ 9563:
+/***/ 8308:
 /***/ ((module) => {
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
@@ -73128,10 +70830,10 @@ module.exports = _asyncToGenerator, module.exports.__esModule = true, module.exp
 
 /***/ }),
 
-/***/ 1514:
+/***/ 355:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var toPropertyKey = __webpack_require__(7616);
+var toPropertyKey = __webpack_require__(9957);
 function _defineProperty(obj, key, value) {
   key = toPropertyKey(key);
   if (key in obj) {
@@ -73150,7 +70852,7 @@ module.exports = _defineProperty, module.exports.__esModule = true, module.expor
 
 /***/ }),
 
-/***/ 8135:
+/***/ 6733:
 /***/ ((module) => {
 
 function _interopRequireDefault(obj) {
@@ -73162,10 +70864,10 @@ module.exports = _interopRequireDefault, module.exports.__esModule = true, modul
 
 /***/ }),
 
-/***/ 2518:
+/***/ 5613:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var _typeof = (__webpack_require__(435)["default"]);
+var _typeof = (__webpack_require__(7273)["default"]);
 function _regeneratorRuntime() {
   "use strict";
 
@@ -73474,10 +71176,10 @@ module.exports = _regeneratorRuntime, module.exports.__esModule = true, module.e
 
 /***/ }),
 
-/***/ 9772:
+/***/ 5407:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var _typeof = (__webpack_require__(435)["default"]);
+var _typeof = (__webpack_require__(7273)["default"]);
 function _toPrimitive(input, hint) {
   if (_typeof(input) !== "object" || input === null) return input;
   var prim = input[Symbol.toPrimitive];
@@ -73492,11 +71194,11 @@ module.exports = _toPrimitive, module.exports.__esModule = true, module.exports[
 
 /***/ }),
 
-/***/ 7616:
+/***/ 9957:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var _typeof = (__webpack_require__(435)["default"]);
-var toPrimitive = __webpack_require__(9772);
+var _typeof = (__webpack_require__(7273)["default"]);
+var toPrimitive = __webpack_require__(5407);
 function _toPropertyKey(arg) {
   var key = toPrimitive(arg, "string");
   return _typeof(key) === "symbol" ? key : String(key);
@@ -73505,7 +71207,7 @@ module.exports = _toPropertyKey, module.exports.__esModule = true, module.export
 
 /***/ }),
 
-/***/ 435:
+/***/ 7273:
 /***/ ((module) => {
 
 function _typeof(obj) {
@@ -73521,12 +71223,12 @@ module.exports = _typeof, module.exports.__esModule = true, module.exports["defa
 
 /***/ }),
 
-/***/ 1117:
+/***/ 7077:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 // TODO(Babel 8): Remove this file.
 
-var runtime = __webpack_require__(2518)();
+var runtime = __webpack_require__(5613)();
 module.exports = runtime;
 
 // Copied from https://github.com/facebook/regenerator/blob/main/packages/runtime/runtime.js#L736=
@@ -73912,15 +71614,17 @@ const converse = {
   load() {
     let settings = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     if (settings.assets_path) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       __webpack_require__.p = settings.assets_path; // eslint-disable-line no-undef
     }
 
-    __webpack_require__(3263);
+    __webpack_require__(4847);
     Object.keys(plugins).forEach(name => converse.plugins.add(name, plugins[name]));
     return converse;
   }
 };
-window.converse = converse;
+window['converse'] = converse;
 
 /**
  * Once Converse.js has loaded, it'll dispatch a custom event with the name `converse-loaded`.
