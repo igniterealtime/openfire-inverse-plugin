@@ -43,10 +43,16 @@
     inVerse Plugin Changelog
 </h1>
 
-<p><b>10.1.7 Release 3</b> -- (to be determined))</p>
+<p><b>10.1.8 Release 1</b> -- (to be determined))</p>
 <ul>
     <li>Requires Openfire 5.0.0 or later</li>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/68">#68:</a> Openfire 5.0.0 compatibility</li>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/70">#63: Update to Converse 10.1.8</a>, which includes these changes:
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3553>">#3553</a>: Cannot create a groupchat via the modal</li>
+            <li>Update to the latest Strophe version to fix a security vulnerability with the <tt>stx</tt> tagged template literal. Converse itself is not vulnerable, since it only uses <tt>stx</tt> in tests, but it was also exported, so downstream projects might have relied on it.</li>
+        </ul>
+    </li>
 </ul>
 
 
