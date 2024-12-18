@@ -1651,191 +1651,6 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 /***/ }),
 
-/***/ 6841:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-"use strict";
-
-
-const atob = __webpack_require__(7348);
-const btoa = __webpack_require__(6048);
-module.exports = {
-  atob,
-  btoa
-};
-
-/***/ }),
-
-/***/ 7348:
-/***/ ((module) => {
-
-"use strict";
-
-
-/**
- * Implementation of atob() according to the HTML and Infra specs, except that
- * instead of throwing INVALID_CHARACTER_ERR we return null.
- */
-function atob(data) {
-  if (arguments.length === 0) {
-    throw new TypeError("1 argument required, but only 0 present.");
-  }
-
-  // Web IDL requires DOMStrings to just be converted using ECMAScript
-  // ToString, which in our case amounts to using a template literal.
-  data = `${data}`;
-  // "Remove all ASCII whitespace from data."
-  data = data.replace(/[ \t\n\f\r]/g, "");
-  // "If data's length divides by 4 leaving no remainder, then: if data ends
-  // with one or two U+003D (=) code points, then remove them from data."
-  if (data.length % 4 === 0) {
-    data = data.replace(/==?$/, "");
-  }
-  // "If data's length divides by 4 leaving a remainder of 1, then return
-  // failure."
-  //
-  // "If data contains a code point that is not one of
-  //
-  // U+002B (+)
-  // U+002F (/)
-  // ASCII alphanumeric
-  //
-  // then return failure."
-  if (data.length % 4 === 1 || /[^+/0-9A-Za-z]/.test(data)) {
-    return null;
-  }
-  // "Let output be an empty byte sequence."
-  let output = "";
-  // "Let buffer be an empty buffer that can have bits appended to it."
-  //
-  // We append bits via left-shift and or.  accumulatedBits is used to track
-  // when we've gotten to 24 bits.
-  let buffer = 0;
-  let accumulatedBits = 0;
-  // "Let position be a position variable for data, initially pointing at the
-  // start of data."
-  //
-  // "While position does not point past the end of data:"
-  for (let i = 0; i < data.length; i++) {
-    // "Find the code point pointed to by position in the second column of
-    // Table 1: The Base 64 Alphabet of RFC 4648. Let n be the number given in
-    // the first cell of the same row.
-    //
-    // "Append to buffer the six bits corresponding to n, most significant bit
-    // first."
-    //
-    // atobLookup() implements the table from RFC 4648.
-    buffer <<= 6;
-    buffer |= atobLookup(data[i]);
-    accumulatedBits += 6;
-    // "If buffer has accumulated 24 bits, interpret them as three 8-bit
-    // big-endian numbers. Append three bytes with values equal to those
-    // numbers to output, in the same order, and then empty buffer."
-    if (accumulatedBits === 24) {
-      output += String.fromCharCode((buffer & 0xff0000) >> 16);
-      output += String.fromCharCode((buffer & 0xff00) >> 8);
-      output += String.fromCharCode(buffer & 0xff);
-      buffer = accumulatedBits = 0;
-    }
-    // "Advance position by 1."
-  }
-  // "If buffer is not empty, it contains either 12 or 18 bits. If it contains
-  // 12 bits, then discard the last four and interpret the remaining eight as
-  // an 8-bit big-endian number. If it contains 18 bits, then discard the last
-  // two and interpret the remaining 16 as two 8-bit big-endian numbers. Append
-  // the one or two bytes with values equal to those one or two numbers to
-  // output, in the same order."
-  if (accumulatedBits === 12) {
-    buffer >>= 4;
-    output += String.fromCharCode(buffer);
-  } else if (accumulatedBits === 18) {
-    buffer >>= 2;
-    output += String.fromCharCode((buffer & 0xff00) >> 8);
-    output += String.fromCharCode(buffer & 0xff);
-  }
-  // "Return output."
-  return output;
-}
-/**
- * A lookup table for atob(), which converts an ASCII character to the
- * corresponding six-bit number.
- */
-
-const keystr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-function atobLookup(chr) {
-  const index = keystr.indexOf(chr);
-  // Throw exception if character is not in the lookup string; should not be hit in tests
-  return index < 0 ? undefined : index;
-}
-module.exports = atob;
-
-/***/ }),
-
-/***/ 6048:
-/***/ ((module) => {
-
-"use strict";
-
-
-/**
- * btoa() as defined by the HTML and Infra specs, which mostly just references
- * RFC 4648.
- */
-function btoa(s) {
-  if (arguments.length === 0) {
-    throw new TypeError("1 argument required, but only 0 present.");
-  }
-  let i;
-  // String conversion as required by Web IDL.
-  s = `${s}`;
-  // "The btoa() method must throw an "InvalidCharacterError" DOMException if
-  // data contains any character whose code point is greater than U+00FF."
-  for (i = 0; i < s.length; i++) {
-    if (s.charCodeAt(i) > 255) {
-      return null;
-    }
-  }
-  let out = "";
-  for (i = 0; i < s.length; i += 3) {
-    const groupsOfSix = [undefined, undefined, undefined, undefined];
-    groupsOfSix[0] = s.charCodeAt(i) >> 2;
-    groupsOfSix[1] = (s.charCodeAt(i) & 0x03) << 4;
-    if (s.length > i + 1) {
-      groupsOfSix[1] |= s.charCodeAt(i + 1) >> 4;
-      groupsOfSix[2] = (s.charCodeAt(i + 1) & 0x0f) << 2;
-    }
-    if (s.length > i + 2) {
-      groupsOfSix[2] |= s.charCodeAt(i + 2) >> 6;
-      groupsOfSix[3] = s.charCodeAt(i + 2) & 0x3f;
-    }
-    for (let j = 0; j < groupsOfSix.length; j++) {
-      if (typeof groupsOfSix[j] === "undefined") {
-        out += "=";
-      } else {
-        out += btoaLookup(groupsOfSix[j]);
-      }
-    }
-  }
-  return out;
-}
-
-/**
- * Lookup table for btoa(), which converts a six-bit number into the
- * corresponding ASCII character.
- */
-const keystr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-function btoaLookup(index) {
-  if (index >= 0 && index < 64) {
-    return keystr[index];
-  }
-
-  // Throw INVALID_CHARACTER_ERR exception here -- won't be hit in the tests.
-  return undefined;
-}
-module.exports = btoa;
-
-/***/ }),
-
 /***/ 326:
 /***/ ((module) => {
 
@@ -16735,7 +16550,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/punycode v1.4.0 by @mathia
 
 /***/ }),
 
-/***/ 4847:
+/***/ 7084:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -16770,12 +16585,15 @@ __webpack_require__.d(utils_namespaceObject, {
   forEachChild: () => (forEachChild),
   getBareJidFromJid: () => (getBareJidFromJid),
   getDomainFromJid: () => (getDomainFromJid),
+  getFirstElementChild: () => (getFirstElementChild),
   getNodeFromJid: () => (getNodeFromJid),
+  getParserError: () => (getParserError),
   getResourceFromJid: () => (getResourceFromJid),
   getText: () => (getText),
+  handleError: () => (handleError),
   isTagEqual: () => (isTagEqual),
-  serialize: () => (serialize),
   stringToArrayBuf: () => (stringToArrayBuf),
+  toElement: () => (toElement),
   unescapeNode: () => (unescapeNode),
   utf16to8: () => (utf16to8),
   validAttribute: () => (validAttribute),
@@ -23078,6 +22896,7 @@ const NS = {
   HTTPBIND: 'http://jabber.org/protocol/httpbind',
   BOSH: 'urn:xmpp:xbosh',
   CLIENT: 'jabber:client',
+  SERVER: 'jabber:server',
   AUTH: 'jabber:iq:auth',
   ROSTER: 'jabber:iq:roster',
   PROFILE: 'jabber:iq:profile',
@@ -23094,6 +22913,7 @@ const NS = {
   XHTML_IM: 'http://jabber.org/protocol/xhtml-im',
   XHTML: 'http://www.w3.org/1999/xhtml'
 };
+const PARSE_ERROR_NS = 'http://www.w3.org/1999/xhtml';
 
 /**
  * Contains allowed tags, tag attributes, and css properties.
@@ -23172,24 +22992,12 @@ const ErrorCondition = {
 };
 
 /**
- * @typedef {Object} LogLevel
- * @property {string} DEBUG
- * @property {string} INFO
- * @property {string} WARN
- * @property {string} ERROR
- * @property {string} FATAL
- */
-
-/**
  * Logging level indicators.
- *
- * - Strophe.LogLevel.DEBUG - Debug output
- * - Strophe.LogLevel.INFO - Informational output
- * - Strophe.LogLevel.WARN - Warnings
- * - Strophe.LogLevel.ERROR - Errors
- * - Strophe.LogLevel.FATAL - Fatal errors
+ * @typedef {0|1|2|3|4} LogLevel
+ * @typedef {'DEBUG'|'INFO'|'WARN'|'ERROR'|'FATAL'} LogLevelName
+ * @typedef {Record<LogLevelName, LogLevel>} LogLevels
  */
-const LogLevel = {
+const LOG_LEVELS = {
   DEBUG: 0,
   INFO: 1,
   WARN: 2,
@@ -23210,273 +23018,136 @@ const ElementType = {
   CDATA: 4,
   FRAGMENT: 11
 };
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/builder.js
-
-
-
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/log.js
 /**
- * Create a {@link Strophe.Builder}
- * This is an alias for `new Strophe.Builder(name, attrs)`.
- * @param {string} name - The root element name.
- * @param {Object.<string,string|number>} [attrs] - The attributes for the root element in object notation.
- * @return {Builder} A new Strophe.Builder object.
+ * @typedef {import('./constants').LogLevel} LogLevel
  */
-function $build(name, attrs) {
-  return new Builder(name, attrs);
-}
 
-/**
- * Create a {@link Strophe.Builder} with a `<message/>` element as the root.
- * @param {Object.<string,string>} [attrs] - The <message/> element attributes in object notation.
- * @return {Builder} A new Strophe.Builder object.
- */
-function $msg(attrs) {
-  return new Builder('message', attrs);
-}
-
-/**
- * Create a {@link Strophe.Builder} with an `<iq/>` element as the root.
- * @param {Object.<string,string>} [attrs] - The <iq/> element attributes in object notation.
- * @return {Builder} A new Strophe.Builder object.
- */
-function $iq(attrs) {
-  return new Builder('iq', attrs);
-}
-
-/**
- * Create a {@link Strophe.Builder} with a `<presence/>` element as the root.
- * @param {Object.<string,string>} [attrs] - The <presence/> element attributes in object notation.
- * @return {Builder} A new Strophe.Builder object.
- */
-function $pres(attrs) {
-  return new Builder('presence', attrs);
-}
-
-/**
- * This class provides an interface similar to JQuery but for building
- * DOM elements easily and rapidly.  All the functions except for `toString()`
- * and tree() return the object, so calls can be chained.
- *
- * The corresponding DOM manipulations to get a similar fragment would be
- * a lot more tedious and probably involve several helper variables.
- *
- * Since adding children makes new operations operate on the child, up()
- * is provided to traverse up the tree.  To add two children, do
- * > builder.c('child1', ...).up().c('child2', ...)
- *
- * The next operation on the Builder will be relative to the second child.
- *
- * @example
- *  // Here's an example using the $iq() builder helper.
- *  $iq({to: 'you', from: 'me', type: 'get', id: '1'})
- *      .c('query', {xmlns: 'strophe:example'})
- *      .c('example')
- *      .toString()
- *
- *  // The above generates this XML fragment
- *  //  <iq to='you' from='me' type='get' id='1'>
- *  //    <query xmlns='strophe:example'>
- *  //      <example/>
- *  //    </query>
- *  //  </iq>
- */
-class Builder {
+let logLevel = LOG_LEVELS.DEBUG;
+const log = {
   /**
-   * @typedef {Object.<string, string|number>} StanzaAttrs
-   * @property {string} [StanzaAttrs.xmlns]
+   * Library consumers can use this function to set the log level of Strophe.
+   * The default log level is Strophe.LogLevel.INFO.
+   * @param {LogLevel} level
+   * @example Strophe.setLogLevel(Strophe.LogLevel.DEBUG);
    */
-
-  /**
-   * The attributes should be passed in object notation.
-   * @param {string} name - The name of the root element.
-   * @param {StanzaAttrs} [attrs] - The attributes for the root element in object notation.
-   * @example const b = new Builder('message', {to: 'you', from: 'me'});
-   * @example const b = new Builder('messsage', {'xml:lang': 'en'});
-   */
-  constructor(name, attrs) {
-    // Set correct namespace for jabber:client elements
-    if (name === 'presence' || name === 'message' || name === 'iq') {
-      if (attrs && !attrs.xmlns) {
-        attrs.xmlns = NS.CLIENT;
-      } else if (!attrs) {
-        attrs = {
-          xmlns: NS.CLIENT
-        };
-      }
+  setLogLevel(level) {
+    if (level < LOG_LEVELS.DEBUG || level > LOG_LEVELS.FATAL) {
+      throw new Error("Invalid log level supplied to setLogLevel");
     }
-    // Holds the tree being built.
-    this.nodeTree = xmlElement(name, attrs);
-    // Points to the current operation node.
-    this.node = this.nodeTree;
-  }
-
+    logLevel = level;
+  },
   /**
-   * Return the DOM tree.
    *
-   * This function returns the current DOM tree as an element object.  This
-   * is suitable for passing to functions like Strophe.Connection.send().
+   * Please note that data sent and received over the wire is logged
+   * via {@link Strophe.Connection#rawInput|Strophe.Connection.rawInput()}
+   * and {@link Strophe.Connection#rawOutput|Strophe.Connection.rawOutput()}.
    *
-   * @return {Element} The DOM tree as a element object.
+   * The different levels and their meanings are
+   *
+   *   DEBUG - Messages useful for debugging purposes.
+   *   INFO - Informational messages.  This is mostly information like
+   *     'disconnect was called' or 'SASL auth succeeded'.
+   *   WARN - Warnings about potential problems.  This is mostly used
+   *     to report transient connection errors like request timeouts.
+   *   ERROR - Some error occurred.
+   *   FATAL - A non-recoverable fatal error occurred.
+   *
+   * @param {number} level - The log level of the log message.
+   *     This will be one of the values in Strophe.LOG_LEVELS.
+   * @param {string} msg - The log message.
    */
-  tree() {
-    return this.nodeTree;
-  }
-
-  /**
-   * Serialize the DOM tree to a String.
-   *
-   * This function returns a string serialization of the current DOM
-   * tree.  It is often used internally to pass data to a
-   * Strophe.Request object.
-   *
-   * @return {string} The serialized DOM tree in a String.
-   */
-  toString() {
-    return serialize(this.nodeTree);
-  }
-
-  /**
-   * Make the current parent element the new current element.
-   * This function is often used after c() to traverse back up the tree.
-   *
-   * @example
-   *  // For example, to add two children to the same element
-   *  builder.c('child1', {}).up().c('child2', {});
-   *
-   * @return {Builder} The Strophe.Builder object.
-   */
-  up() {
-    this.node = this.node.parentElement;
-    return this;
-  }
-
-  /**
-   * Make the root element the new current element.
-   *
-   * When at a deeply nested element in the tree, this function can be used
-   * to jump back to the root of the tree, instead of having to repeatedly
-   * call up().
-   *
-   * @return {Builder} The Strophe.Builder object.
-   */
-  root() {
-    this.node = this.nodeTree;
-    return this;
-  }
-
-  /**
-   * Add or modify attributes of the current element.
-   *
-   * The attributes should be passed in object notation.
-   * This function does not move the current element pointer.
-   * @param {Object.<string, string|number|null>} moreattrs - The attributes to add/modify in object notation.
-   *  If an attribute is set to `null` or `undefined`, it will be removed.
-   * @return {Builder} The Strophe.Builder object.
-   */
-  attrs(moreattrs) {
-    for (const k in moreattrs) {
-      if (Object.prototype.hasOwnProperty.call(moreattrs, k)) {
-        // eslint-disable-next-line no-eq-null
-        if (moreattrs[k] != null) {
-          this.node.setAttribute(k, moreattrs[k].toString());
-        } else {
-          this.node.removeAttribute(k);
-        }
-      }
+  log(level, msg) {
+    if (level < logLevel) {
+      return;
     }
-    return this;
-  }
-
-  /**
-   * Add a child to the current element and make it the new current
-   * element.
-   *
-   * This function moves the current element pointer to the child,
-   * unless text is provided.  If you need to add another child, it
-   * is necessary to use up() to go back to the parent in the tree.
-   *
-   * @param {string} name - The name of the child.
-   * @param {Object.<string, string>|string} [attrs] - The attributes of the child in object notation.
-   * @param {string} [text] - The text to add to the child.
-   *
-   * @return {Builder} The Strophe.Builder object.
-   */
-  c(name, attrs, text) {
-    const child = xmlElement(name, attrs, text);
-    this.node.appendChild(child);
-    if (typeof text !== 'string' && typeof text !== 'number') {
-      this.node = child;
+    if (level >= LOG_LEVELS.ERROR) {
+      console?.error(msg);
+    } else if (level === LOG_LEVELS.INFO) {
+      console?.info(msg);
+    } else if (level === LOG_LEVELS.WARN) {
+      console?.warn(msg);
+    } else if (level === LOG_LEVELS.DEBUG) {
+      console?.debug(msg);
     }
-    return this;
-  }
-
+  },
   /**
-   * Add a child to the current element and make it the new current
-   * element.
-   *
-   * This function is the same as c() except that instead of using a
-   * name and an attributes object to create the child it uses an
-   * existing DOM element object.
-   *
-   * @param {Element} elem - A DOM element.
-   * @return {Builder} The Strophe.Builder object.
+   * Log a message at the Strophe.LOG_LEVELS.DEBUG level.
+   * @param {string} msg - The log message.
    */
-  cnode(elem) {
-    let impNode;
-    const xmlGen = xmlGenerator();
-    try {
-      impNode = xmlGen.importNode !== undefined;
-    } catch (e) {
-      impNode = false;
-    }
-    const newElem = impNode ? xmlGen.importNode(elem, true) : copyElement(elem);
-    this.node.appendChild(newElem);
-    this.node = /** @type {Element} */newElem;
-    return this;
-  }
-
+  debug(msg) {
+    this.log(LOG_LEVELS.DEBUG, msg);
+  },
   /**
-   * Add a child text element.
-   *
-   * This *does not* make the child the new current element since there
-   * are no children of text elements.
-   *
-   * @param {string} text - The text data to append to the current element.
-   * @return {Builder} The Strophe.Builder object.
+   * Log a message at the Strophe.LOG_LEVELS.INFO level.
+   * @param {string} msg - The log message.
    */
-  t(text) {
-    const child = xmlTextNode(text);
-    this.node.appendChild(child);
-    return this;
-  }
-
+  info(msg) {
+    this.log(LOG_LEVELS.INFO, msg);
+  },
   /**
-   * Replace current element contents with the HTML passed in.
-   *
-   * This *does not* make the child the new current element
-   *
-   * @param {string} html - The html to insert as contents of current element.
-   * @return {Builder} The Strophe.Builder object.
+   * Log a message at the Strophe.LOG_LEVELS.WARN level.
+   * @param {string} msg - The log message.
    */
-  h(html) {
-    const fragment = xmlGenerator().createElement('body');
-    // force the browser to try and fix any invalid HTML tags
-    fragment.innerHTML = html;
-    // copy cleaned html into an xml dom
-    const xhtml = createHtml(fragment);
-    while (xhtml.childNodes.length > 0) {
-      this.node.appendChild(xhtml.childNodes[0]);
-    }
-    return this;
+  warn(msg) {
+    this.log(LOG_LEVELS.WARN, msg);
+  },
+  /**
+   * Log a message at the Strophe.LOG_LEVELS.ERROR level.
+   * @param {string} msg - The log message.
+   */
+  error(msg) {
+    this.log(LOG_LEVELS.ERROR, msg);
+  },
+  /**
+   * Log a message at the Strophe.LOG_LEVELS.FATAL level.
+   * @param {string} msg - The log message.
+   */
+  fatal(msg) {
+    this.log(LOG_LEVELS.FATAL, msg);
   }
-}
-/* harmony default export */ const builder = (Builder);
+};
+/* harmony default export */ const src_log = (log);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/utils.js
 /* global btoa */
 
 
 
 
+/**
+ * Takes a string and turns it into an XML Element.
+ * @param {string} string
+ * @param {boolean} [throwErrorIfInvalidNS]
+ * @returns {Element}
+ */
+function toElement(string, throwErrorIfInvalidNS) {
+  const doc = xmlHtmlNode(string);
+  const parserError = getParserError(doc);
+  if (parserError) {
+    throw new Error(`Parser Error: ${parserError}`);
+  }
+  const node = getFirstElementChild(doc);
+  if (['message', 'iq', 'presence'].includes(node.nodeName.toLowerCase()) && node.namespaceURI !== 'jabber:client' && node.namespaceURI !== 'jabber:server') {
+    const err_msg = `Invalid namespaceURI ${node.namespaceURI}`;
+    if (throwErrorIfInvalidNS) {
+      throw new Error(err_msg);
+    } else {
+      src_log.error(err_msg);
+    }
+  }
+  return node;
+}
+
+/**
+ * Properly logs an error to the console
+ * @param {Error} e
+ */
+function handleError(e) {
+  if (typeof e.stack !== 'undefined') {
+    src_log.fatal(e.stack);
+  }
+  src_log.fatal('error: ' + e.message);
+}
 
 /**
  * @param {string} str
@@ -23553,7 +23224,7 @@ function stringToArrayBuf(str) {
  */
 function addCookies(cookies) {
   if (typeof document === 'undefined') {
-    core.log(core.LogLevel.ERROR, `addCookies: not adding any cookies, since there's no document object`);
+    src_log.error(`addCookies: not adding any cookies, since there's no document object`);
   }
 
   /**
@@ -23621,12 +23292,37 @@ function xmlTextNode(text) {
 
 /**
  * Creates an XML DOM node.
- * @param {string} html - The content of the html node.
+ * @param {string} text - The contents of the XML element.
  * @return {XMLDocument}
  */
-function xmlHtmlNode(html) {
+function xmlHtmlNode(text) {
   const parser = new DOMParser();
-  return parser.parseFromString(html, 'text/xml');
+  return parser.parseFromString(text, 'text/xml');
+}
+
+/**
+ * @param {XMLDocument} doc
+ * @returns {string|null}
+ */
+function getParserError(doc) {
+  const el = doc.firstElementChild?.nodeName === 'parsererror' ? doc.firstElementChild : doc.getElementsByTagNameNS(PARSE_ERROR_NS, 'parsererror')[0];
+  return el?.nodeName === 'parsererror' ? el?.textContent : null;
+}
+
+/**
+ * @param {XMLDocument} el
+ * @returns {Element}
+ */
+function getFirstElementChild(el) {
+  if (el.firstElementChild) return el.firstElementChild;
+  let node,
+    i = 0;
+  const nodes = el.childNodes;
+  while (node = nodes[i++]) {
+    if (node.nodeType === 1) return (/** @type {Element} */node
+    );
+  }
+  return null;
 }
 
 /**
@@ -23654,10 +23350,10 @@ function xmlElement(name, attrs, text) {
   } else if (typeof attrs === 'string' || typeof attrs === 'number') {
     node.appendChild(xmlTextNode( /** @type {number|string} */attrs.toString()));
     return node;
-  } else if (!attrs) {
-    return node;
   }
-  if (Array.isArray(attrs)) {
+  if (!attrs) {
+    return node;
+  } else if (Array.isArray(attrs)) {
     for (const attr of attrs) {
       if (Array.isArray(attr)) {
         // eslint-disable-next-line no-eq-null
@@ -23736,7 +23432,6 @@ function validCSS(style) {
  * Copy an HTML DOM Element into an XML DOM.
  * This function copies a DOM element and all its descendants and returns
  * the new copy.
- * @method Strophe.createHtml
  * @param {HTMLElement} elem - A DOM element.
  * @return {Node} - A new, copied DOM element tree.
  */
@@ -23783,6 +23478,7 @@ function createFromHtmlElement(elem) {
         }
       }
     } catch (e) {
+      // eslint-disable-line no-unused-vars
       // invalid elements
       el = xmlTextNode('');
     }
@@ -23874,43 +23570,6 @@ function xmlunescape(text) {
 }
 
 /**
- * Render a DOM element and all descendants to a String.
- * @method Strophe.serialize
- * @param {Element|Builder} elem - A DOM element.
- * @return {string} - The serialized element tree as a String.
- */
-function serialize(elem) {
-  if (!elem) return null;
-  const el = elem instanceof builder ? elem.tree() : elem;
-  const names = [...Array(el.attributes.length).keys()].map(i => el.attributes[i].nodeName);
-  names.sort();
-  let result = names.reduce((a, n) => `${a} ${n}="${xmlescape(el.attributes.getNamedItem(n).value)}"`, `<${el.nodeName}`);
-  if (el.childNodes.length > 0) {
-    result += '>';
-    for (let i = 0; i < el.childNodes.length; i++) {
-      const child = el.childNodes[i];
-      switch (child.nodeType) {
-        case ElementType.NORMAL:
-          // normal element, so recurse
-          result += serialize( /** @type {Element} */child);
-          break;
-        case ElementType.TEXT:
-          // text element to escape values
-          result += xmlescape(child.nodeValue);
-          break;
-        case ElementType.CDATA:
-          // cdata section so don't escape values
-          result += '<![CDATA[' + child.nodeValue + ']]>';
-      }
-    }
-    result += '</' + el.nodeName + '>';
-  } else {
-    result += '/>';
-  }
-  return result;
-}
-
-/**
  * Map a function over some or all child elements of a given element.
  *
  * This is a small convenience function for mapping a function over
@@ -23954,16 +23613,14 @@ function isTagEqual(el, name) {
  * @return {string} - A String with the concatenated text of all text element children.
  */
 function getText(elem) {
-  if (!elem) {
-    return null;
-  }
+  if (!elem) return null;
   let str = '';
-  if (!elem.childNodes?.length && elem.nodeType === ElementType.TEXT) {
+  if (!elem.childNodes.length && elem.nodeType === ElementType.TEXT) {
     str += elem.nodeValue;
   }
-  for (let i = 0; i < elem.childNodes?.length ?? 0; i++) {
-    if (elem.childNodes[i].nodeType === ElementType.TEXT) {
-      str += elem.childNodes[i].nodeValue;
+  for (const child of elem.childNodes) {
+    if (child.nodeType === ElementType.TEXT) {
+      str += child.nodeValue;
     }
   }
   return xmlescape(str);
@@ -24061,22 +23718,1224 @@ const utils = {
   addCookies
 };
 
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/handler.js
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/builder.js
 
+
+
+/**
+ * Create a {@link Strophe.Builder}
+ * This is an alias for `new Strophe.Builder(name, attrs)`.
+ * @param {string} name - The root element name.
+ * @param {Object.<string,string|number>} [attrs] - The attributes for the root element in object notation.
+ * @return {Builder} A new Strophe.Builder object.
+ */
+function $build(name, attrs) {
+  return new Builder(name, attrs);
+}
+
+/**
+ * Create a {@link Strophe.Builder} with a `<message/>` element as the root.
+ * @param {Object.<string,string>} [attrs] - The <message/> element attributes in object notation.
+ * @return {Builder} A new Strophe.Builder object.
+ */
+function $msg(attrs) {
+  return new Builder('message', attrs);
+}
+
+/**
+ * Create a {@link Strophe.Builder} with an `<iq/>` element as the root.
+ * @param {Object.<string,string>} [attrs] - The <iq/> element attributes in object notation.
+ * @return {Builder} A new Strophe.Builder object.
+ */
+function $iq(attrs) {
+  return new Builder('iq', attrs);
+}
+
+/**
+ * Create a {@link Strophe.Builder} with a `<presence/>` element as the root.
+ * @param {Object.<string,string>} [attrs] - The <presence/> element attributes in object notation.
+ * @return {Builder} A new Strophe.Builder object.
+ */
+function $pres(attrs) {
+  return new Builder('presence', attrs);
+}
+
+/**
+ * This class provides an interface similar to JQuery but for building
+ * DOM elements easily and rapidly.  All the functions except for `toString()`
+ * and tree() return the object, so calls can be chained.
+ *
+ * The corresponding DOM manipulations to get a similar fragment would be
+ * a lot more tedious and probably involve several helper variables.
+ *
+ * Since adding children makes new operations operate on the child, up()
+ * is provided to traverse up the tree.  To add two children, do
+ * > builder.c('child1', ...).up().c('child2', ...)
+ *
+ * The next operation on the Builder will be relative to the second child.
+ *
+ * @example
+ *  // Here's an example using the $iq() builder helper.
+ *  $iq({to: 'you', from: 'me', type: 'get', id: '1'})
+ *      .c('query', {xmlns: 'strophe:example'})
+ *      .c('example')
+ *      .toString()
+ *
+ *  // The above generates this XML fragment
+ *  //  <iq to='you' from='me' type='get' id='1'>
+ *  //    <query xmlns='strophe:example'>
+ *  //      <example/>
+ *  //    </query>
+ *  //  </iq>
+ */
+class Builder {
+  /**
+   * @typedef {Object.<string, string|number>} StanzaAttrs
+   * @property {string} [StanzaAttrs.xmlns]
+   */
+
+  /** @type {Element} */
+  #nodeTree;
+  /** @type {Element} */
+  #node;
+  /** @type {string} */
+  #name;
+  /** @type {StanzaAttrs} */
+  #attrs;
+
+  /**
+   * The attributes should be passed in object notation.
+   * @param {string} name - The name of the root element.
+   * @param {StanzaAttrs} [attrs] - The attributes for the root element in object notation.
+   * @example const b = new Builder('message', {to: 'you', from: 'me'});
+   * @example const b = new Builder('messsage', {'xml:lang': 'en'});
+   */
+  constructor(name, attrs) {
+    // Set correct namespace for jabber:client elements
+    if (name === 'presence' || name === 'message' || name === 'iq') {
+      if (attrs && !attrs.xmlns) {
+        attrs.xmlns = NS.CLIENT;
+      } else if (!attrs) {
+        attrs = {
+          xmlns: NS.CLIENT
+        };
+      }
+    }
+    this.#name = name;
+    this.#attrs = attrs;
+  }
+
+  /**
+   * Creates a new Builder object from an XML string.
+   * @param {string} str
+   * @returns {Builder}
+   * @example const stanza = Builder.fromString('<presence from="juliet@example.com/chamber"></presence>');
+   */
+  static fromString(str) {
+    const el = toElement(str, true);
+    const b = new Builder('');
+    b.#nodeTree = el;
+    return b;
+  }
+  buildTree() {
+    return xmlElement(this.#name, this.#attrs);
+  }
+
+  /** @return {Element} */
+  get nodeTree() {
+    if (!this.#nodeTree) {
+      // Holds the tree being built.
+      this.#nodeTree = this.buildTree();
+    }
+    return this.#nodeTree;
+  }
+
+  /** @return {Element} */
+  get node() {
+    if (!this.#node) {
+      this.#node = this.tree();
+    }
+    return this.#node;
+  }
+
+  /** @param {Element} el */
+  set node(el) {
+    this.#node = el;
+  }
+
+  /**
+   * Render a DOM element and all descendants to a String.
+   * @param {Element|Builder} elem - A DOM element.
+   * @return {string} - The serialized element tree as a String.
+   */
+  static serialize(elem) {
+    if (!elem) return null;
+    const el = elem instanceof Builder ? elem.tree() : elem;
+    const names = [...Array(el.attributes.length).keys()].map(i => el.attributes[i].nodeName);
+    names.sort();
+    let result = names.reduce((a, n) => `${a} ${n}="${xmlescape(el.attributes.getNamedItem(n).value)}"`, `<${el.nodeName}`);
+    if (el.childNodes.length > 0) {
+      result += '>';
+      for (let i = 0; i < el.childNodes.length; i++) {
+        const child = el.childNodes[i];
+        switch (child.nodeType) {
+          case ElementType.NORMAL:
+            // normal element, so recurse
+            result += Builder.serialize( /** @type {Element} */child);
+            break;
+          case ElementType.TEXT:
+            // text element to escape values
+            result += xmlescape(child.nodeValue);
+            break;
+          case ElementType.CDATA:
+            // cdata section so don't escape values
+            result += '<![CDATA[' + child.nodeValue + ']]>';
+        }
+      }
+      result += '</' + el.nodeName + '>';
+    } else {
+      result += '/>';
+    }
+    return result;
+  }
+
+  /**
+   * Return the DOM tree.
+   *
+   * This function returns the current DOM tree as an element object.  This
+   * is suitable for passing to functions like Strophe.Connection.send().
+   *
+   * @return {Element} The DOM tree as a element object.
+   */
+  tree() {
+    return this.nodeTree;
+  }
+
+  /**
+   * Serialize the DOM tree to a String.
+   *
+   * This function returns a string serialization of the current DOM
+   * tree.  It is often used internally to pass data to a
+   * Strophe.Request object.
+   *
+   * @return {string} The serialized DOM tree in a String.
+   */
+  toString() {
+    return Builder.serialize(this.tree());
+  }
+
+  /**
+   * Make the current parent element the new current element.
+   * This function is often used after c() to traverse back up the tree.
+   *
+   * @example
+   *  // For example, to add two children to the same element
+   *  builder.c('child1', {}).up().c('child2', {});
+   *
+   * @return {Builder} The Strophe.Builder object.
+   */
+  up() {
+    // Depending on context, parentElement is not always available
+    this.node = this.node.parentElement ? this.node.parentElement : /** @type {Element} */this.node.parentNode;
+    return this;
+  }
+
+  /**
+   * Make the root element the new current element.
+   *
+   * When at a deeply nested element in the tree, this function can be used
+   * to jump back to the root of the tree, instead of having to repeatedly
+   * call up().
+   *
+   * @return {Builder} The Strophe.Builder object.
+   */
+  root() {
+    this.node = this.tree();
+    return this;
+  }
+
+  /**
+   * Add or modify attributes of the current element.
+   *
+   * The attributes should be passed in object notation.
+   * This function does not move the current element pointer.
+   * @param {Object.<string, string|number|null>} moreattrs - The attributes to add/modify in object notation.
+   *  If an attribute is set to `null` or `undefined`, it will be removed.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  attrs(moreattrs) {
+    for (const k in moreattrs) {
+      if (Object.prototype.hasOwnProperty.call(moreattrs, k)) {
+        // eslint-disable-next-line no-eq-null
+        if (moreattrs[k] != null) {
+          this.node.setAttribute(k, moreattrs[k].toString());
+        } else {
+          this.node.removeAttribute(k);
+        }
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Add a child to the current element and make it the new current
+   * element.
+   *
+   * This function moves the current element pointer to the child,
+   * unless text is provided.  If you need to add another child, it
+   * is necessary to use up() to go back to the parent in the tree.
+   *
+   * @param {string} name - The name of the child.
+   * @param {Object.<string, string>|string} [attrs] - The attributes of the child in object notation.
+   * @param {string} [text] - The text to add to the child.
+   *
+   * @return {Builder} The Strophe.Builder object.
+   */
+  c(name, attrs, text) {
+    const child = xmlElement(name, attrs, text);
+    this.node.appendChild(child);
+    if (typeof text !== 'string' && typeof text !== 'number') {
+      this.node = child;
+    }
+    return this;
+  }
+
+  /**
+   * Add a child to the current element and make it the new current
+   * element.
+   *
+   * This function is the same as c() except that instead of using a
+   * name and an attributes object to create the child it uses an
+   * existing DOM element object.
+   *
+   * @param {Element} elem - A DOM element.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  cnode(elem) {
+    let impNode;
+    const xmlGen = xmlGenerator();
+    try {
+      impNode = xmlGen.importNode !== undefined;
+      // eslint-disable-next-line no-unused-vars
+    } catch (e) {
+      impNode = false;
+    }
+    const newElem = impNode ? xmlGen.importNode(elem, true) : copyElement(elem);
+    this.node.appendChild(newElem);
+    this.node = /** @type {Element} */newElem;
+    return this;
+  }
+
+  /**
+   * Add a child text element.
+   *
+   * This *does not* make the child the new current element since there
+   * are no children of text elements.
+   *
+   * @param {string} text - The text data to append to the current element.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  t(text) {
+    const child = xmlTextNode(text);
+    this.node.appendChild(child);
+    return this;
+  }
+
+  /**
+   * Replace current element contents with the HTML passed in.
+   *
+   * This *does not* make the child the new current element
+   *
+   * @param {string} html - The html to insert as contents of current element.
+   * @return {Builder} The Strophe.Builder object.
+   */
+  h(html) {
+    const fragment = xmlGenerator().createElement('body');
+    // force the browser to try and fix any invalid HTML tags
+    fragment.innerHTML = html;
+    // copy cleaned html into an xml dom
+    const xhtml = createHtml(fragment);
+    while (xhtml.childNodes.length > 0) {
+      this.node.appendChild(xhtml.childNodes[0]);
+    }
+    return this;
+  }
+}
+/* harmony default export */ const builder = (Builder);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/request.js
+
+
+
+
+
+/**
+ * _Private_ variable that keeps track of the request ids for connections.
+ */
+let _requestId = 0;
+
+/**
+ * Helper class that provides a cross implementation abstraction
+ * for a BOSH related XMLHttpRequest.
+ *
+ * The Request class is used internally to encapsulate BOSH request
+ * information.  It is not meant to be used from user's code.
+ *
+ * @property {number} id
+ * @property {number} sends
+ * @property {XMLHttpRequest} xhr
+ */
+class Request {
+  /**
+   * Create and initialize a new Request object.
+   *
+   * @param {Element} elem - The XML data to be sent in the request.
+   * @param {Function} func - The function that will be called when the
+   *     XMLHttpRequest readyState changes.
+   * @param {number} rid - The BOSH rid attribute associated with this request.
+   * @param {number} [sends=0] - The number of times this same request has been sent.
+   */
+  constructor(elem, func, rid) {
+    let sends = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+    this.id = ++_requestId;
+    this.xmlData = elem;
+    this.data = builder.serialize(elem);
+    // save original function in case we need to make a new request
+    // from this one.
+    this.origFunc = func;
+    this.func = func;
+    this.rid = rid;
+    this.date = NaN;
+    this.sends = sends;
+    this.abort = false;
+    this.dead = null;
+    this.age = () => this.date ? (new Date().valueOf() - this.date.valueOf()) / 1000 : 0;
+    this.timeDead = () => this.dead ? (new Date().valueOf() - this.dead.valueOf()) / 1000 : 0;
+    this.xhr = this._newXHR();
+  }
+
+  /**
+   * Get a response from the underlying XMLHttpRequest.
+   * This function attempts to get a response from the request and checks
+   * for errors.
+   * @throws "parsererror" - A parser error occured.
+   * @throws "bad-format" - The entity has sent XML that cannot be processed.
+   * @return {Element} - The DOM element tree of the response.
+   */
+  getResponse() {
+    const node = this.xhr.responseXML?.documentElement;
+    if (node) {
+      if (node.tagName === 'parsererror') {
+        src_log.error('invalid response received');
+        src_log.error('responseText: ' + this.xhr.responseText);
+        src_log.error('responseXML: ' + builder.serialize(node));
+        throw new Error('parsererror');
+      }
+    } else if (this.xhr.responseText) {
+      // In Node (with xhr2) or React Native, we may get responseText but no responseXML.
+      // We can try to parse it manually.
+      src_log.debug('Got responseText but no responseXML; attempting to parse it with DOMParser...');
+      const doc = xmlHtmlNode(this.xhr.responseText);
+      const parserError = getParserError(doc);
+      if (!doc || parserError) {
+        if (parserError) {
+          src_log.error('invalid response received: ' + parserError);
+          src_log.error('responseText: ' + this.xhr.responseText);
+        }
+        const error = new Error();
+        error.name = ErrorCondition.BAD_FORMAT;
+        throw error;
+      }
+    }
+    return node;
+  }
+
+  /**
+   * _Private_ helper function to create XMLHttpRequests.
+   * This function creates XMLHttpRequests across all implementations.
+   * @private
+   * @return {XMLHttpRequest}
+   */
+  _newXHR() {
+    const xhr = new XMLHttpRequest();
+    if (xhr.overrideMimeType) {
+      xhr.overrideMimeType('text/xml; charset=utf-8');
+    }
+    // use Function.bind() to prepend ourselves as an argument
+    xhr.onreadystatechange = this.func.bind(null, this);
+    return xhr;
+  }
+}
+/* harmony default export */ const request = (Request);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/bosh.js
+/**
+ * A JavaScript library to enable BOSH in Strophejs.
+ *
+ * this library uses Bidirectional-streams Over Synchronous HTTP (BOSH)
+ * to emulate a persistent, stateful, two-way connection to an XMPP server.
+ * More information on BOSH can be found in XEP 124.
+ */
+
+/**
+ * @typedef {import("./connection.js").default} Connection
+ */
+
+
+
+
+
+let timeoutMultiplier = 1.1;
+let secondaryTimeoutMultiplier = 0.1;
+
+/**
+ * _Private_ helper class that handles BOSH Connections
+ * The Bosh class is used internally by Connection
+ * to encapsulate BOSH sessions. It is not meant to be used from user's code.
+ */
+class Bosh {
+  /**
+   * @param {Connection} connection - The Connection that will use BOSH.
+   */
+  constructor(connection) {
+    this._conn = connection;
+    /* request id for body tags */
+    this.rid = Math.floor(Math.random() * 4294967295);
+    /* The current session ID. */
+    this.sid = null;
+
+    // default BOSH values
+    this.hold = 1;
+    this.wait = 60;
+    this.window = 5;
+    this.errors = 0;
+    this.inactivity = null;
+
+    /**
+     * BOSH-Connections will have all stanzas wrapped in a <body> tag when
+     * passed to {@link Connection#xmlInput|xmlInput()} or {@link Connection#xmlOutput|xmlOutput()}.
+     * To strip this tag, User code can set {@link Bosh#strip|strip} to `true`:
+     *
+     * > // You can set `strip` on the prototype
+     * > Bosh.prototype.strip = true;
+     *
+     * > // Or you can set it on the Bosh instance (which is `._proto` on the connection instance.
+     * > const conn = new Connection();
+     * > conn._proto.strip = true;
+     *
+     * This will enable stripping of the body tag in both
+     * {@link Connection#xmlInput|xmlInput} and {@link Connection#xmlOutput|xmlOutput}.
+     *
+     * @property {boolean} [strip=false]
+     */
+    this.strip = Bosh.prototype.strip ?? false;
+    this.lastResponseHeaders = null;
+    /** @type {Request[]} */
+    this._requests = [];
+  }
+
+  /**
+   * @param {number} m
+   */
+  static setTimeoutMultiplier(m) {
+    timeoutMultiplier = m;
+  }
+
+  /**
+   * @returns {number}
+   */
+  static getTimeoutMultplier() {
+    return timeoutMultiplier;
+  }
+
+  /**
+   * @param {number} m
+   */
+  static setSecondaryTimeoutMultiplier(m) {
+    secondaryTimeoutMultiplier = m;
+  }
+
+  /**
+   * @returns {number}
+   */
+  static getSecondaryTimeoutMultplier() {
+    return secondaryTimeoutMultiplier;
+  }
+
+  /**
+   * _Private_ helper function to generate the <body/> wrapper for BOSH.
+   * @private
+   * @return {Builder} - A Builder with a <body/> element.
+   */
+  _buildBody() {
+    const bodyWrap = $build('body', {
+      'rid': this.rid++,
+      'xmlns': NS.HTTPBIND
+    });
+    if (this.sid !== null) {
+      bodyWrap.attrs({
+        'sid': this.sid
+      });
+    }
+    if (this._conn.options.keepalive && this._conn._sessionCachingSupported()) {
+      this._cacheSession();
+    }
+    return bodyWrap;
+  }
+
+  /**
+   * Reset the connection.
+   * This function is called by the reset function of the Connection
+   */
+  _reset() {
+    this.rid = Math.floor(Math.random() * 4294967295);
+    this.sid = null;
+    this.errors = 0;
+    if (this._conn._sessionCachingSupported()) {
+      sessionStorage.removeItem('strophe-bosh-session');
+    }
+    this._conn.nextValidRid(this.rid);
+  }
+
+  /**
+   * _Private_ function that initializes the BOSH connection.
+   * Creates and sends the Request that initializes the BOSH connection.
+   * @param {number} wait - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} hold - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {string} route
+   */
+  _connect(wait, hold, route) {
+    this.wait = wait || this.wait;
+    this.hold = hold || this.hold;
+    this.errors = 0;
+    const body = this._buildBody().attrs({
+      'to': this._conn.domain,
+      'xml:lang': 'en',
+      'wait': this.wait,
+      'hold': this.hold,
+      'content': 'text/xml; charset=utf-8',
+      'ver': '1.6',
+      'xmpp:version': '1.0',
+      'xmlns:xmpp': NS.BOSH
+    });
+    if (route) {
+      body.attrs({
+        route
+      });
+    }
+    const _connect_cb = this._conn._connect_cb;
+    this._requests.push(new request(body.tree(), this._onRequestStateChange.bind(this, _connect_cb.bind(this._conn)), Number(body.tree().getAttribute('rid'))));
+    this._throttledRequestHandler();
+  }
+
+  /**
+   * Attach to an already created and authenticated BOSH session.
+   *
+   * This function is provided to allow Strophe to attach to BOSH
+   * sessions which have been created externally, perhaps by a Web
+   * application.  This is often used to support auto-login type features
+   * without putting user credentials into the page.
+   *
+   * @param {string} jid - The full JID that is bound by the session.
+   * @param {string} sid - The SID of the BOSH session.
+   * @param {number} rid - The current RID of the BOSH session.  This RID
+   *     will be used by the next request.
+   * @param {Function} callback The connect callback function.
+   * @param {number} wait - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} hold - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} wind - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
+   */
+  _attach(jid, sid, rid, callback, wait, hold, wind) {
+    this._conn.jid = jid;
+    this.sid = sid;
+    this.rid = rid;
+    this._conn.connect_callback = callback;
+    this._conn.domain = getDomainFromJid(this._conn.jid);
+    this._conn.authenticated = true;
+    this._conn.connected = true;
+    this.wait = wait || this.wait;
+    this.hold = hold || this.hold;
+    this.window = wind || this.window;
+    this._conn._changeConnectStatus(Status.ATTACHED, null);
+  }
+
+  /**
+   * Attempt to restore a cached BOSH session
+   *
+   * @param {string} jid - The full JID that is bound by the session.
+   *     This parameter is optional but recommended, specifically in cases
+   *     where prebinded BOSH sessions are used where it's important to know
+   *     that the right session is being restored.
+   * @param {Function} callback The connect callback function.
+   * @param {number} wait - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} hold - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} wind - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
+   */
+  _restore(jid, callback, wait, hold, wind) {
+    const session = JSON.parse(sessionStorage.getItem('strophe-bosh-session'));
+    if (typeof session !== 'undefined' && session !== null && session.rid && session.sid && session.jid && (typeof jid === 'undefined' || jid === null || getBareJidFromJid(session.jid) === getBareJidFromJid(jid) ||
+    // If authcid is null, then it's an anonymous login, so
+    // we compare only the domains:
+    getNodeFromJid(jid) === null && getDomainFromJid(session.jid) === jid)) {
+      this._conn.restored = true;
+      this._attach(session.jid, session.sid, session.rid, callback, wait, hold, wind);
+    } else {
+      const error = new Error('_restore: no restoreable session.');
+      error.name = 'StropheSessionError';
+      throw error;
+    }
+  }
+
+  /**
+   * _Private_ handler for the beforeunload event.
+   * This handler is used to process the Bosh-part of the initial request.
+   * @private
+   */
+  _cacheSession() {
+    if (this._conn.authenticated) {
+      if (this._conn.jid && this.rid && this.sid) {
+        sessionStorage.setItem('strophe-bosh-session', JSON.stringify({
+          'jid': this._conn.jid,
+          'rid': this.rid,
+          'sid': this.sid
+        }));
+      }
+    } else {
+      sessionStorage.removeItem('strophe-bosh-session');
+    }
+  }
+
+  /**
+   * _Private_ handler for initial connection request.
+   * This handler is used to process the Bosh-part of the initial request.
+   * @param {Element} bodyWrap - The received stanza.
+   */
+  _connect_cb(bodyWrap) {
+    const typ = bodyWrap.getAttribute('type');
+    if (typ !== null && typ === 'terminate') {
+      // an error occurred
+      let cond = bodyWrap.getAttribute('condition');
+      src_log.error('BOSH-Connection failed: ' + cond);
+      const conflict = bodyWrap.getElementsByTagName('conflict');
+      if (cond !== null) {
+        if (cond === 'remote-stream-error' && conflict.length > 0) {
+          cond = 'conflict';
+        }
+        this._conn._changeConnectStatus(Status.CONNFAIL, cond);
+      } else {
+        this._conn._changeConnectStatus(Status.CONNFAIL, 'unknown');
+      }
+      this._conn._doDisconnect(cond);
+      return Status.CONNFAIL;
+    }
+
+    // check to make sure we don't overwrite these if _connect_cb is
+    // called multiple times in the case of missing stream:features
+    if (!this.sid) {
+      this.sid = bodyWrap.getAttribute('sid');
+    }
+    const wind = bodyWrap.getAttribute('requests');
+    if (wind) {
+      this.window = parseInt(wind, 10);
+    }
+    const hold = bodyWrap.getAttribute('hold');
+    if (hold) {
+      this.hold = parseInt(hold, 10);
+    }
+    const wait = bodyWrap.getAttribute('wait');
+    if (wait) {
+      this.wait = parseInt(wait, 10);
+    }
+    const inactivity = bodyWrap.getAttribute('inactivity');
+    if (inactivity) {
+      this.inactivity = parseInt(inactivity, 10);
+    }
+  }
+
+  /**
+   * _Private_ part of Connection.disconnect for Bosh
+   * @param {Element|Builder} pres - This stanza will be sent before disconnecting.
+   */
+  _disconnect(pres) {
+    this._sendTerminate(pres);
+  }
+
+  /**
+   * _Private_ function to disconnect.
+   * Resets the SID and RID.
+   */
+  _doDisconnect() {
+    this.sid = null;
+    this.rid = Math.floor(Math.random() * 4294967295);
+    if (this._conn._sessionCachingSupported()) {
+      sessionStorage.removeItem('strophe-bosh-session');
+    }
+    this._conn.nextValidRid(this.rid);
+  }
+
+  /**
+   * _Private_ function to check if the Request queue is empty.
+   * @return {boolean} - True, if there are no Requests queued, False otherwise.
+   */
+  _emptyQueue() {
+    return this._requests.length === 0;
+  }
+
+  /**
+   * _Private_ function to call error handlers registered for HTTP errors.
+   * @private
+   * @param {Request} req - The request that is changing readyState.
+   */
+  _callProtocolErrorHandlers(req) {
+    const reqStatus = Bosh._getRequestStatus(req);
+    const err_callback = this._conn.protocolErrorHandlers.HTTP[reqStatus];
+    if (err_callback) {
+      err_callback.call(this, reqStatus);
+    }
+  }
+
+  /**
+   * _Private_ function to handle the error count.
+   *
+   * Requests are resent automatically until their error count reaches
+   * 5.  Each time an error is encountered, this function is called to
+   * increment the count and disconnect if the count is too high.
+   * @private
+   * @param {number} reqStatus - The request status.
+   */
+  _hitError(reqStatus) {
+    this.errors++;
+    src_log.warn('request errored, status: ' + reqStatus + ', number of errors: ' + this.errors);
+    if (this.errors > 4) {
+      this._conn._onDisconnectTimeout();
+    }
+  }
+
+  /**
+   * @callback connectionCallback
+   * @param {Connection} connection
+   */
+
+  /**
+   * Called on stream start/restart when no stream:features
+   * has been received and sends a blank poll request.
+   * @param {connectionCallback} callback
+   */
+  _no_auth_received(callback) {
+    src_log.warn('Server did not yet offer a supported authentication ' + 'mechanism. Sending a blank poll request.');
+    if (callback) {
+      callback = callback.bind(this._conn);
+    } else {
+      callback = this._conn._connect_cb.bind(this._conn);
+    }
+    const body = this._buildBody();
+    this._requests.push(new request(body.tree(), this._onRequestStateChange.bind(this, callback), Number(body.tree().getAttribute('rid'))));
+    this._throttledRequestHandler();
+  }
+
+  /**
+   * _Private_ timeout handler for handling non-graceful disconnection.
+   * Cancels all remaining Requests and clears the queue.
+   */
+  _onDisconnectTimeout() {
+    this._abortAllRequests();
+  }
+
+  /**
+   * _Private_ helper function that makes sure all pending requests are aborted.
+   */
+  _abortAllRequests() {
+    while (this._requests.length > 0) {
+      const req = this._requests.pop();
+      req.abort = true;
+      req.xhr.abort();
+      req.xhr.onreadystatechange = function () {};
+    }
+  }
+
+  /**
+   * _Private_ handler called by {@link Connection#_onIdle|Connection._onIdle()}.
+   * Sends all queued Requests or polls with empty Request if there are none.
+   */
+  _onIdle() {
+    const data = this._conn._data;
+    // if no requests are in progress, poll
+    if (this._conn.authenticated && this._requests.length === 0 && data.length === 0 && !this._conn.disconnecting) {
+      src_log.debug('no requests during idle cycle, sending blank request');
+      data.push(null);
+    }
+    if (this._conn.paused) {
+      return;
+    }
+    if (this._requests.length < 2 && data.length > 0) {
+      const body = this._buildBody();
+      for (let i = 0; i < data.length; i++) {
+        if (data[i] !== null) {
+          if (data[i] === 'restart') {
+            body.attrs({
+              'to': this._conn.domain,
+              'xml:lang': 'en',
+              'xmpp:restart': 'true',
+              'xmlns:xmpp': NS.BOSH
+            });
+          } else {
+            body.cnode( /** @type {Element} */data[i]).up();
+          }
+        }
+      }
+      delete this._conn._data;
+      this._conn._data = [];
+      this._requests.push(new request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), Number(body.tree().getAttribute('rid'))));
+      this._throttledRequestHandler();
+    }
+    if (this._requests.length > 0) {
+      const time_elapsed = this._requests[0].age();
+      if (this._requests[0].dead !== null) {
+        if (this._requests[0].timeDead() > Math.floor(timeoutMultiplier * this.wait)) {
+          this._throttledRequestHandler();
+        }
+      }
+      if (time_elapsed > Math.floor(timeoutMultiplier * this.wait)) {
+        src_log.warn('Request ' + this._requests[0].id + ' timed out, over ' + Math.floor(timeoutMultiplier * this.wait) + ' seconds since last activity');
+        this._throttledRequestHandler();
+      }
+    }
+  }
+
+  /**
+   * Returns the HTTP status code from a {@link Request}
+   * @private
+   * @param {Request} req - The {@link Request} instance.
+   * @param {number} [def] - The default value that should be returned if no status value was found.
+   */
+  static _getRequestStatus(req, def) {
+    let reqStatus;
+    if (req.xhr.readyState === 4) {
+      try {
+        reqStatus = req.xhr.status;
+      } catch (e) {
+        // ignore errors from undefined status attribute. Works
+        // around a browser bug
+        src_log.error(`Caught an error while retrieving a request's status, reqStatus: ${reqStatus}, message: ${e.message}`);
+      }
+    }
+    if (typeof reqStatus === 'undefined') {
+      reqStatus = typeof def === 'number' ? def : 0;
+    }
+    return reqStatus;
+  }
+
+  /**
+   * _Private_ handler for {@link Request} state changes.
+   *
+   * This function is called when the XMLHttpRequest readyState changes.
+   * It contains a lot of error handling logic for the many ways that
+   * requests can fail, and calls the request callback when requests
+   * succeed.
+   * @private
+   *
+   * @param {Function} func - The handler for the request.
+   * @param {Request} req - The request that is changing readyState.
+   */
+  _onRequestStateChange(func, req) {
+    src_log.debug('request id ' + req.id + '.' + req.sends + ' state changed to ' + req.xhr.readyState);
+    if (req.abort) {
+      req.abort = false;
+      return;
+    }
+    if (req.xhr.readyState !== 4) {
+      // The request is not yet complete
+      return;
+    }
+    const reqStatus = Bosh._getRequestStatus(req);
+    this.lastResponseHeaders = req.xhr.getAllResponseHeaders();
+    if (this._conn.disconnecting && reqStatus >= 400) {
+      this._hitError(reqStatus);
+      this._callProtocolErrorHandlers(req);
+      return;
+    }
+    const reqIs0 = this._requests[0] === req;
+    const reqIs1 = this._requests[1] === req;
+    const valid_request = reqStatus > 0 && reqStatus < 500;
+    const too_many_retries = req.sends > this._conn.maxRetries;
+    if (valid_request || too_many_retries) {
+      // remove from internal queue
+      this._removeRequest(req);
+      src_log.debug('request id ' + req.id + ' should now be removed');
+    }
+    if (reqStatus === 200) {
+      // request succeeded
+      // if request 1 finished, or request 0 finished and request
+      // 1 is over _TIMEOUT seconds old, we need to
+      // restart the other - both will be in the first spot, as the
+      // completed request has been removed from the queue already
+      if (reqIs1 || reqIs0 && this._requests.length > 0 && this._requests[0].age() > Math.floor(timeoutMultiplier * this.wait)) {
+        this._restartRequest(0);
+      }
+      this._conn.nextValidRid(req.rid + 1);
+      src_log.debug('request id ' + req.id + '.' + req.sends + ' got 200');
+      func(req); // call handler
+      this.errors = 0;
+    } else if (reqStatus === 0 || reqStatus >= 400 && reqStatus < 600 || reqStatus >= 12000) {
+      // request failed
+      src_log.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
+      this._hitError(reqStatus);
+      this._callProtocolErrorHandlers(req);
+      if (reqStatus >= 400 && reqStatus < 500) {
+        this._conn._changeConnectStatus(Status.DISCONNECTING, null);
+        this._conn._doDisconnect();
+      }
+    } else {
+      src_log.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
+    }
+    if (!valid_request && !too_many_retries) {
+      this._throttledRequestHandler();
+    } else if (too_many_retries && !this._conn.connected) {
+      this._conn._changeConnectStatus(Status.CONNFAIL, 'giving-up');
+    }
+  }
+
+  /**
+   * _Private_ function to process a request in the queue.
+   *
+   * This function takes requests off the queue and sends them and
+   * restarts dead requests.
+   * @private
+   *
+   * @param {number} i - The index of the request in the queue.
+   */
+  _processRequest(i) {
+    let req = this._requests[i];
+    const reqStatus = Bosh._getRequestStatus(req, -1);
+
+    // make sure we limit the number of retries
+    if (req.sends > this._conn.maxRetries) {
+      this._conn._onDisconnectTimeout();
+      return;
+    }
+    const time_elapsed = req.age();
+    const primary_timeout = !isNaN(time_elapsed) && time_elapsed > Math.floor(timeoutMultiplier * this.wait);
+    const secondary_timeout = req.dead !== null && req.timeDead() > Math.floor(secondaryTimeoutMultiplier * this.wait);
+    const server_error = req.xhr.readyState === 4 && (reqStatus < 1 || reqStatus >= 500);
+    if (primary_timeout || secondary_timeout || server_error) {
+      if (secondary_timeout) {
+        src_log.error(`Request ${this._requests[i].id} timed out (secondary), restarting`);
+      }
+      req.abort = true;
+      req.xhr.abort();
+      // setting to null fails on IE6, so set to empty function
+      req.xhr.onreadystatechange = function () {};
+      this._requests[i] = new request(req.xmlData, req.origFunc, req.rid, req.sends);
+      req = this._requests[i];
+    }
+    if (req.xhr.readyState === 0) {
+      src_log.debug('request id ' + req.id + '.' + req.sends + ' posting');
+      try {
+        const content_type = this._conn.options.contentType || 'text/xml; charset=utf-8';
+        req.xhr.open('POST', this._conn.service, this._conn.options.sync ? false : true);
+        if (typeof req.xhr.setRequestHeader !== 'undefined') {
+          // IE9 doesn't have setRequestHeader
+          req.xhr.setRequestHeader('Content-Type', content_type);
+        }
+        if (this._conn.options.withCredentials) {
+          req.xhr.withCredentials = true;
+        }
+      } catch (e2) {
+        src_log.error('XHR open failed: ' + e2.toString());
+        if (!this._conn.connected) {
+          this._conn._changeConnectStatus(Status.CONNFAIL, 'bad-service');
+        }
+        this._conn.disconnect();
+        return;
+      }
+
+      // Fires the XHR request -- may be invoked immediately
+      // or on a gradually expanding retry window for reconnects
+      const sendFunc = () => {
+        req.date = new Date().valueOf();
+        if (this._conn.options.customHeaders) {
+          const headers = this._conn.options.customHeaders;
+          for (const header in headers) {
+            if (Object.prototype.hasOwnProperty.call(headers, header)) {
+              req.xhr.setRequestHeader(header, headers[header]);
+            }
+          }
+        }
+        req.xhr.send(req.data);
+      };
+
+      // Implement progressive backoff for reconnects --
+      // First retry (send === 1) should also be instantaneous
+      if (req.sends > 1) {
+        // Using a cube of the retry number creates a nicely
+        // expanding retry window
+        const backoff = Math.min(Math.floor(timeoutMultiplier * this.wait), Math.pow(req.sends, 3)) * 1000;
+        setTimeout(function () {
+          // XXX: setTimeout should be called only with function expressions (23974bc1)
+          sendFunc();
+        }, backoff);
+      } else {
+        sendFunc();
+      }
+      req.sends++;
+      if (this.strip && req.xmlData.nodeName === 'body' && req.xmlData.childNodes.length) {
+        this._conn.xmlOutput?.(req.xmlData.children[0]);
+      } else {
+        this._conn.xmlOutput?.(req.xmlData);
+      }
+      this._conn.rawOutput?.(req.data);
+    } else {
+      src_log.debug('_processRequest: ' + (i === 0 ? 'first' : 'second') + ' request has readyState of ' + req.xhr.readyState);
+    }
+  }
+
+  /**
+   * _Private_ function to remove a request from the queue.
+   * @private
+   * @param {Request} req - The request to remove.
+   */
+  _removeRequest(req) {
+    src_log.debug('removing request');
+    for (let i = this._requests.length - 1; i >= 0; i--) {
+      if (req === this._requests[i]) {
+        this._requests.splice(i, 1);
+      }
+    }
+    // IE6 fails on setting to null, so set to empty function
+    req.xhr.onreadystatechange = function () {};
+    this._throttledRequestHandler();
+  }
+
+  /**
+   * _Private_ function to restart a request that is presumed dead.
+   * @private
+   *
+   * @param {number} i - The index of the request in the queue.
+   */
+  _restartRequest(i) {
+    const req = this._requests[i];
+    if (req.dead === null) {
+      req.dead = new Date();
+    }
+    this._processRequest(i);
+  }
+
+  /**
+   * _Private_ function to get a stanza out of a request.
+   * Tries to extract a stanza out of a Request Object.
+   * When this fails the current connection will be disconnected.
+   *
+   * @param {Request} req - The Request.
+   * @return {Element} - The stanza that was passed.
+   */
+  _reqToData(req) {
+    try {
+      return req.getResponse();
+    } catch (e) {
+      if (e.message !== 'parsererror') {
+        throw e;
+      }
+      this._conn.disconnect('strophe-parsererror');
+    }
+  }
+
+  /**
+   * _Private_ function to send initial disconnect sequence.
+   *
+   * This is the first step in a graceful disconnect.  It sends
+   * the BOSH server a terminate body and includes an unavailable
+   * presence if authentication has completed.
+   * @private
+   * @param {Element|Builder} [pres]
+   */
+  _sendTerminate(pres) {
+    src_log.debug('_sendTerminate was called');
+    const body = this._buildBody().attrs({
+      type: 'terminate'
+    });
+    const el = pres instanceof builder ? pres.tree() : pres;
+    if (pres) {
+      body.cnode(el);
+    }
+    const req = new request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), Number(body.tree().getAttribute('rid')));
+    this._requests.push(req);
+    this._throttledRequestHandler();
+  }
+
+  /**
+   * _Private_ part of the Connection.send function for BOSH
+   * Just triggers the RequestHandler to send the messages that are in the queue
+   */
+  _send() {
+    clearTimeout(this._conn._idleTimeout);
+    this._throttledRequestHandler();
+    this._conn._idleTimeout = setTimeout(() => this._conn._onIdle(), 100);
+  }
+
+  /**
+   * Send an xmpp:restart stanza.
+   */
+  _sendRestart() {
+    this._throttledRequestHandler();
+    clearTimeout(this._conn._idleTimeout);
+  }
+
+  /**
+   * _Private_ function to throttle requests to the connection window.
+   *
+   * This function makes sure we don't send requests so fast that the
+   * request ids overflow the connection window in the case that one
+   * request died.
+   * @private
+   */
+  _throttledRequestHandler() {
+    if (!this._requests) {
+      src_log.debug('_throttledRequestHandler called with ' + 'undefined requests');
+    } else {
+      src_log.debug('_throttledRequestHandler called with ' + this._requests.length + ' requests');
+    }
+    if (!this._requests || this._requests.length === 0) {
+      return;
+    }
+    if (this._requests.length > 0) {
+      this._processRequest(0);
+    }
+    if (this._requests.length > 1 && Math.abs(this._requests[0].rid - this._requests[1].rid) < this.window) {
+      this._processRequest(1);
+    }
+  }
+}
+/* harmony default export */ const bosh = (Bosh);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/handler.js
 
 
 /**
  * _Private_ helper class for managing stanza handlers.
  *
- * A Strophe.Handler encapsulates a user provided callback function to be
+ * A Handler encapsulates a user provided callback function to be
  * executed when matching stanzas are received by the connection.
  * Handlers can be either one-off or persistant depending on their
  * return value. Returning true will cause a Handler to remain active, and
  * returning false will remove the Handler.
  *
- * Users will not use Strophe.Handler objects directly, but instead they
- * will use {@link Strophe.Connection.addHandler} and
- * {@link Strophe.Connection.deleteHandler}.
+ * Users will not use Handler objects directly, but instead they
+ * will use {@link Connection.addHandler} and
+ * {@link Connection.deleteHandler}.
  */
 class Handler {
   /**
@@ -24086,7 +24945,7 @@ class Handler {
    */
 
   /**
-   * Create and initialize a new Strophe.Handler.
+   * Create and initialize a new Handler.
    *
    * @param {Function} handler - A function to be executed when the handler is run.
    * @param {string} ns - The namespace to match.
@@ -24131,27 +24990,27 @@ class Handler {
   }
 
   /**
-   * Tests if a stanza matches the namespace set for this Strophe.Handler.
+   * Tests if a stanza element (or any of its children) matches the
+   * namespace set for this Handler.
    * @param {Element} elem - The XML element to test.
    * @return {boolean} - true if the stanza matches and false otherwise.
    */
   namespaceMatch(elem) {
-    let nsMatch = false;
-    if (!this.ns) {
+    if (!this.ns || this.getNamespace(elem) === this.ns) {
       return true;
-    } else {
-      forEachChild(elem, null, /** @param {Element} elem */
-      elem => {
-        if (this.getNamespace(elem) === this.ns) {
-          nsMatch = true;
-        }
-      });
-      return nsMatch || this.getNamespace(elem) === this.ns;
     }
+    for (const child of elem.children ?? []) {
+      if (this.getNamespace(child) === this.ns) {
+        return true;
+      } else if (this.namespaceMatch(child)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
-   * Tests if a stanza matches the Strophe.Handler.
+   * Tests if a stanza matches the Handler.
    * @param {Element} elem - The XML element to test.
    * @return {boolean} - true if the stanza matches and false otherwise.
    */
@@ -24161,7 +25020,7 @@ class Handler {
       from = getBareJidFromJid(from);
     }
     const elem_type = elem.getAttribute('type');
-    if (this.namespaceMatch(elem) && (!this.name || core.isTagEqual(elem, this.name)) && (!this.type || (Array.isArray(this.type) ? this.type.indexOf(elem_type) !== -1 : elem_type === this.type)) && (!this.id || elem.getAttribute('id') === this.id) && (!this.from || from === this.from)) {
+    if (this.namespaceMatch(elem) && (!this.name || isTagEqual(elem, this.name)) && (!this.type || (Array.isArray(this.type) ? this.type.indexOf(elem_type) !== -1 : elem_type === this.type)) && (!this.id || elem.getAttribute('id') === this.id) && (!this.from || from === this.from)) {
       return true;
     }
     return false;
@@ -24169,7 +25028,7 @@ class Handler {
 
   /**
    * Run the callback on a matching stanza.
-   * @param {Element} elem - The DOM element that triggered the Strophe.Handler.
+   * @param {Element} elem - The DOM element that triggered the Handler.
    * @return {boolean} - A boolean indicating if the handler should remain active.
    */
   run(elem) {
@@ -24177,14 +25036,14 @@ class Handler {
     try {
       result = this.handler(elem);
     } catch (e) {
-      core._handleError(e);
+      handleError(e);
       throw e;
     }
     return result;
   }
 
   /**
-   * Get a String representation of the Strophe.Handler object.
+   * Get a String representation of the Handler object.
    * @return {string}
    */
   toString() {
@@ -24250,1822 +25109,6 @@ class TimedHandler {
   }
 }
 /* harmony default export */ const timed_handler = (TimedHandler);
-// EXTERNAL MODULE: ./node_modules/abab/index.js
-var abab = __webpack_require__(6841);
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/errors.js
-class SessionError extends Error {
-  /**
-   * @param {string} message
-   */
-  constructor(message) {
-    super(message);
-    this.name = 'StropheSessionError';
-  }
-}
-
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/connection.js
-
-
-
-
-
-
-
-
-
-/**
- * @typedef {import("./sasl.js").default} SASLMechanism
- * @typedef {import("./request.js").default} Request
- */
-
-/**
- * **XMPP Connection manager**
- *
- * This class is the main part of Strophe.  It manages a BOSH or websocket
- * connection to an XMPP server and dispatches events to the user callbacks
- * as data arrives.
- *
- * It supports various authentication mechanisms (e.g. SASL PLAIN, SASL SCRAM),
- * and more can be added via
- * {@link Strophe.Connection#registerSASLMechanisms|registerSASLMechanisms()}.
- *
- * After creating a Strophe.Connection object, the user will typically
- * call {@link Strophe.Connection#connect|connect()} with a user supplied callback
- * to handle connection level events like authentication failure,
- * disconnection, or connection complete.
- *
- * The user will also have several event handlers defined by using
- * {@link Strophe.Connection#addHandler|addHandler()} and
- * {@link Strophe.Connection#addTimedHandler|addTimedHandler()}.
- * These will allow the user code to respond to interesting stanzas or do
- * something periodically with the connection. These handlers will be active
- * once authentication is finished.
- *
- * To send data to the connection, use {@link Strophe.Connection#send|send()}.
- *
- * @memberof Strophe
- */
-class Connection {
-  /**
-   * @typedef {Object.<string, string>} Cookie
-   * @typedef {Cookie|Object.<string, Cookie>} Cookies
-   */
-
-  /**
-   * @typedef {Object} ConnectionOptions
-   * @property {Cookies} [cookies]
-   *  Allows you to pass in cookies that will be included in HTTP requests.
-   *  Relevant to both the BOSH and Websocket transports.
-   *
-   *  The passed in value must be a map of cookie names and string values.
-   *
-   *  > { "myCookie": {
-   *  >     "value": "1234",
-   *  >     "domain": ".example.org",
-   *  >     "path": "/",
-   *  >     "expires": expirationDate
-   *  >     }
-   *  > }
-   *
-   *  Note that cookies can't be set in this way for domains other than the one
-   *  that's hosting Strophe (i.e. cross-domain).
-   *  Those cookies need to be set under those domains, for example they can be
-   *  set server-side by making a XHR call to that domain to ask it to set any
-   *  necessary cookies.
-   * @property {SASLMechanism[]} [mechanisms]
-   *  Allows you to specify the SASL authentication mechanisms that this
-   *  instance of Strophe.Connection (and therefore your XMPP client) will support.
-   *
-   *  The value must be an array of objects with {@link Strophe.SASLMechanism}
-   *  prototypes.
-   *
-   *  If nothing is specified, then the following mechanisms (and their
-   *  priorities) are registered:
-   *
-   *      Mechanism       Priority
-   *      ------------------------
-   *      SCRAM-SHA-512   72
-   *      SCRAM-SHA-384   71
-   *      SCRAM-SHA-256   70
-   *      SCRAM-SHA-1     60
-   *      PLAIN           50
-   *      OAUTHBEARER     40
-   *      X-OAUTH2        30
-   *      ANONYMOUS       20
-   *      EXTERNAL        10
-   *
-   * @property {boolean} [explicitResourceBinding]
-   *  If `explicitResourceBinding` is set to `true`, then the XMPP client
-   *  needs to explicitly call {@link Strophe.Connection.bind} once the XMPP
-   *  server has advertised the `urn:ietf:propertys:xml:ns:xmpp-bind` feature.
-   *
-   *  Making this step explicit allows client authors to first finish other
-   *  stream related tasks, such as setting up an XEP-0198 Stream Management
-   *  session, before binding the JID resource for this session.
-   *
-   * @property {'ws'|'wss'} [protocol]
-   *  _Note: This option is only relevant to Websocket connections, and not BOSH_
-   *
-   *  If you want to connect to the current host with a WebSocket connection you
-   *  can tell Strophe to use WebSockets through the "protocol" option.
-   *  Valid values are `ws` for WebSocket and `wss` for Secure WebSocket.
-   *  So to connect to "wss://CURRENT_HOSTNAME/xmpp-websocket" you would call
-   *
-   *      const conn = new Strophe.Connection(
-   *          "/xmpp-websocket/",
-   *          {protocol: "wss"}
-   *      );
-   *
-   *  Note that relative URLs _NOT_ starting with a "/" will also include the path
-   *  of the current site.
-   *
-   *  Also because downgrading security is not permitted by browsers, when using
-   *  relative URLs both BOSH and WebSocket connections will use their secure
-   *  variants if the current connection to the site is also secure (https).
-   *
-   * @property {string} [worker]
-   *  _Note: This option is only relevant to Websocket connections, and not BOSH_
-   *
-   *  Set this option to URL from where the shared worker script should be loaded.
-   *
-   *  To run the websocket connection inside a shared worker.
-   *  This allows you to share a single websocket-based connection between
-   *  multiple Strophe.Connection instances, for example one per browser tab.
-   *
-   *  The script to use is the one in `src/shared-connection-worker.js`.
-   *
-   * @property {boolean} [sync]
-   *  Used to control whether BOSH HTTP requests will be made synchronously or not.
-   *  The default behaviour is asynchronous. If you want to make requests
-   *  synchronous, make "sync" evaluate to true.
-   *
-   *  > const conn = new Strophe.Connection("/http-bind/", {sync: true});
-   *
-   *  You can also toggle this on an already established connection.
-   *
-   *  > conn.options.sync = true;
-   *
-   * @property {string[]} [customHeaders]
-   *  Used to provide custom HTTP headers to be included in the BOSH HTTP requests.
-   *
-   * @property {boolean} [keepalive]
-   *  Used to instruct Strophe to maintain the current BOSH session across
-   *  interruptions such as webpage reloads.
-   *
-   *  It will do this by caching the sessions tokens in sessionStorage, and when
-   *  "restore" is called it will check whether there are cached tokens with
-   *  which it can resume an existing session.
-   *
-   * @property {boolean} [withCredentials]
-   *  Used to indicate wether cookies should be included in HTTP requests (by default
-   *  they're not).
-   *  Set this value to `true` if you are connecting to a BOSH service
-   *  and for some reason need to send cookies to it.
-   *  In order for this to work cross-domain, the server must also enable
-   *  credentials by setting the `Access-Control-Allow-Credentials` response header
-   *  to "true". For most usecases however this setting should be false (which
-   *  is the default).
-   *  Additionally, when using `Access-Control-Allow-Credentials`, the
-   *  `Access-Control-Allow-Origin` header can't be set to the wildcard "*", but
-   *  instead must be restricted to actual domains.
-   *
-   * @property {string} [contentType]
-   *  Used to change the default Content-Type, which is "text/xml; charset=utf-8".
-   *  Can be useful to reduce the amount of CORS preflight requests that are sent
-   *  to the server.
-   */
-
-  /**
-   * Create and initialize a {@link Strophe.Connection} object.
-   *
-   * The transport-protocol for this connection will be chosen automatically
-   * based on the given service parameter. URLs starting with "ws://" or
-   * "wss://" will use WebSockets, URLs starting with "http://", "https://"
-   * or without a protocol will use [BOSH](https://xmpp.org/extensions/xep-0124.html).
-   *
-   * To make Strophe connect to the current host you can leave out the protocol
-   * and host part and just pass the path:
-   *
-   *  const conn = new Strophe.Connection("/http-bind/");
-   *
-   * @param {string} service - The BOSH or WebSocket service URL.
-   * @param {ConnectionOptions} options - A object containing configuration options
-   */
-  constructor(service) {
-    let options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-    // The service URL
-    this.service = service;
-    // Configuration options
-    this.options = options;
-    this.setProtocol();
-
-    /* The connected JID. */
-    this.jid = '';
-    /* the JIDs domain */
-    this.domain = null;
-    /* stream:features */
-    this.features = null;
-
-    // SASL
-    /**
-     * @typedef {Object.<string, any>} SASLData
-     * @property {Object} [SASLData.keys]
-     */
-
-    /** @type {SASLData} */
-    this._sasl_data = {};
-    this.do_bind = false;
-    this.do_session = false;
-
-    /** @type {Object.<string, SASLMechanism>} */
-    this.mechanisms = {};
-
-    /** @type {TimedHandler[]} */
-    this.timedHandlers = [];
-
-    /** @type {Handler[]} */
-    this.handlers = [];
-
-    /** @type {TimedHandler[]} */
-    this.removeTimeds = [];
-
-    /** @type {Handler[]} */
-    this.removeHandlers = [];
-
-    /** @type {TimedHandler[]} */
-    this.addTimeds = [];
-
-    /** @type {Handler[]} */
-    this.addHandlers = [];
-    this.protocolErrorHandlers = {
-      /** @type {Object.<number, Function>} */
-      'HTTP': {},
-      /** @type {Object.<number, Function>} */
-      'websocket': {}
-    };
-    this._idleTimeout = null;
-    this._disconnectTimeout = null;
-    this.authenticated = false;
-    this.connected = false;
-    this.disconnecting = false;
-    this.do_authentication = true;
-    this.paused = false;
-    this.restored = false;
-
-    /** @type {(Element|'restart')[]} */
-    this._data = [];
-    this._uniqueId = 0;
-    this._sasl_success_handler = null;
-    this._sasl_failure_handler = null;
-    this._sasl_challenge_handler = null;
-
-    // Max retries before disconnecting
-    this.maxRetries = 5;
-
-    // Call onIdle callback every 1/10th of a second
-    this._idleTimeout = setTimeout(() => this._onIdle(), 100);
-    addCookies(this.options.cookies);
-    this.registerSASLMechanisms(this.options.mechanisms);
-
-    // A client must always respond to incoming IQ "set" and "get" stanzas.
-    // See https://datatracker.ietf.org/doc/html/rfc6120#section-8.2.3
-    //
-    // This is a fallback handler which gets called when no other handler
-    // was called for a received IQ "set" or "get".
-    this.iqFallbackHandler = new src_handler(
-    /**
-     * @param {Element} iq
-     */
-    iq => this.send($iq({
-      type: 'error',
-      id: iq.getAttribute('id')
-    }).c('error', {
-      'type': 'cancel'
-    }).c('service-unavailable', {
-      'xmlns': core.NS.STANZAS
-    })), null, 'iq', ['get', 'set']);
-
-    // initialize plugins
-    for (const k in core._connectionPlugins) {
-      if (Object.prototype.hasOwnProperty.call(core._connectionPlugins, k)) {
-        const F = function () {};
-        F.prototype = core._connectionPlugins[k];
-        // @ts-ignore
-        this[k] = new F();
-        // @ts-ignore
-        this[k].init(this);
-      }
-    }
-  }
-
-  /**
-   * Select protocal based on this.options or this.service
-   */
-  setProtocol() {
-    const proto = this.options.protocol || '';
-    if (this.options.worker) {
-      this._proto = new core.WorkerWebsocket(this);
-    } else if (this.service.indexOf('ws:') === 0 || this.service.indexOf('wss:') === 0 || proto.indexOf('ws') === 0) {
-      this._proto = new core.Websocket(this);
-    } else {
-      this._proto = new core.Bosh(this);
-    }
-  }
-
-  /**
-   * Reset the connection.
-   *
-   * This function should be called after a connection is disconnected
-   * before that connection is reused.
-   */
-  reset() {
-    this._proto._reset();
-
-    // SASL
-    this.do_session = false;
-    this.do_bind = false;
-
-    // handler lists
-    this.timedHandlers = [];
-    this.handlers = [];
-    this.removeTimeds = [];
-    this.removeHandlers = [];
-    this.addTimeds = [];
-    this.addHandlers = [];
-    this.authenticated = false;
-    this.connected = false;
-    this.disconnecting = false;
-    this.restored = false;
-    this._data = [];
-    /** @type {Request[]} */
-    this._requests = [];
-    this._uniqueId = 0;
-  }
-
-  /**
-   * Pause the request manager.
-   *
-   * This will prevent Strophe from sending any more requests to the
-   * server.  This is very useful for temporarily pausing
-   * BOSH-Connections while a lot of send() calls are happening quickly.
-   * This causes Strophe to send the data in a single request, saving
-   * many request trips.
-   */
-  pause() {
-    this.paused = true;
-  }
-
-  /**
-   * Resume the request manager.
-   *
-   * This resumes after pause() has been called.
-   */
-  resume() {
-    this.paused = false;
-  }
-
-  /**
-   * Generate a unique ID for use in <iq/> elements.
-   *
-   * All <iq/> stanzas are required to have unique id attributes.  This
-   * function makes creating these easy.  Each connection instance has
-   * a counter which starts from zero, and the value of this counter
-   * plus a colon followed by the suffix becomes the unique id. If no
-   * suffix is supplied, the counter is used as the unique id.
-   *
-   * Suffixes are used to make debugging easier when reading the stream
-   * data, and their use is recommended.  The counter resets to 0 for
-   * every new connection for the same reason.  For connections to the
-   * same server that authenticate the same way, all the ids should be
-   * the same, which makes it easy to see changes.  This is useful for
-   * automated testing as well.
-   *
-   * @param {string} suffix - A optional suffix to append to the id.
-   * @returns {string} A unique string to be used for the id attribute.
-   */
-  // eslint-disable-next-line class-methods-use-this
-  getUniqueId(suffix) {
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = Math.random() * 16 | 0,
-        v = c === 'x' ? r : r & 0x3 | 0x8;
-      return v.toString(16);
-    });
-    if (typeof suffix === 'string' || typeof suffix === 'number') {
-      return uuid + ':' + suffix;
-    } else {
-      return uuid + '';
-    }
-  }
-
-  /**
-   * Register a handler function for when a protocol (websocker or HTTP)
-   * error occurs.
-   *
-   * NOTE: Currently only HTTP errors for BOSH requests are handled.
-   * Patches that handle websocket errors would be very welcome.
-   *
-   * @example
-   *  function onError(err_code){
-   *    //do stuff
-   *  }
-   *
-   *  const conn = Strophe.connect('http://example.com/http-bind');
-   *  conn.addProtocolErrorHandler('HTTP', 500, onError);
-   *  // Triggers HTTP 500 error and onError handler will be called
-   *  conn.connect('user_jid@incorrect_jabber_host', 'secret', onConnect);
-   *
-   * @param {'HTTP'|'websocket'} protocol - 'HTTP' or 'websocket'
-   * @param {number} status_code - Error status code (e.g 500, 400 or 404)
-   * @param {Function} callback - Function that will fire on Http error
-   */
-  addProtocolErrorHandler(protocol, status_code, callback) {
-    this.protocolErrorHandlers[protocol][status_code] = callback;
-  }
-
-  /**
-   * @typedef {Object} Password
-   * @property {string} Password.name
-   * @property {string} Password.ck
-   * @property {string} Password.sk
-   * @property {number} Password.iter
-   * @property {string} Password.salt
-   */
-
-  /**
-   * Starts the connection process.
-   *
-   * As the connection process proceeds, the user supplied callback will
-   * be triggered multiple times with status updates.  The callback
-   * should take two arguments - the status code and the error condition.
-   *
-   * The status code will be one of the values in the Strophe.Status
-   * constants.  The error condition will be one of the conditions
-   * defined in RFC 3920 or the condition 'strophe-parsererror'.
-   *
-   * The Parameters _wait_, _hold_ and _route_ are optional and only relevant
-   * for BOSH connections. Please see XEP 124 for a more detailed explanation
-   * of the optional parameters.
-   *
-   * @param {string} jid - The user's JID.  This may be a bare JID,
-   *     or a full JID.  If a node is not supplied, SASL OAUTHBEARER or
-   *     SASL ANONYMOUS authentication will be attempted (OAUTHBEARER will
-   *     process the provided password value as an access token).
-   *   (String or Object) pass - The user's password, or an object containing
-   *     the users SCRAM client and server keys, in a fashion described as follows:
-   *
-   *     { name: String, representing the hash used (eg. SHA-1),
-   *       salt: String, base64 encoded salt used to derive the client key,
-   *       iter: Int,    the iteration count used to derive the client key,
-   *       ck:   String, the base64 encoding of the SCRAM client key
-   *       sk:   String, the base64 encoding of the SCRAM server key
-   *     }
-   * @param {string|Password} pass - The user password
-   * @param {Function} callback - The connect callback function.
-   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
-   *     time the server will wait before returning an empty result for
-   *     a request.  The default setting of 60 seconds is recommended.
-   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
-   *     number of connections the server will hold at one time.  This
-   *     should almost always be set to 1 (the default).
-   * @param {string} [route] - The optional route value.
-   * @param {string} [authcid] - The optional alternative authentication identity
-   *     (username) if intending to impersonate another user.
-   *     When using the SASL-EXTERNAL authentication mechanism, for example
-   *     with client certificates, then the authcid value is used to
-   *     determine whether an authorization JID (authzid) should be sent to
-   *     the server. The authzid should NOT be sent to the server if the
-   *     authzid and authcid are the same. So to prevent it from being sent
-   *     (for example when the JID is already contained in the client
-   *     certificate), set authcid to that same JID. See XEP-178 for more
-   *     details.
-   *  @param {number} [disconnection_timeout=3000] - The optional disconnection timeout
-   *     in milliseconds before _doDisconnect will be called.
-   */
-  connect(jid, pass, callback, wait, hold, route, authcid) {
-    let disconnection_timeout = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : 3000;
-    this.jid = jid;
-    /** Authorization identity */
-    this.authzid = core.getBareJidFromJid(this.jid);
-    /** Authentication identity (User name) */
-    this.authcid = authcid || core.getNodeFromJid(this.jid);
-    /** Authentication identity (User password) */
-    this.pass = pass;
-
-    /**
-     * The SASL SCRAM client and server keys. This variable will be populated with a non-null
-     * object of the above described form after a successful SCRAM connection
-     */
-    this.scram_keys = null;
-    this.connect_callback = callback;
-    this.disconnecting = false;
-    this.connected = false;
-    this.authenticated = false;
-    this.restored = false;
-    this.disconnection_timeout = disconnection_timeout;
-
-    // parse jid for domain
-    this.domain = core.getDomainFromJid(this.jid);
-    this._changeConnectStatus(Status.CONNECTING, null);
-    this._proto._connect(wait, hold, route);
-  }
-
-  /**
-   * Attach to an already created and authenticated BOSH session.
-   *
-   * This function is provided to allow Strophe to attach to BOSH
-   * sessions which have been created externally, perhaps by a Web
-   * application.  This is often used to support auto-login type features
-   * without putting user credentials into the page.
-   *
-   * @param {string|Function} jid - The full JID that is bound by the session.
-   * @param {string} [sid] - The SID of the BOSH session.
-   * @param {number} [rid] - The current RID of the BOSH session.  This RID
-   *     will be used by the next request.
-   * @param {Function} [callback] - The connect callback function.
-   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
-   *     time the server will wait before returning an empty result for
-   *     a request.  The default setting of 60 seconds is recommended.
-   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
-   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
-   *     number of connections the server will hold at one time.  This
-   *     should almost always be set to 1 (the default).
-   * @param {number} [wind] - The optional HTTBIND window value.  This is the
-   *     allowed range of request ids that are valid.  The default is 5.
-   */
-  attach(jid, sid, rid, callback, wait, hold, wind) {
-    if (this._proto instanceof core.Bosh && typeof jid === 'string') {
-      return this._proto._attach(jid, sid, rid, callback, wait, hold, wind);
-    } else if (this._proto instanceof core.WorkerWebsocket && typeof jid === 'function') {
-      const callback = jid;
-      return this._proto._attach(callback);
-    } else {
-      throw new SessionError('The "attach" method is not available for your connection protocol');
-    }
-  }
-
-  /**
-   * Attempt to restore a cached BOSH session.
-   *
-   * This function is only useful in conjunction with providing the
-   * "keepalive":true option when instantiating a new {@link Strophe.Connection}.
-   *
-   * When "keepalive" is set to true, Strophe will cache the BOSH tokens
-   * RID (Request ID) and SID (Session ID) and then when this function is
-   * called, it will attempt to restore the session from those cached
-   * tokens.
-   *
-   * This function must therefore be called instead of connect or attach.
-   *
-   * For an example on how to use it, please see examples/restore.js
-   *
-   * @param {string} jid - The user's JID.  This may be a bare JID or a full JID.
-   * @param {Function} callback - The connect callback function.
-   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
-   *     time the server will wait before returning an empty result for
-   *     a request.  The default setting of 60 seconds is recommended.
-   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
-   *     number of connections the server will hold at one time.  This
-   *     should almost always be set to 1 (the default).
-   * @param {number} [wind] - The optional HTTBIND window value.  This is the
-   *     allowed range of request ids that are valid.  The default is 5.
-   */
-  restore(jid, callback, wait, hold, wind) {
-    if (!(this._proto instanceof core.Bosh) || !this._sessionCachingSupported()) {
-      throw new SessionError('The "restore" method can only be used with a BOSH connection.');
-    }
-    if (this._sessionCachingSupported()) {
-      this._proto._restore(jid, callback, wait, hold, wind);
-    }
-  }
-
-  /**
-   * Checks whether sessionStorage and JSON are supported and whether we're
-   * using BOSH.
-   */
-  _sessionCachingSupported() {
-    if (this._proto instanceof core.Bosh) {
-      if (!JSON) {
-        return false;
-      }
-      try {
-        sessionStorage.setItem('_strophe_', '_strophe_');
-        sessionStorage.removeItem('_strophe_');
-      } catch (e) {
-        return false;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * User overrideable function that receives XML data coming into the
-   * connection.
-   *
-   * The default function does nothing.  User code can override this with
-   * > Strophe.Connection.xmlInput = function (elem) {
-   * >   (user code)
-   * > };
-   *
-   * Due to limitations of current Browsers' XML-Parsers the opening and closing
-   * <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
-   *
-   * BOSH-Connections will have all stanzas wrapped in a <body> tag. See
-   * <Strophe.Bosh.strip> if you want to strip this tag.
-   *
-   * @param {Node|MessageEvent} elem - The XML data received by the connection.
-   */
-  // eslint-disable-next-line no-unused-vars, class-methods-use-this
-  xmlInput(elem) {
-    return;
-  }
-
-  /**
-   * User overrideable function that receives XML data sent to the
-   * connection.
-   *
-   * The default function does nothing.  User code can override this with
-   * > Strophe.Connection.xmlOutput = function (elem) {
-   * >   (user code)
-   * > };
-   *
-   * Due to limitations of current Browsers' XML-Parsers the opening and closing
-   * <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
-   *
-   * BOSH-Connections will have all stanzas wrapped in a <body> tag. See
-   * <Strophe.Bosh.strip> if you want to strip this tag.
-   *
-   * @param {Element} elem - The XMLdata sent by the connection.
-   */
-  // eslint-disable-next-line no-unused-vars, class-methods-use-this
-  xmlOutput(elem) {
-    return;
-  }
-
-  /**
-   * User overrideable function that receives raw data coming into the
-   * connection.
-   *
-   * The default function does nothing.  User code can override this with
-   * > Strophe.Connection.rawInput = function (data) {
-   * >   (user code)
-   * > };
-   *
-   * @param {string} data - The data received by the connection.
-   */
-  // eslint-disable-next-line no-unused-vars, class-methods-use-this
-  rawInput(data) {
-    return;
-  }
-
-  /**
-   * User overrideable function that receives raw data sent to the
-   * connection.
-   *
-   * The default function does nothing.  User code can override this with
-   * > Strophe.Connection.rawOutput = function (data) {
-   * >   (user code)
-   * > };
-   *
-   * @param {string} data - The data sent by the connection.
-   */
-  // eslint-disable-next-line no-unused-vars, class-methods-use-this
-  rawOutput(data) {
-    return;
-  }
-
-  /**
-   * User overrideable function that receives the new valid rid.
-   *
-   * The default function does nothing. User code can override this with
-   * > Strophe.Connection.nextValidRid = function (rid) {
-   * >    (user code)
-   * > };
-   *
-   * @param {number} rid - The next valid rid
-   */
-  // eslint-disable-next-line no-unused-vars, class-methods-use-this
-  nextValidRid(rid) {
-    return;
-  }
-
-  /**
-   * Send a stanza.
-   *
-   * This function is called to push data onto the send queue to
-   * go out over the wire.  Whenever a request is sent to the BOSH
-   * server, all pending data is sent and the queue is flushed.
-   *
-   * @param {Element|Builder|Element[]|Builder[]} stanza - The stanza to send
-   */
-  send(stanza) {
-    if (stanza === null) return;
-    if (Array.isArray(stanza)) {
-      stanza.forEach(s => this._queueData(s instanceof builder ? s.tree() : s));
-    } else {
-      const el = stanza instanceof builder ? stanza.tree() : stanza;
-      this._queueData(el);
-    }
-    this._proto._send();
-  }
-
-  /**
-   * Immediately send any pending outgoing data.
-   *
-   * Normally send() queues outgoing data until the next idle period
-   * (100ms), which optimizes network use in the common cases when
-   * several send()s are called in succession. flush() can be used to
-   * immediately send all pending data.
-   */
-  flush() {
-    // cancel the pending idle period and run the idle function
-    // immediately
-    clearTimeout(this._idleTimeout);
-    this._onIdle();
-  }
-
-  /**
-   * Helper function to send presence stanzas. The main benefit is for
-   * sending presence stanzas for which you expect a responding presence
-   * stanza with the same id (for example when leaving a chat room).
-   *
-   * @param {Element} stanza - The stanza to send.
-   * @param {Function} [callback] - The callback function for a successful request.
-   * @param {Function} [errback] - The callback function for a failed or timed
-   *    out request.  On timeout, the stanza will be null.
-   * @param {number} [timeout] - The time specified in milliseconds for a
-   *    timeout to occur.
-   * @return {string} The id used to send the presence.
-   */
-  sendPresence(stanza, callback, errback, timeout) {
-    /** @type {TimedHandler} */
-    let timeoutHandler = null;
-    const el = stanza instanceof builder ? stanza.tree() : stanza;
-    let id = el.getAttribute('id');
-    if (!id) {
-      // inject id if not found
-      id = this.getUniqueId('sendPresence');
-      el.setAttribute('id', id);
-    }
-    if (typeof callback === 'function' || typeof errback === 'function') {
-      const handler = this.addHandler( /** @param {Element} stanza */
-      stanza => {
-        // remove timeout handler if there is one
-        if (timeoutHandler) this.deleteTimedHandler(timeoutHandler);
-        if (stanza.getAttribute('type') === 'error') {
-          errback?.(stanza);
-        } else if (callback) {
-          callback(stanza);
-        }
-      }, null, 'presence', null, id);
-
-      // if timeout specified, set up a timeout handler.
-      if (timeout) {
-        timeoutHandler = this.addTimedHandler(timeout, () => {
-          // get rid of normal handler
-          this.deleteHandler(handler);
-          // call errback on timeout with null stanza
-          errback?.(null);
-          return false;
-        });
-      }
-    }
-    this.send(el);
-    return id;
-  }
-
-  /**
-   * Helper function to send IQ stanzas.
-   *
-   * @param {Element|Builder} stanza - The stanza to send.
-   * @param {Function} [callback] - The callback function for a successful request.
-   * @param {Function} [errback] - The callback function for a failed or timed
-   *     out request.  On timeout, the stanza will be null.
-   * @param {number} [timeout] - The time specified in milliseconds for a
-   *     timeout to occur.
-   * @return {string} The id used to send the IQ.
-   */
-  sendIQ(stanza, callback, errback, timeout) {
-    /** @type {TimedHandler} */
-    let timeoutHandler = null;
-    const el = stanza instanceof builder ? stanza.tree() : stanza;
-    let id = el.getAttribute('id');
-    if (!id) {
-      // inject id if not found
-      id = this.getUniqueId('sendIQ');
-      el.setAttribute('id', id);
-    }
-    if (typeof callback === 'function' || typeof errback === 'function') {
-      const handler = this.addHandler( /** @param {Element} stanza */
-      stanza => {
-        // remove timeout handler if there is one
-        if (timeoutHandler) this.deleteTimedHandler(timeoutHandler);
-        const iqtype = stanza.getAttribute('type');
-        if (iqtype === 'result') {
-          callback?.(stanza);
-        } else if (iqtype === 'error') {
-          errback?.(stanza);
-        } else {
-          const error = new Error(`Got bad IQ type of ${iqtype}`);
-          error.name = 'StropheError';
-          throw error;
-        }
-      }, null, 'iq', ['error', 'result'], id);
-
-      // if timeout specified, set up a timeout handler.
-      if (timeout) {
-        timeoutHandler = this.addTimedHandler(timeout, () => {
-          // get rid of normal handler
-          this.deleteHandler(handler);
-          // call errback on timeout with null stanza
-          errback?.(null);
-          return false;
-        });
-      }
-    }
-    this.send(el);
-    return id;
-  }
-
-  /**
-   * Queue outgoing data for later sending.  Also ensures that the data
-   * is a DOMElement.
-   * @private
-   * @param {Element} element
-   */
-  _queueData(element) {
-    if (element === null || !element.tagName || !element.childNodes) {
-      const error = new Error('Cannot queue non-DOMElement.');
-      error.name = 'StropheError';
-      throw error;
-    }
-    this._data.push(element);
-  }
-
-  /**
-   * Send an xmpp:restart stanza.
-   * @private
-   */
-  _sendRestart() {
-    this._data.push('restart');
-    this._proto._sendRestart();
-    this._idleTimeout = setTimeout(() => this._onIdle(), 100);
-  }
-
-  /**
-   * Add a timed handler to the connection.
-   *
-   * This function adds a timed handler.  The provided handler will
-   * be called every period milliseconds until it returns false,
-   * the connection is terminated, or the handler is removed.  Handlers
-   * that wish to continue being invoked should return true.
-   *
-   * Because of method binding it is necessary to save the result of
-   * this function if you wish to remove a handler with
-   * deleteTimedHandler().
-   *
-   * Note that user handlers are not active until authentication is
-   * successful.
-   *
-   * @param {number} period - The period of the handler.
-   * @param {Function} handler - The callback function.
-   * @return {TimedHandler} A reference to the handler that can be used to remove it.
-   */
-  addTimedHandler(period, handler) {
-    const thand = new core.TimedHandler(period, handler);
-    this.addTimeds.push(thand);
-    return thand;
-  }
-
-  /**
-   * Delete a timed handler for a connection.
-   *
-   * This function removes a timed handler from the connection.  The
-   * handRef parameter is *not* the function passed to addTimedHandler(),
-   * but is the reference returned from addTimedHandler().
-   * @param {TimedHandler} handRef - The handler reference.
-   */
-  deleteTimedHandler(handRef) {
-    // this must be done in the Idle loop so that we don't change
-    // the handlers during iteration
-    this.removeTimeds.push(handRef);
-  }
-
-  /**
-   * @typedef {Object} HandlerOptions
-   * @property {boolean} [HandlerOptions.matchBareFromJid]
-   * @property {boolean} [HandlerOptions.ignoreNamespaceFragment]
-   */
-
-  /**
-   * Add a stanza handler for the connection.
-   *
-   * This function adds a stanza handler to the connection.  The
-   * handler callback will be called for any stanza that matches
-   * the parameters.  Note that if multiple parameters are supplied,
-   * they must all match for the handler to be invoked.
-   *
-   * The handler will receive the stanza that triggered it as its argument.
-   * *The handler should return true if it is to be invoked again;
-   * returning false will remove the handler after it returns.*
-   *
-   * As a convenience, the ns parameters applies to the top level element
-   * and also any of its immediate children.  This is primarily to make
-   * matching /iq/query elements easy.
-   *
-   * ### Options
-   *
-   * With the options argument, you can specify boolean flags that affect how
-   * matches are being done.
-   *
-   * Currently two flags exist:
-   *
-   * * *matchBareFromJid*:
-   *     When set to true, the from parameter and the
-   *     from attribute on the stanza will be matched as bare JIDs instead
-   *     of full JIDs. To use this, pass {matchBareFromJid: true} as the
-   *     value of options. The default value for matchBareFromJid is false.
-   *
-   * * *ignoreNamespaceFragment*:
-   *     When set to true, a fragment specified on the stanza's namespace
-   *     URL will be ignored when it's matched with the one configured for
-   *     the handler.
-   *
-   *     This means that if you register like this:
-   *
-   *     >   connection.addHandler(
-   *     >       handler,
-   *     >       'http://jabber.org/protocol/muc',
-   *     >       null, null, null, null,
-   *     >       {'ignoreNamespaceFragment': true}
-   *     >   );
-   *
-   *     Then a stanza with XML namespace of
-   *     'http://jabber.org/protocol/muc#user' will also be matched. If
-   *     'ignoreNamespaceFragment' is false, then only stanzas with
-   *     'http://jabber.org/protocol/muc' will be matched.
-   *
-   * ### Deleting the handler
-   *
-   * The return value should be saved if you wish to remove the handler
-   * with `deleteHandler()`.
-   *
-   * @param {Function} handler - The user callback.
-   * @param {string} ns - The namespace to match.
-   * @param {string} name - The stanza name to match.
-   * @param {string|string[]} type - The stanza type (or types if an array) to match.
-   * @param {string} id - The stanza id attribute to match.
-   * @param {string} [from] - The stanza from attribute to match.
-   * @param {HandlerOptions} [options] - The handler options
-   * @return {Handler} A reference to the handler that can be used to remove it.
-   */
-  addHandler(handler, ns, name, type, id, from, options) {
-    const hand = new src_handler(handler, ns, name, type, id, from, options);
-    this.addHandlers.push(hand);
-    return hand;
-  }
-
-  /**
-   * Delete a stanza handler for a connection.
-   *
-   * This function removes a stanza handler from the connection.  The
-   * handRef parameter is *not* the function passed to addHandler(),
-   * but is the reference returned from addHandler().
-   *
-   * @param {Handler} handRef - The handler reference.
-   */
-  deleteHandler(handRef) {
-    // this must be done in the Idle loop so that we don't change
-    // the handlers during iteration
-    this.removeHandlers.push(handRef);
-    // If a handler is being deleted while it is being added,
-    // prevent it from getting added
-    const i = this.addHandlers.indexOf(handRef);
-    if (i >= 0) {
-      this.addHandlers.splice(i, 1);
-    }
-  }
-
-  /**
-   * Register the SASL mechanisms which will be supported by this instance of
-   * Strophe.Connection (i.e. which this XMPP client will support).
-   * @param {SASLMechanism[]} mechanisms - Array of objects with Strophe.SASLMechanism prototypes
-   */
-  registerSASLMechanisms(mechanisms) {
-    this.mechanisms = {};
-    (mechanisms || [core.SASLAnonymous, core.SASLExternal, core.SASLOAuthBearer, core.SASLXOAuth2, core.SASLPlain, core.SASLSHA1, core.SASLSHA256, core.SASLSHA384, core.SASLSHA512]).forEach(m => this.registerSASLMechanism(m));
-  }
-
-  /**
-   * Register a single SASL mechanism, to be supported by this client.
-   * @param {any} Mechanism - Object with a Strophe.SASLMechanism prototype
-   */
-  registerSASLMechanism(Mechanism) {
-    const mechanism = new Mechanism();
-    this.mechanisms[mechanism.mechname] = mechanism;
-  }
-
-  /**
-   * Start the graceful disconnection process.
-   *
-   * This function starts the disconnection process.  This process starts
-   * by sending unavailable presence and sending BOSH body of type
-   * terminate.  A timeout handler makes sure that disconnection happens
-   * even if the BOSH server does not respond.
-   * If the Connection object isn't connected, at least tries to abort all pending requests
-   * so the connection object won't generate successful requests (which were already opened).
-   *
-   * The user supplied connection callback will be notified of the
-   * progress as this process happens.
-   *
-   * @param {string} [reason] - The reason the disconnect is occuring.
-   */
-  disconnect(reason) {
-    this._changeConnectStatus(Status.DISCONNECTING, reason);
-    if (reason) {
-      core.warn('Disconnect was called because: ' + reason);
-    } else {
-      core.info('Disconnect was called');
-    }
-    if (this.connected) {
-      let pres = null;
-      this.disconnecting = true;
-      if (this.authenticated) {
-        pres = $pres({
-          'xmlns': core.NS.CLIENT,
-          'type': 'unavailable'
-        });
-      }
-      // setup timeout handler
-      this._disconnectTimeout = this._addSysTimedHandler(this.disconnection_timeout, this._onDisconnectTimeout.bind(this));
-      this._proto._disconnect(pres);
-    } else {
-      core.warn('Disconnect was called before Strophe connected to the server');
-      this._proto._abortAllRequests();
-      this._doDisconnect();
-    }
-  }
-
-  /**
-   * _Private_ helper function that makes sure plugins and the user's
-   * callback are notified of connection status changes.
-   * @param {number} status - the new connection status, one of the values
-   *     in Strophe.Status
-   * @param {string|null} [condition] - the error condition
-   * @param {Element} [elem] - The triggering stanza.
-   */
-  _changeConnectStatus(status, condition, elem) {
-    // notify all plugins listening for status changes
-    for (const k in core._connectionPlugins) {
-      if (Object.prototype.hasOwnProperty.call(core._connectionPlugins, k)) {
-        // @ts-ignore
-        const plugin = this[k];
-        if (plugin.statusChanged) {
-          try {
-            plugin.statusChanged(status, condition);
-          } catch (err) {
-            core.error(`${k} plugin caused an exception changing status: ${err}`);
-          }
-        }
-      }
-    }
-    // notify the user's callback
-    if (this.connect_callback) {
-      try {
-        this.connect_callback(status, condition, elem);
-      } catch (e) {
-        core._handleError(e);
-        core.error(`User connection callback caused an exception: ${e}`);
-      }
-    }
-  }
-
-  /**
-   * _Private_ function to disconnect.
-   *
-   * This is the last piece of the disconnection logic.  This resets the
-   * connection and alerts the user's connection callback.
-   * @param {string|null} [condition] - the error condition
-   */
-  _doDisconnect(condition) {
-    if (typeof this._idleTimeout === 'number') {
-      clearTimeout(this._idleTimeout);
-    }
-
-    // Cancel Disconnect Timeout
-    if (this._disconnectTimeout !== null) {
-      this.deleteTimedHandler(this._disconnectTimeout);
-      this._disconnectTimeout = null;
-    }
-    core.debug('_doDisconnect was called');
-    this._proto._doDisconnect();
-    this.authenticated = false;
-    this.disconnecting = false;
-    this.restored = false;
-
-    // delete handlers
-    this.handlers = [];
-    this.timedHandlers = [];
-    this.removeTimeds = [];
-    this.removeHandlers = [];
-    this.addTimeds = [];
-    this.addHandlers = [];
-
-    // tell the parent we disconnected
-    this._changeConnectStatus(Status.DISCONNECTED, condition);
-    this.connected = false;
-  }
-
-  /**
-   * _Private_ handler to processes incoming data from the the connection.
-   *
-   * Except for _connect_cb handling the initial connection request,
-   * this function handles the incoming data for all requests.  This
-   * function also fires stanza handlers that match each incoming
-   * stanza.
-   * @param {Element | Request} req - The request that has data ready.
-   * @param {string} [raw] - The stanza as raw string.
-   */
-  _dataRecv(req, raw) {
-    const elem = /** @type {Element} */
-    '_reqToData' in this._proto ? this._proto._reqToData( /** @type {Request} */req) : req;
-    if (elem === null) {
-      return;
-    }
-    if (this.xmlInput !== core.Connection.prototype.xmlInput) {
-      if (elem.nodeName === this._proto.strip && elem.childNodes.length) {
-        this.xmlInput(elem.childNodes[0]);
-      } else {
-        this.xmlInput(elem);
-      }
-    }
-    if (this.rawInput !== core.Connection.prototype.rawInput) {
-      if (raw) {
-        this.rawInput(raw);
-      } else {
-        this.rawInput(core.serialize(elem));
-      }
-    }
-
-    // remove handlers scheduled for deletion
-    while (this.removeHandlers.length > 0) {
-      const hand = this.removeHandlers.pop();
-      const i = this.handlers.indexOf(hand);
-      if (i >= 0) {
-        this.handlers.splice(i, 1);
-      }
-    }
-
-    // add handlers scheduled for addition
-    while (this.addHandlers.length > 0) {
-      this.handlers.push(this.addHandlers.pop());
-    }
-
-    // handle graceful disconnect
-    if (this.disconnecting && this._proto._emptyQueue()) {
-      this._doDisconnect();
-      return;
-    }
-    const type = elem.getAttribute('type');
-    if (type !== null && type === 'terminate') {
-      // Don't process stanzas that come in after disconnect
-      if (this.disconnecting) {
-        return;
-      }
-      // an error occurred
-      let cond = elem.getAttribute('condition');
-      const conflict = elem.getElementsByTagName('conflict');
-      if (cond !== null) {
-        if (cond === 'remote-stream-error' && conflict.length > 0) {
-          cond = 'conflict';
-        }
-        this._changeConnectStatus(Status.CONNFAIL, cond);
-      } else {
-        this._changeConnectStatus(Status.CONNFAIL, core.ErrorCondition.UNKNOWN_REASON);
-      }
-      this._doDisconnect(cond);
-      return;
-    }
-
-    // send each incoming stanza through the handler chain
-    core.forEachChild(elem, null, /** @param {Element} child */
-    child => {
-      const matches = [];
-      this.handlers = this.handlers.reduce((handlers, handler) => {
-        try {
-          if (handler.isMatch(child) && (this.authenticated || !handler.user)) {
-            if (handler.run(child)) {
-              handlers.push(handler);
-            }
-            matches.push(handler);
-          } else {
-            handlers.push(handler);
-          }
-        } catch (e) {
-          // if the handler throws an exception, we consider it as false
-          core.warn('Removing Strophe handlers due to uncaught exception: ' + e.message);
-        }
-        return handlers;
-      }, []);
-
-      // If no handler was fired for an incoming IQ with type="set",
-      // then we return an IQ error stanza with service-unavailable.
-      if (!matches.length && this.iqFallbackHandler.isMatch(child)) {
-        this.iqFallbackHandler.run(child);
-      }
-    });
-  }
-
-  /**
-   * @callback connectionCallback
-   * @param {Connection} connection
-   */
-
-  /**
-   * _Private_ handler for initial connection request.
-   *
-   * This handler is used to process the initial connection request
-   * response from the BOSH server. It is used to set up authentication
-   * handlers and start the authentication process.
-   *
-   * SASL authentication will be attempted if available, otherwise
-   * the code will fall back to legacy authentication.
-   *
-   * @param {Element | Request} req - The current request.
-   * @param {connectionCallback} _callback - low level (xmpp) connect callback function.
-   *     Useful for plugins with their own xmpp connect callback (when they
-   *     want to do something special).
-   * @param {string} [raw] - The stanza as raw string.
-   */
-  _connect_cb(req, _callback, raw) {
-    core.debug('_connect_cb was called');
-    this.connected = true;
-    let bodyWrap;
-    try {
-      bodyWrap = /** @type {Element} */
-      '_reqToData' in this._proto ? this._proto._reqToData( /** @type {Request} */req) : req;
-    } catch (e) {
-      if (e.name !== core.ErrorCondition.BAD_FORMAT) {
-        throw e;
-      }
-      this._changeConnectStatus(Status.CONNFAIL, core.ErrorCondition.BAD_FORMAT);
-      this._doDisconnect(core.ErrorCondition.BAD_FORMAT);
-    }
-    if (!bodyWrap) {
-      return;
-    }
-    if (this.xmlInput !== core.Connection.prototype.xmlInput) {
-      if (bodyWrap.nodeName === this._proto.strip && bodyWrap.childNodes.length) {
-        this.xmlInput(bodyWrap.childNodes[0]);
-      } else {
-        this.xmlInput(bodyWrap);
-      }
-    }
-    if (this.rawInput !== core.Connection.prototype.rawInput) {
-      if (raw) {
-        this.rawInput(raw);
-      } else {
-        this.rawInput(core.serialize(bodyWrap));
-      }
-    }
-    const conncheck = this._proto._connect_cb(bodyWrap);
-    if (conncheck === Status.CONNFAIL) {
-      return;
-    }
-
-    // Check for the stream:features tag
-    let hasFeatures;
-    if (bodyWrap.getElementsByTagNameNS) {
-      hasFeatures = bodyWrap.getElementsByTagNameNS(core.NS.STREAM, 'features').length > 0;
-    } else {
-      hasFeatures = bodyWrap.getElementsByTagName('stream:features').length > 0 || bodyWrap.getElementsByTagName('features').length > 0;
-    }
-    if (!hasFeatures) {
-      this._proto._no_auth_received(_callback);
-      return;
-    }
-    const matched = Array.from(bodyWrap.getElementsByTagName('mechanism')).map(m => this.mechanisms[m.textContent]).filter(m => m);
-    if (matched.length === 0) {
-      if (bodyWrap.getElementsByTagName('auth').length === 0) {
-        // There are no matching SASL mechanisms and also no legacy
-        // auth available.
-        this._proto._no_auth_received(_callback);
-        return;
-      }
-    }
-    if (this.do_authentication !== false) {
-      this.authenticate(matched);
-    }
-  }
-
-  /**
-   * Sorts an array of objects with prototype SASLMechanism according to
-   * their priorities.
-   * @param {SASLMechanism[]} mechanisms - Array of SASL mechanisms.
-   */
-  // eslint-disable-next-line  class-methods-use-this
-  sortMechanismsByPriority(mechanisms) {
-    // Sorting mechanisms according to priority.
-    for (let i = 0; i < mechanisms.length - 1; ++i) {
-      let higher = i;
-      for (let j = i + 1; j < mechanisms.length; ++j) {
-        if (mechanisms[j].priority > mechanisms[higher].priority) {
-          higher = j;
-        }
-      }
-      if (higher !== i) {
-        const swap = mechanisms[i];
-        mechanisms[i] = mechanisms[higher];
-        mechanisms[higher] = swap;
-      }
-    }
-    return mechanisms;
-  }
-
-  /**
-   * Set up authentication
-   *
-   * Continues the initial connection request by setting up authentication
-   * handlers and starting the authentication process.
-   *
-   * SASL authentication will be attempted if available, otherwise
-   * the code will fall back to legacy authentication.
-   *
-   * @param {SASLMechanism[]} matched - Array of SASL mechanisms supported.
-   */
-  authenticate(matched) {
-    if (!this._attemptSASLAuth(matched)) {
-      this._attemptLegacyAuth();
-    }
-  }
-
-  /**
-   * Iterate through an array of SASL mechanisms and attempt authentication
-   * with the highest priority (enabled) mechanism.
-   *
-   * @private
-   * @param {SASLMechanism[]} mechanisms - Array of SASL mechanisms.
-   * @return {Boolean} mechanism_found - true or false, depending on whether a
-   *  valid SASL mechanism was found with which authentication could be started.
-   */
-  _attemptSASLAuth(mechanisms) {
-    mechanisms = this.sortMechanismsByPriority(mechanisms || []);
-    let mechanism_found = false;
-    for (let i = 0; i < mechanisms.length; ++i) {
-      if (!mechanisms[i].test(this)) {
-        continue;
-      }
-      this._sasl_success_handler = this._addSysHandler(this._sasl_success_cb.bind(this), null, 'success', null, null);
-      this._sasl_failure_handler = this._addSysHandler(this._sasl_failure_cb.bind(this), null, 'failure', null, null);
-      this._sasl_challenge_handler = this._addSysHandler(this._sasl_challenge_cb.bind(this), null, 'challenge', null, null);
-      this._sasl_mechanism = mechanisms[i];
-      this._sasl_mechanism.onStart(this);
-      const request_auth_exchange = $build('auth', {
-        'xmlns': core.NS.SASL,
-        'mechanism': this._sasl_mechanism.mechname
-      });
-      if (this._sasl_mechanism.isClientFirst) {
-        const response = this._sasl_mechanism.clientChallenge(this);
-        request_auth_exchange.t((0,abab.btoa)( /** @type {string} */response));
-      }
-      this.send(request_auth_exchange.tree());
-      mechanism_found = true;
-      break;
-    }
-    return mechanism_found;
-  }
-
-  /**
-   * _Private_ handler for the SASL challenge
-   * @private
-   * @param {Element} elem
-   */
-  async _sasl_challenge_cb(elem) {
-    const challenge = (0,abab.atob)(getText(elem));
-    const response = await this._sasl_mechanism.onChallenge(this, challenge);
-    const stanza = $build('response', {
-      'xmlns': core.NS.SASL
-    });
-    if (response) stanza.t((0,abab.btoa)(response));
-    this.send(stanza.tree());
-    return true;
-  }
-
-  /**
-   * Attempt legacy (i.e. non-SASL) authentication.
-   * @private
-   */
-  _attemptLegacyAuth() {
-    if (core.getNodeFromJid(this.jid) === null) {
-      // we don't have a node, which is required for non-anonymous
-      // client connections
-      this._changeConnectStatus(Status.CONNFAIL, core.ErrorCondition.MISSING_JID_NODE);
-      this.disconnect(core.ErrorCondition.MISSING_JID_NODE);
-    } else {
-      // Fall back to legacy authentication
-      this._changeConnectStatus(Status.AUTHENTICATING, null);
-      this._addSysHandler(this._onLegacyAuthIQResult.bind(this), null, null, null, '_auth_1');
-      this.send($iq({
-        'type': 'get',
-        'to': this.domain,
-        'id': '_auth_1'
-      }).c('query', {
-        xmlns: core.NS.AUTH
-      }).c('username', {}).t(core.getNodeFromJid(this.jid)).tree());
-    }
-  }
-
-  /**
-   * _Private_ handler for legacy authentication.
-   *
-   * This handler is called in response to the initial <iq type='get'/>
-   * for legacy authentication.  It builds an authentication <iq/> and
-   * sends it, creating a handler (calling back to _auth2_cb()) to
-   * handle the result
-   * @private
-   * @return {false} `false` to remove the handler.
-   */
-  // eslint-disable-next-line no-unused-vars
-  //
-  _onLegacyAuthIQResult() {
-    const pass = typeof this.pass === 'string' ? this.pass : '';
-
-    // build plaintext auth iq
-    const iq = $iq({
-      type: 'set',
-      id: '_auth_2'
-    }).c('query', {
-      xmlns: core.NS.AUTH
-    }).c('username', {}).t(core.getNodeFromJid(this.jid)).up().c('password').t(pass);
-    if (!core.getResourceFromJid(this.jid)) {
-      // since the user has not supplied a resource, we pick
-      // a default one here.  unlike other auth methods, the server
-      // cannot do this for us.
-      this.jid = core.getBareJidFromJid(this.jid) + '/strophe';
-    }
-    iq.up().c('resource', {}).t(core.getResourceFromJid(this.jid));
-    this._addSysHandler(this._auth2_cb.bind(this), null, null, null, '_auth_2');
-    this.send(iq.tree());
-    return false;
-  }
-
-  /**
-   * _Private_ handler for succesful SASL authentication.
-   * @private
-   * @param {Element} elem - The matching stanza.
-   * @return {false} `false` to remove the handler.
-   */
-  _sasl_success_cb(elem) {
-    if (this._sasl_data['server-signature']) {
-      let serverSignature;
-      const success = (0,abab.atob)(getText(elem));
-      const attribMatch = /([a-z]+)=([^,]+)(,|$)/;
-      const matches = success.match(attribMatch);
-      if (matches[1] === 'v') {
-        serverSignature = matches[2];
-      }
-      if (serverSignature !== this._sasl_data['server-signature']) {
-        // remove old handlers
-        this.deleteHandler(this._sasl_failure_handler);
-        this._sasl_failure_handler = null;
-        if (this._sasl_challenge_handler) {
-          this.deleteHandler(this._sasl_challenge_handler);
-          this._sasl_challenge_handler = null;
-        }
-        this._sasl_data = {};
-        return this._sasl_failure_cb(null);
-      }
-    }
-    core.info('SASL authentication succeeded.');
-    if (this._sasl_data.keys) {
-      this.scram_keys = this._sasl_data.keys;
-    }
-    if (this._sasl_mechanism) {
-      this._sasl_mechanism.onSuccess();
-    }
-    // remove old handlers
-    this.deleteHandler(this._sasl_failure_handler);
-    this._sasl_failure_handler = null;
-    if (this._sasl_challenge_handler) {
-      this.deleteHandler(this._sasl_challenge_handler);
-      this._sasl_challenge_handler = null;
-    }
-    /** @type {Handler[]} */
-    const streamfeature_handlers = [];
-
-    /**
-     * @param {Handler[]} handlers
-     * @param {Element} elem
-     */
-    const wrapper = (handlers, elem) => {
-      while (handlers.length) {
-        this.deleteHandler(handlers.pop());
-      }
-      this._onStreamFeaturesAfterSASL(elem);
-      return false;
-    };
-    streamfeature_handlers.push(this._addSysHandler( /** @param {Element} elem */
-    elem => wrapper(streamfeature_handlers, elem), null, 'stream:features', null, null));
-    streamfeature_handlers.push(this._addSysHandler( /** @param {Element} elem */
-    elem => wrapper(streamfeature_handlers, elem), core.NS.STREAM, 'features', null, null));
-
-    // we must send an xmpp:restart now
-    this._sendRestart();
-    return false;
-  }
-
-  /**
-   * @private
-   * @param {Element} elem - The matching stanza.
-   * @return {false} `false` to remove the handler.
-   */
-  _onStreamFeaturesAfterSASL(elem) {
-    // save stream:features for future usage
-    this.features = elem;
-    for (let i = 0; i < elem.childNodes.length; i++) {
-      const child = elem.childNodes[i];
-      if (child.nodeName === 'bind') {
-        this.do_bind = true;
-      }
-      if (child.nodeName === 'session') {
-        this.do_session = true;
-      }
-    }
-    if (!this.do_bind) {
-      this._changeConnectStatus(Status.AUTHFAIL, null);
-      return false;
-    } else if (!this.options.explicitResourceBinding) {
-      this.bind();
-    } else {
-      this._changeConnectStatus(Status.BINDREQUIRED, null);
-    }
-    return false;
-  }
-
-  /**
-   * Sends an IQ to the XMPP server to bind a JID resource for this session.
-   *
-   * https://tools.ietf.org/html/rfc6120#section-7.5
-   *
-   * If `explicitResourceBinding` was set to a truthy value in the options
-   * passed to the Strophe.Connection constructor, then this function needs
-   * to be called explicitly by the client author.
-   *
-   * Otherwise it'll be called automatically as soon as the XMPP server
-   * advertises the "urn:ietf:params:xml:ns:xmpp-bind" stream feature.
-   */
-  bind() {
-    if (!this.do_bind) {
-      core.log(core.LogLevel.INFO, `Strophe.Connection.prototype.bind called but "do_bind" is false`);
-      return;
-    }
-    this._addSysHandler(this._onResourceBindResultIQ.bind(this), null, null, null, '_bind_auth_2');
-    const resource = core.getResourceFromJid(this.jid);
-    if (resource) {
-      this.send($iq({
-        type: 'set',
-        id: '_bind_auth_2'
-      }).c('bind', {
-        xmlns: core.NS.BIND
-      }).c('resource', {}).t(resource).tree());
-    } else {
-      this.send($iq({
-        type: 'set',
-        id: '_bind_auth_2'
-      }).c('bind', {
-        xmlns: core.NS.BIND
-      }).tree());
-    }
-  }
-
-  /**
-   * _Private_ handler for binding result and session start.
-   * @private
-   * @param {Element} elem - The matching stanza.
-   * @return {false} `false` to remove the handler.
-   */
-  _onResourceBindResultIQ(elem) {
-    if (elem.getAttribute('type') === 'error') {
-      core.warn('Resource binding failed.');
-      const conflict = elem.getElementsByTagName('conflict');
-      let condition;
-      if (conflict.length > 0) {
-        condition = core.ErrorCondition.CONFLICT;
-      }
-      this._changeConnectStatus(Status.AUTHFAIL, condition, elem);
-      return false;
-    }
-    // TODO - need to grab errors
-    const bind = elem.getElementsByTagName('bind');
-    if (bind.length > 0) {
-      const jidNode = bind[0].getElementsByTagName('jid');
-      if (jidNode.length > 0) {
-        this.authenticated = true;
-        this.jid = getText(jidNode[0]);
-        if (this.do_session) {
-          this._establishSession();
-        } else {
-          this._changeConnectStatus(Status.CONNECTED, null);
-        }
-      }
-    } else {
-      core.warn('Resource binding failed.');
-      this._changeConnectStatus(Status.AUTHFAIL, null, elem);
-      return false;
-    }
-  }
-
-  /**
-   * Send IQ request to establish a session with the XMPP server.
-   *
-   * See https://xmpp.org/rfcs/rfc3921.html#session
-   *
-   * Note: The protocol for session establishment has been determined as
-   * unnecessary and removed in RFC-6121.
-   * @private
-   */
-  _establishSession() {
-    if (!this.do_session) {
-      throw new Error(`Strophe.Connection.prototype._establishSession ` + `called but apparently ${core.NS.SESSION} wasn't advertised by the server`);
-    }
-    this._addSysHandler(this._onSessionResultIQ.bind(this), null, null, null, '_session_auth_2');
-    this.send($iq({
-      type: 'set',
-      id: '_session_auth_2'
-    }).c('session', {
-      xmlns: core.NS.SESSION
-    }).tree());
-  }
-
-  /**
-   * _Private_ handler for the server's IQ response to a client's session
-   * request.
-   *
-   * This sets Connection.authenticated to true on success, which
-   * starts the processing of user handlers.
-   *
-   * See https://xmpp.org/rfcs/rfc3921.html#session
-   *
-   * Note: The protocol for session establishment has been determined as
-   * unnecessary and removed in RFC-6121.
-   * @private
-   * @param {Element} elem - The matching stanza.
-   * @return {false} `false` to remove the handler.
-   */
-  _onSessionResultIQ(elem) {
-    if (elem.getAttribute('type') === 'result') {
-      this.authenticated = true;
-      this._changeConnectStatus(Status.CONNECTED, null);
-    } else if (elem.getAttribute('type') === 'error') {
-      this.authenticated = false;
-      core.warn('Session creation failed.');
-      this._changeConnectStatus(Status.AUTHFAIL, null, elem);
-      return false;
-    }
-    return false;
-  }
-
-  /**
-   * _Private_ handler for SASL authentication failure.
-   * @param {Element} [elem] - The matching stanza.
-   * @return {false} `false` to remove the handler.
-   */
-  _sasl_failure_cb(elem) {
-    // delete unneeded handlers
-    if (this._sasl_success_handler) {
-      this.deleteHandler(this._sasl_success_handler);
-      this._sasl_success_handler = null;
-    }
-    if (this._sasl_challenge_handler) {
-      this.deleteHandler(this._sasl_challenge_handler);
-      this._sasl_challenge_handler = null;
-    }
-    if (this._sasl_mechanism) this._sasl_mechanism.onFailure();
-    this._changeConnectStatus(Status.AUTHFAIL, null, elem);
-    return false;
-  }
-
-  /**
-   * _Private_ handler to finish legacy authentication.
-   *
-   * This handler is called when the result from the jabber:iq:auth
-   * <iq/> stanza is returned.
-   * @private
-   * @param {Element} elem - The stanza that triggered the callback.
-   * @return {false} `false` to remove the handler.
-   */
-  _auth2_cb(elem) {
-    if (elem.getAttribute('type') === 'result') {
-      this.authenticated = true;
-      this._changeConnectStatus(Status.CONNECTED, null);
-    } else if (elem.getAttribute('type') === 'error') {
-      this._changeConnectStatus(Status.AUTHFAIL, null, elem);
-      this.disconnect('authentication failed');
-    }
-    return false;
-  }
-
-  /**
-   * _Private_ function to add a system level timed handler.
-   *
-   * This function is used to add a Strophe.TimedHandler for the
-   * library code.  System timed handlers are allowed to run before
-   * authentication is complete.
-   * @param {number} period - The period of the handler.
-   * @param {Function} handler - The callback function.
-   */
-  _addSysTimedHandler(period, handler) {
-    const thand = new timed_handler(period, handler);
-    thand.user = false;
-    this.addTimeds.push(thand);
-    return thand;
-  }
-
-  /**
-   * _Private_ function to add a system level stanza handler.
-   *
-   * This function is used to add a Handler for the
-   * library code.  System stanza handlers are allowed to run before
-   * authentication is complete.
-   * @param {Function} handler - The callback function.
-   * @param {string} ns - The namespace to match.
-   * @param {string} name - The stanza name to match.
-   * @param {string} type - The stanza type attribute to match.
-   * @param {string} id - The stanza id attribute to match.
-   */
-  _addSysHandler(handler, ns, name, type, id) {
-    const hand = new src_handler(handler, ns, name, type, id);
-    hand.user = false;
-    this.addHandlers.push(hand);
-    return hand;
-  }
-
-  /**
-   * _Private_ timeout handler for handling non-graceful disconnection.
-   *
-   * If the graceful disconnect process does not complete within the
-   * time allotted, this handler finishes the disconnect anyway.
-   * @return {false} `false` to remove the handler.
-   */
-  _onDisconnectTimeout() {
-    core.debug('_onDisconnectTimeout was called');
-    this._changeConnectStatus(Status.CONNTIMEOUT, null);
-    this._proto._onDisconnectTimeout();
-    // actually disconnect
-    this._doDisconnect();
-    return false;
-  }
-
-  /**
-   * _Private_ handler to process events during idle cycle.
-   *
-   * This handler is called every 100ms to fire timed handlers that
-   * are ready and keep poll requests going.
-   */
-  _onIdle() {
-    // add timed handlers scheduled for addition
-    // NOTE: we add before remove in the case a timed handler is
-    // added and then deleted before the next _onIdle() call.
-    while (this.addTimeds.length > 0) {
-      this.timedHandlers.push(this.addTimeds.pop());
-    }
-
-    // remove timed handlers that have been scheduled for deletion
-    while (this.removeTimeds.length > 0) {
-      const thand = this.removeTimeds.pop();
-      const i = this.timedHandlers.indexOf(thand);
-      if (i >= 0) {
-        this.timedHandlers.splice(i, 1);
-      }
-    }
-
-    // call ready timed handlers
-    const now = new Date().getTime();
-    const newList = [];
-    for (let i = 0; i < this.timedHandlers.length; i++) {
-      const thand = this.timedHandlers[i];
-      if (this.authenticated || !thand.user) {
-        const since = thand.lastCalled + thand.period;
-        if (since - now <= 0) {
-          if (thand.run()) {
-            newList.push(thand);
-          }
-        } else {
-          newList.push(thand);
-        }
-      }
-    }
-    this.timedHandlers = newList;
-    clearTimeout(this._idleTimeout);
-    this._proto._onIdle();
-
-    // reactivate the timer only if connected
-    if (this.connected) {
-      this._idleTimeout = setTimeout(() => this._onIdle(), 100);
-    }
-  }
-}
-/* harmony default export */ const connection = (Connection);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/sasl.js
 /**
  * @typedef {import("./connection.js").default} Connection
@@ -26407,11 +25450,11 @@ function scramParseChallenge(challenge) {
   // Consider iteration counts less than 4096 insecure, as reccommended by
   // RFC 5802
   if (isNaN(iter) || iter < 4096) {
-    core.warn('Failing SCRAM authentication because server supplied iteration count < 4096.');
+    src_log.warn('Failing SCRAM authentication because server supplied iteration count < 4096.');
     return undefined;
   }
   if (!salt) {
-    core.warn('Failing SCRAM authentication because server supplied incorrect salt.');
+    src_log.warn('Failing SCRAM authentication because server supplied incorrect salt.');
     return undefined;
   }
   return {
@@ -26507,7 +25550,7 @@ const scram = {
     // The RFC requires that we verify the (server) nonce has the client
     // nonce as an initial substring.
     if (!challengeData && challengeData?.nonce.slice(0, cnonce.length) !== cnonce) {
-      core.warn('Failing SCRAM authentication because server supplied incorrect nonce.');
+      src_log.warn('Failing SCRAM authentication because server supplied incorrect nonce.');
       connection._sasl_data = {};
       return connection._sasl_failure_cb();
     }
@@ -26781,827 +25824,17 @@ class SASLXOAuth2 extends sasl {
   }
 }
 /* harmony default export */ const sasl_xoauth2 = (SASLXOAuth2);
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/request.js
-
-
-
-/**
- * Helper class that provides a cross implementation abstraction
- * for a BOSH related XMLHttpRequest.
- *
- * The Strophe.Request class is used internally to encapsulate BOSH request
- * information.  It is not meant to be used from user's code.
- *
- * @property {number} id
- * @property {number} sends
- * @property {XMLHttpRequest} xhr
- */
-class Request {
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/errors.js
+class SessionError extends Error {
   /**
-   * Create and initialize a new Strophe.Request object.
-   *
-   * @param {Element} elem - The XML data to be sent in the request.
-   * @param {Function} func - The function that will be called when the
-   *     XMLHttpRequest readyState changes.
-   * @param {number} rid - The BOSH rid attribute associated with this request.
-   * @param {number} [sends=0] - The number of times this same request has been sent.
+   * @param {string} message
    */
-  constructor(elem, func, rid) {
-    let sends = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
-    this.id = ++core._requestId;
-    this.xmlData = elem;
-    this.data = core.serialize(elem);
-    // save original function in case we need to make a new request
-    // from this one.
-    this.origFunc = func;
-    this.func = func;
-    this.rid = rid;
-    this.date = NaN;
-    this.sends = sends;
-    this.abort = false;
-    this.dead = null;
-    this.age = () => this.date ? (new Date().valueOf() - this.date.valueOf()) / 1000 : 0;
-    this.timeDead = () => this.dead ? (new Date().valueOf() - this.dead.valueOf()) / 1000 : 0;
-    this.xhr = this._newXHR();
-  }
-
-  /**
-   * Get a response from the underlying XMLHttpRequest.
-   * This function attempts to get a response from the request and checks
-   * for errors.
-   * @throws "parsererror" - A parser error occured.
-   * @throws "bad-format" - The entity has sent XML that cannot be processed.
-   * @return {Element} - The DOM element tree of the response.
-   */
-  getResponse() {
-    let node = this.xhr.responseXML?.documentElement;
-    if (node) {
-      if (node.tagName === 'parsererror') {
-        core.error('invalid response received');
-        core.error('responseText: ' + this.xhr.responseText);
-        core.error('responseXML: ' + core.serialize(node));
-        throw new Error('parsererror');
-      }
-    } else if (this.xhr.responseText) {
-      // In Node (with xhr2) or React Native, we may get responseText but no responseXML.
-      // We can try to parse it manually.
-      core.debug('Got responseText but no responseXML; attempting to parse it with DOMParser...');
-      node = new DOMParser().parseFromString(this.xhr.responseText, 'application/xml').documentElement;
-      const parserError = node?.querySelector('parsererror');
-      if (!node || parserError) {
-        if (parserError) {
-          core.error('invalid response received: ' + parserError.textContent);
-          core.error('responseText: ' + this.xhr.responseText);
-        }
-        const error = new Error();
-        error.name = core.ErrorCondition.BAD_FORMAT;
-        throw error;
-      }
-    }
-    return node;
-  }
-
-  /**
-   * _Private_ helper function to create XMLHttpRequests.
-   * This function creates XMLHttpRequests across all implementations.
-   * @private
-   * @return {XMLHttpRequest}
-   */
-  _newXHR() {
-    const xhr = new XMLHttpRequest();
-    if (xhr.overrideMimeType) {
-      xhr.overrideMimeType('text/xml; charset=utf-8');
-    }
-    // use Function.bind() to prepend ourselves as an argument
-    xhr.onreadystatechange = this.func.bind(null, this);
-    return xhr;
+  constructor(message) {
+    super(message);
+    this.name = 'StropheSessionError';
   }
 }
-/* harmony default export */ const request = (Request);
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/bosh.js
-/**
- * A JavaScript library to enable BOSH in Strophejs.
- *
- * this library uses Bidirectional-streams Over Synchronous HTTP (BOSH)
- * to emulate a persistent, stateful, two-way connection to an XMPP server.
- * More information on BOSH can be found in XEP 124.
- */
 
-/**
- * @typedef {import("./connection.js").default} Connection
- * @typedef {import("./request.js").default} Request
- */
-
-
-
-
-/**
- * _Private_ helper class that handles BOSH Connections
- * The Strophe.Bosh class is used internally by Strophe.Connection
- * to encapsulate BOSH sessions. It is not meant to be used from user's code.
- */
-class Bosh {
-  /**
-   * @param {Connection} connection - The Strophe.Connection that will use BOSH.
-   */
-  constructor(connection) {
-    this._conn = connection;
-    /* request id for body tags */
-    this.rid = Math.floor(Math.random() * 4294967295);
-    /* The current session ID. */
-    this.sid = null;
-
-    // default BOSH values
-    this.hold = 1;
-    this.wait = 60;
-    this.window = 5;
-    this.errors = 0;
-    this.inactivity = null;
-
-    /**
-     * BOSH-Connections will have all stanzas wrapped in a <body> tag when
-     * passed to {@link Strophe.Connection#xmlInput|xmlInput()} or {@link Strophe.Connection#xmlOutput|xmlOutput()}.
-     * To strip this tag, User code can set {@link Strophe.Bosh#strip|strip} to `true`:
-     *
-     * > // You can set `strip` on the prototype
-     * > Strophe.Bosh.prototype.strip = true;
-     *
-     * > // Or you can set it on the Bosh instance (which is `._proto` on the connection instance.
-     * > const conn = new Strophe.Connection();
-     * > conn._proto.strip = true;
-     *
-     * This will enable stripping of the body tag in both
-     * {@link Strophe.Connection#xmlInput|xmlInput} and {@link Strophe.Connection#xmlOutput|xmlOutput}.
-     *
-     * @property {boolean} [strip=false]
-     */
-    this.strip = Bosh.prototype.strip ?? false;
-    this.lastResponseHeaders = null;
-    /** @type {Request[]} */
-    this._requests = [];
-  }
-
-  /**
-   * _Private_ helper function to generate the <body/> wrapper for BOSH.
-   * @private
-   * @return {Builder} - A Strophe.Builder with a <body/> element.
-   */
-  _buildBody() {
-    const bodyWrap = $build('body', {
-      'rid': this.rid++,
-      'xmlns': core.NS.HTTPBIND
-    });
-    if (this.sid !== null) {
-      bodyWrap.attrs({
-        'sid': this.sid
-      });
-    }
-    if (this._conn.options.keepalive && this._conn._sessionCachingSupported()) {
-      this._cacheSession();
-    }
-    return bodyWrap;
-  }
-
-  /**
-   * Reset the connection.
-   * This function is called by the reset function of the Strophe Connection
-   */
-  _reset() {
-    this.rid = Math.floor(Math.random() * 4294967295);
-    this.sid = null;
-    this.errors = 0;
-    if (this._conn._sessionCachingSupported()) {
-      sessionStorage.removeItem('strophe-bosh-session');
-    }
-    this._conn.nextValidRid(this.rid);
-  }
-
-  /**
-   * _Private_ function that initializes the BOSH connection.
-   * Creates and sends the Request that initializes the BOSH connection.
-   * @param {number} wait - The optional HTTPBIND wait value.  This is the
-   *     time the server will wait before returning an empty result for
-   *     a request.  The default setting of 60 seconds is recommended.
-   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
-   * @param {number} hold - The optional HTTPBIND hold value.  This is the
-   *     number of connections the server will hold at one time.  This
-   *     should almost always be set to 1 (the default).
-   * @param {string} route
-   */
-  _connect(wait, hold, route) {
-    this.wait = wait || this.wait;
-    this.hold = hold || this.hold;
-    this.errors = 0;
-    const body = this._buildBody().attrs({
-      'to': this._conn.domain,
-      'xml:lang': 'en',
-      'wait': this.wait,
-      'hold': this.hold,
-      'content': 'text/xml; charset=utf-8',
-      'ver': '1.6',
-      'xmpp:version': '1.0',
-      'xmlns:xmpp': core.NS.BOSH
-    });
-    if (route) {
-      body.attrs({
-        route
-      });
-    }
-    const _connect_cb = this._conn._connect_cb;
-    this._requests.push(new core.Request(body.tree(), this._onRequestStateChange.bind(this, _connect_cb.bind(this._conn)), Number(body.tree().getAttribute('rid'))));
-    this._throttledRequestHandler();
-  }
-
-  /**
-   * Attach to an already created and authenticated BOSH session.
-   *
-   * This function is provided to allow Strophe to attach to BOSH
-   * sessions which have been created externally, perhaps by a Web
-   * application.  This is often used to support auto-login type features
-   * without putting user credentials into the page.
-   *
-   * @param {string} jid - The full JID that is bound by the session.
-   * @param {string} sid - The SID of the BOSH session.
-   * @param {number} rid - The current RID of the BOSH session.  This RID
-   *     will be used by the next request.
-   * @param {Function} callback The connect callback function.
-   * @param {number} wait - The optional HTTPBIND wait value.  This is the
-   *     time the server will wait before returning an empty result for
-   *     a request.  The default setting of 60 seconds is recommended.
-   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
-   * @param {number} hold - The optional HTTPBIND hold value.  This is the
-   *     number of connections the server will hold at one time.  This
-   *     should almost always be set to 1 (the default).
-   * @param {number} wind - The optional HTTBIND window value.  This is the
-   *     allowed range of request ids that are valid.  The default is 5.
-   */
-  _attach(jid, sid, rid, callback, wait, hold, wind) {
-    this._conn.jid = jid;
-    this.sid = sid;
-    this.rid = rid;
-    this._conn.connect_callback = callback;
-    this._conn.domain = core.getDomainFromJid(this._conn.jid);
-    this._conn.authenticated = true;
-    this._conn.connected = true;
-    this.wait = wait || this.wait;
-    this.hold = hold || this.hold;
-    this.window = wind || this.window;
-    this._conn._changeConnectStatus(core.Status.ATTACHED, null);
-  }
-
-  /**
-   * Attempt to restore a cached BOSH session
-   *
-   * @param {string} jid - The full JID that is bound by the session.
-   *     This parameter is optional but recommended, specifically in cases
-   *     where prebinded BOSH sessions are used where it's important to know
-   *     that the right session is being restored.
-   * @param {Function} callback The connect callback function.
-   * @param {number} wait - The optional HTTPBIND wait value.  This is the
-   *     time the server will wait before returning an empty result for
-   *     a request.  The default setting of 60 seconds is recommended.
-   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
-   * @param {number} hold - The optional HTTPBIND hold value.  This is the
-   *     number of connections the server will hold at one time.  This
-   *     should almost always be set to 1 (the default).
-   * @param {number} wind - The optional HTTBIND window value.  This is the
-   *     allowed range of request ids that are valid.  The default is 5.
-   */
-  _restore(jid, callback, wait, hold, wind) {
-    const session = JSON.parse(sessionStorage.getItem('strophe-bosh-session'));
-    if (typeof session !== 'undefined' && session !== null && session.rid && session.sid && session.jid && (typeof jid === 'undefined' || jid === null || core.getBareJidFromJid(session.jid) === core.getBareJidFromJid(jid) ||
-    // If authcid is null, then it's an anonymous login, so
-    // we compare only the domains:
-    core.getNodeFromJid(jid) === null && core.getDomainFromJid(session.jid) === jid)) {
-      this._conn.restored = true;
-      this._attach(session.jid, session.sid, session.rid, callback, wait, hold, wind);
-    } else {
-      const error = new Error('_restore: no restoreable session.');
-      error.name = 'StropheSessionError';
-      throw error;
-    }
-  }
-
-  /**
-   * _Private_ handler for the beforeunload event.
-   * This handler is used to process the Bosh-part of the initial request.
-   * @private
-   */
-  _cacheSession() {
-    if (this._conn.authenticated) {
-      if (this._conn.jid && this.rid && this.sid) {
-        sessionStorage.setItem('strophe-bosh-session', JSON.stringify({
-          'jid': this._conn.jid,
-          'rid': this.rid,
-          'sid': this.sid
-        }));
-      }
-    } else {
-      sessionStorage.removeItem('strophe-bosh-session');
-    }
-  }
-
-  /**
-   * _Private_ handler for initial connection request.
-   * This handler is used to process the Bosh-part of the initial request.
-   * @param {Element} bodyWrap - The received stanza.
-   */
-  _connect_cb(bodyWrap) {
-    const typ = bodyWrap.getAttribute('type');
-    if (typ !== null && typ === 'terminate') {
-      // an error occurred
-      let cond = bodyWrap.getAttribute('condition');
-      core.error('BOSH-Connection failed: ' + cond);
-      const conflict = bodyWrap.getElementsByTagName('conflict');
-      if (cond !== null) {
-        if (cond === 'remote-stream-error' && conflict.length > 0) {
-          cond = 'conflict';
-        }
-        this._conn._changeConnectStatus(core.Status.CONNFAIL, cond);
-      } else {
-        this._conn._changeConnectStatus(core.Status.CONNFAIL, 'unknown');
-      }
-      this._conn._doDisconnect(cond);
-      return core.Status.CONNFAIL;
-    }
-
-    // check to make sure we don't overwrite these if _connect_cb is
-    // called multiple times in the case of missing stream:features
-    if (!this.sid) {
-      this.sid = bodyWrap.getAttribute('sid');
-    }
-    const wind = bodyWrap.getAttribute('requests');
-    if (wind) {
-      this.window = parseInt(wind, 10);
-    }
-    const hold = bodyWrap.getAttribute('hold');
-    if (hold) {
-      this.hold = parseInt(hold, 10);
-    }
-    const wait = bodyWrap.getAttribute('wait');
-    if (wait) {
-      this.wait = parseInt(wait, 10);
-    }
-    const inactivity = bodyWrap.getAttribute('inactivity');
-    if (inactivity) {
-      this.inactivity = parseInt(inactivity, 10);
-    }
-  }
-
-  /**
-   * _Private_ part of Connection.disconnect for Bosh
-   * @param {Element|Builder} pres - This stanza will be sent before disconnecting.
-   */
-  _disconnect(pres) {
-    this._sendTerminate(pres);
-  }
-
-  /**
-   * _Private_ function to disconnect.
-   * Resets the SID and RID.
-   */
-  _doDisconnect() {
-    this.sid = null;
-    this.rid = Math.floor(Math.random() * 4294967295);
-    if (this._conn._sessionCachingSupported()) {
-      sessionStorage.removeItem('strophe-bosh-session');
-    }
-    this._conn.nextValidRid(this.rid);
-  }
-
-  /**
-   * _Private_ function to check if the Request queue is empty.
-   * @return {boolean} - True, if there are no Requests queued, False otherwise.
-   */
-  _emptyQueue() {
-    return this._requests.length === 0;
-  }
-
-  /**
-   * _Private_ function to call error handlers registered for HTTP errors.
-   * @private
-   * @param {Request} req - The request that is changing readyState.
-   */
-  _callProtocolErrorHandlers(req) {
-    const reqStatus = Bosh._getRequestStatus(req);
-    const err_callback = this._conn.protocolErrorHandlers.HTTP[reqStatus];
-    if (err_callback) {
-      err_callback.call(this, reqStatus);
-    }
-  }
-
-  /**
-   * _Private_ function to handle the error count.
-   *
-   * Requests are resent automatically until their error count reaches
-   * 5.  Each time an error is encountered, this function is called to
-   * increment the count and disconnect if the count is too high.
-   * @private
-   * @param {number} reqStatus - The request status.
-   */
-  _hitError(reqStatus) {
-    this.errors++;
-    core.warn('request errored, status: ' + reqStatus + ', number of errors: ' + this.errors);
-    if (this.errors > 4) {
-      this._conn._onDisconnectTimeout();
-    }
-  }
-
-  /**
-   * @callback connectionCallback
-   * @param {Connection} connection
-   */
-
-  /**
-   * Called on stream start/restart when no stream:features
-   * has been received and sends a blank poll request.
-   * @param {connectionCallback} callback
-   */
-  _no_auth_received(callback) {
-    core.warn('Server did not yet offer a supported authentication ' + 'mechanism. Sending a blank poll request.');
-    if (callback) {
-      callback = callback.bind(this._conn);
-    } else {
-      callback = this._conn._connect_cb.bind(this._conn);
-    }
-    const body = this._buildBody();
-    this._requests.push(new core.Request(body.tree(), this._onRequestStateChange.bind(this, callback), Number(body.tree().getAttribute('rid'))));
-    this._throttledRequestHandler();
-  }
-
-  /**
-   * _Private_ timeout handler for handling non-graceful disconnection.
-   * Cancels all remaining Requests and clears the queue.
-   */
-  _onDisconnectTimeout() {
-    this._abortAllRequests();
-  }
-
-  /**
-   * _Private_ helper function that makes sure all pending requests are aborted.
-   */
-  _abortAllRequests() {
-    while (this._requests.length > 0) {
-      const req = this._requests.pop();
-      req.abort = true;
-      req.xhr.abort();
-      req.xhr.onreadystatechange = function () {};
-    }
-  }
-
-  /**
-   * _Private_ handler called by {@link Strophe.Connection#_onIdle|Strophe.Connection._onIdle()}.
-   * Sends all queued Requests or polls with empty Request if there are none.
-   */
-  _onIdle() {
-    const data = this._conn._data;
-    // if no requests are in progress, poll
-    if (this._conn.authenticated && this._requests.length === 0 && data.length === 0 && !this._conn.disconnecting) {
-      core.debug('no requests during idle cycle, sending blank request');
-      data.push(null);
-    }
-    if (this._conn.paused) {
-      return;
-    }
-    if (this._requests.length < 2 && data.length > 0) {
-      const body = this._buildBody();
-      for (let i = 0; i < data.length; i++) {
-        if (data[i] !== null) {
-          if (data[i] === 'restart') {
-            body.attrs({
-              'to': this._conn.domain,
-              'xml:lang': 'en',
-              'xmpp:restart': 'true',
-              'xmlns:xmpp': core.NS.BOSH
-            });
-          } else {
-            body.cnode( /** @type {Element} */data[i]).up();
-          }
-        }
-      }
-      delete this._conn._data;
-      this._conn._data = [];
-      this._requests.push(new core.Request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), Number(body.tree().getAttribute('rid'))));
-      this._throttledRequestHandler();
-    }
-    if (this._requests.length > 0) {
-      const time_elapsed = this._requests[0].age();
-      if (this._requests[0].dead !== null) {
-        if (this._requests[0].timeDead() > Math.floor(core.SECONDARY_TIMEOUT * this.wait)) {
-          this._throttledRequestHandler();
-        }
-      }
-      if (time_elapsed > Math.floor(core.TIMEOUT * this.wait)) {
-        core.warn('Request ' + this._requests[0].id + ' timed out, over ' + Math.floor(core.TIMEOUT * this.wait) + ' seconds since last activity');
-        this._throttledRequestHandler();
-      }
-    }
-  }
-
-  /**
-   * Returns the HTTP status code from a {@link Strophe.Request}
-   * @private
-   * @param {Request} req - The {@link Strophe.Request} instance.
-   * @param {number} [def] - The default value that should be returned if no status value was found.
-   */
-  static _getRequestStatus(req, def) {
-    let reqStatus;
-    if (req.xhr.readyState === 4) {
-      try {
-        reqStatus = req.xhr.status;
-      } catch (e) {
-        // ignore errors from undefined status attribute. Works
-        // around a browser bug
-        core.error("Caught an error while retrieving a request's status, " + 'reqStatus: ' + reqStatus);
-      }
-    }
-    if (typeof reqStatus === 'undefined') {
-      reqStatus = typeof def === 'number' ? def : 0;
-    }
-    return reqStatus;
-  }
-
-  /**
-   * _Private_ handler for {@link Strophe.Request} state changes.
-   *
-   * This function is called when the XMLHttpRequest readyState changes.
-   * It contains a lot of error handling logic for the many ways that
-   * requests can fail, and calls the request callback when requests
-   * succeed.
-   * @private
-   *
-   * @param {Function} func - The handler for the request.
-   * @param {Request} req - The request that is changing readyState.
-   */
-  _onRequestStateChange(func, req) {
-    core.debug('request id ' + req.id + '.' + req.sends + ' state changed to ' + req.xhr.readyState);
-    if (req.abort) {
-      req.abort = false;
-      return;
-    }
-    if (req.xhr.readyState !== 4) {
-      // The request is not yet complete
-      return;
-    }
-    const reqStatus = Bosh._getRequestStatus(req);
-    this.lastResponseHeaders = req.xhr.getAllResponseHeaders();
-    if (this._conn.disconnecting && reqStatus >= 400) {
-      this._hitError(reqStatus);
-      this._callProtocolErrorHandlers(req);
-      return;
-    }
-    const reqIs0 = this._requests[0] === req;
-    const reqIs1 = this._requests[1] === req;
-    const valid_request = reqStatus > 0 && reqStatus < 500;
-    const too_many_retries = req.sends > this._conn.maxRetries;
-    if (valid_request || too_many_retries) {
-      // remove from internal queue
-      this._removeRequest(req);
-      core.debug('request id ' + req.id + ' should now be removed');
-    }
-    if (reqStatus === 200) {
-      // request succeeded
-      // if request 1 finished, or request 0 finished and request
-      // 1 is over Strophe.SECONDARY_TIMEOUT seconds old, we need to
-      // restart the other - both will be in the first spot, as the
-      // completed request has been removed from the queue already
-      if (reqIs1 || reqIs0 && this._requests.length > 0 && this._requests[0].age() > Math.floor(core.SECONDARY_TIMEOUT * this.wait)) {
-        this._restartRequest(0);
-      }
-      this._conn.nextValidRid(req.rid + 1);
-      core.debug('request id ' + req.id + '.' + req.sends + ' got 200');
-      func(req); // call handler
-      this.errors = 0;
-    } else if (reqStatus === 0 || reqStatus >= 400 && reqStatus < 600 || reqStatus >= 12000) {
-      // request failed
-      core.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
-      this._hitError(reqStatus);
-      this._callProtocolErrorHandlers(req);
-      if (reqStatus >= 400 && reqStatus < 500) {
-        this._conn._changeConnectStatus(core.Status.DISCONNECTING, null);
-        this._conn._doDisconnect();
-      }
-    } else {
-      core.error('request id ' + req.id + '.' + req.sends + ' error ' + reqStatus + ' happened');
-    }
-    if (!valid_request && !too_many_retries) {
-      this._throttledRequestHandler();
-    } else if (too_many_retries && !this._conn.connected) {
-      this._conn._changeConnectStatus(core.Status.CONNFAIL, 'giving-up');
-    }
-  }
-
-  /**
-   * _Private_ function to process a request in the queue.
-   *
-   * This function takes requests off the queue and sends them and
-   * restarts dead requests.
-   * @private
-   *
-   * @param {number} i - The index of the request in the queue.
-   */
-  _processRequest(i) {
-    let req = this._requests[i];
-    const reqStatus = Bosh._getRequestStatus(req, -1);
-
-    // make sure we limit the number of retries
-    if (req.sends > this._conn.maxRetries) {
-      this._conn._onDisconnectTimeout();
-      return;
-    }
-    const time_elapsed = req.age();
-    const primary_timeout = !isNaN(time_elapsed) && time_elapsed > Math.floor(core.TIMEOUT * this.wait);
-    const secondary_timeout = req.dead !== null && req.timeDead() > Math.floor(core.SECONDARY_TIMEOUT * this.wait);
-    const server_error = req.xhr.readyState === 4 && (reqStatus < 1 || reqStatus >= 500);
-    if (primary_timeout || secondary_timeout || server_error) {
-      if (secondary_timeout) {
-        core.error(`Request ${this._requests[i].id} timed out (secondary), restarting`);
-      }
-      req.abort = true;
-      req.xhr.abort();
-      // setting to null fails on IE6, so set to empty function
-      req.xhr.onreadystatechange = function () {};
-      this._requests[i] = new core.Request(req.xmlData, req.origFunc, req.rid, req.sends);
-      req = this._requests[i];
-    }
-    if (req.xhr.readyState === 0) {
-      core.debug('request id ' + req.id + '.' + req.sends + ' posting');
-      try {
-        const content_type = this._conn.options.contentType || 'text/xml; charset=utf-8';
-        req.xhr.open('POST', this._conn.service, this._conn.options.sync ? false : true);
-        if (typeof req.xhr.setRequestHeader !== 'undefined') {
-          // IE9 doesn't have setRequestHeader
-          req.xhr.setRequestHeader('Content-Type', content_type);
-        }
-        if (this._conn.options.withCredentials) {
-          req.xhr.withCredentials = true;
-        }
-      } catch (e2) {
-        core.error('XHR open failed: ' + e2.toString());
-        if (!this._conn.connected) {
-          this._conn._changeConnectStatus(core.Status.CONNFAIL, 'bad-service');
-        }
-        this._conn.disconnect();
-        return;
-      }
-
-      // Fires the XHR request -- may be invoked immediately
-      // or on a gradually expanding retry window for reconnects
-      const sendFunc = () => {
-        req.date = new Date().valueOf();
-        if (this._conn.options.customHeaders) {
-          const headers = this._conn.options.customHeaders;
-          for (const header in headers) {
-            if (Object.prototype.hasOwnProperty.call(headers, header)) {
-              req.xhr.setRequestHeader(header, headers[header]);
-            }
-          }
-        }
-        req.xhr.send(req.data);
-      };
-
-      // Implement progressive backoff for reconnects --
-      // First retry (send === 1) should also be instantaneous
-      if (req.sends > 1) {
-        // Using a cube of the retry number creates a nicely
-        // expanding retry window
-        const backoff = Math.min(Math.floor(core.TIMEOUT * this.wait), Math.pow(req.sends, 3)) * 1000;
-        setTimeout(function () {
-          // XXX: setTimeout should be called only with function expressions (23974bc1)
-          sendFunc();
-        }, backoff);
-      } else {
-        sendFunc();
-      }
-      req.sends++;
-      if (this.strip && req.xmlData.nodeName === 'body' && req.xmlData.childNodes.length) {
-        this._conn.xmlOutput?.(req.xmlData.children[0]);
-      } else {
-        this._conn.xmlOutput?.(req.xmlData);
-      }
-      this._conn.rawOutput?.(req.data);
-    } else {
-      core.debug('_processRequest: ' + (i === 0 ? 'first' : 'second') + ' request has readyState of ' + req.xhr.readyState);
-    }
-  }
-
-  /**
-   * _Private_ function to remove a request from the queue.
-   * @private
-   * @param {Request} req - The request to remove.
-   */
-  _removeRequest(req) {
-    core.debug('removing request');
-    for (let i = this._requests.length - 1; i >= 0; i--) {
-      if (req === this._requests[i]) {
-        this._requests.splice(i, 1);
-      }
-    }
-    // IE6 fails on setting to null, so set to empty function
-    req.xhr.onreadystatechange = function () {};
-    this._throttledRequestHandler();
-  }
-
-  /**
-   * _Private_ function to restart a request that is presumed dead.
-   * @private
-   *
-   * @param {number} i - The index of the request in the queue.
-   */
-  _restartRequest(i) {
-    const req = this._requests[i];
-    if (req.dead === null) {
-      req.dead = new Date();
-    }
-    this._processRequest(i);
-  }
-
-  /**
-   * _Private_ function to get a stanza out of a request.
-   * Tries to extract a stanza out of a Request Object.
-   * When this fails the current connection will be disconnected.
-   *
-   * @param {Request} req - The Request.
-   * @return {Element} - The stanza that was passed.
-   */
-  _reqToData(req) {
-    try {
-      return req.getResponse();
-    } catch (e) {
-      if (e.message !== 'parsererror') {
-        throw e;
-      }
-      this._conn.disconnect('strophe-parsererror');
-    }
-  }
-
-  /**
-   * _Private_ function to send initial disconnect sequence.
-   *
-   * This is the first step in a graceful disconnect.  It sends
-   * the BOSH server a terminate body and includes an unavailable
-   * presence if authentication has completed.
-   * @private
-   * @param {Element|Builder} [pres]
-   */
-  _sendTerminate(pres) {
-    core.debug('_sendTerminate was called');
-    const body = this._buildBody().attrs({
-      type: 'terminate'
-    });
-    const el = pres instanceof builder ? pres.tree() : pres;
-    if (pres) {
-      body.cnode(el);
-    }
-    const req = new core.Request(body.tree(), this._onRequestStateChange.bind(this, this._conn._dataRecv.bind(this._conn)), Number(body.tree().getAttribute('rid')));
-    this._requests.push(req);
-    this._throttledRequestHandler();
-  }
-
-  /**
-   * _Private_ part of the Connection.send function for BOSH
-   * Just triggers the RequestHandler to send the messages that are in the queue
-   */
-  _send() {
-    clearTimeout(this._conn._idleTimeout);
-    this._throttledRequestHandler();
-    this._conn._idleTimeout = setTimeout(() => this._conn._onIdle(), 100);
-  }
-
-  /**
-   * Send an xmpp:restart stanza.
-   */
-  _sendRestart() {
-    this._throttledRequestHandler();
-    clearTimeout(this._conn._idleTimeout);
-  }
-
-  /**
-   * _Private_ function to throttle requests to the connection window.
-   *
-   * This function makes sure we don't send requests so fast that the
-   * request ids overflow the connection window in the case that one
-   * request died.
-   * @private
-   */
-  _throttledRequestHandler() {
-    if (!this._requests) {
-      core.debug('_throttledRequestHandler called with ' + 'undefined requests');
-    } else {
-      core.debug('_throttledRequestHandler called with ' + this._requests.length + ' requests');
-    }
-    if (!this._requests || this._requests.length === 0) {
-      return;
-    }
-    if (this._requests.length > 0) {
-      this._processRequest(0);
-    }
-    if (this._requests.length > 1 && Math.abs(this._requests[0].rid - this._requests[1].rid) < this.window) {
-      this._processRequest(1);
-    }
-  }
-}
-/* harmony default export */ const bosh = (Bosh);
 ;// CONCATENATED MODULE: ./node_modules/strophe.js/src/websocket.js
 /**
  * A JavaScript library to enable XMPP over Websocket in Strophejs.
@@ -27618,9 +25851,9 @@ class Bosh {
 /* global clearTimeout, location */
 
 /**
- * @typedef {import("./builder.js").default} Builder
  * @typedef {import("./connection.js").default} Connection
  */
+
 
 
 
@@ -27629,14 +25862,14 @@ class Bosh {
 /**
  * Helper class that handles WebSocket Connections
  *
- * The Strophe.WebSocket class is used internally by Strophe.Connection
+ * The WebSocket class is used internally by Connection
  * to encapsulate WebSocket sessions. It is not meant to be used from user's code.
  */
 class Websocket {
   /**
-   * Create and initialize a Strophe.WebSocket object.
+   * Create and initialize a WebSocket object.
    * Currently only sets the connection Object.
-   * @param {Connection} connection - The Strophe.Connection that will use WebSockets.
+   * @param {Connection} connection - The Connection that will use WebSockets.
    */
   constructor(connection) {
     this._conn = connection;
@@ -27664,11 +25897,11 @@ class Websocket {
   /**
    * _Private_ helper function to generate the <stream> start tag for WebSockets
    * @private
-   * @return {Builder} - A Strophe.Builder with a <stream> element.
+   * @return {Builder} - A Builder with a <stream> element.
    */
   _buildStream() {
     return $build('open', {
-      'xmlns': core.NS.FRAMING,
+      'xmlns': NS.FRAMING,
       'to': this._conn.domain,
       'version': '1.0'
     });
@@ -27684,7 +25917,7 @@ class Websocket {
   _checkStreamError(bodyWrap, connectstatus) {
     let errors;
     if (bodyWrap.getElementsByTagNameNS) {
-      errors = bodyWrap.getElementsByTagNameNS(core.NS.STREAM, 'error');
+      errors = bodyWrap.getElementsByTagNameNS(NS.STREAM, 'error');
     } else {
       errors = bodyWrap.getElementsByTagName('stream:error');
     }
@@ -27696,9 +25929,13 @@ class Websocket {
     let text = '';
     const ns = 'urn:ietf:params:xml:ns:xmpp-streams';
     for (let i = 0; i < error.childNodes.length; i++) {
-      const e = error.children[i];
-      if (e.getAttribute('xmlns') !== ns) {
-        break;
+      const e = error.childNodes[i];
+      if (e.nodeType === e.ELEMENT_NODE) {
+        /** @type {Element} */
+        const el = /** @type {any} */e;
+        if (el.getAttribute('xmlns') !== ns) {
+          break;
+        }
       }
       if (e.nodeName === 'text') {
         text = e.textContent;
@@ -27715,7 +25952,7 @@ class Websocket {
     if (text) {
       errorString += ' - ' + text;
     }
-    core.error(errorString);
+    src_log.error(errorString);
 
     // close the connection on stream_error
     this._conn._changeConnectStatus(connectstatus, condition);
@@ -27735,7 +25972,7 @@ class Websocket {
   }
 
   /**
-   * _Private_ function called by Strophe.Connection.connect
+   * _Private_ function called by Connection.connect
    *
    * Creates a WebSocket for a connection and assigns Callbacks to it.
    * Does nothing if there already is a WebSocket.
@@ -27770,14 +26007,14 @@ class Websocket {
   }
 
   /**
-   * _Private_ function called by Strophe.Connection._connect_cb
+   * _Private_ function called by Connection._connect_cb
    * checks for stream:error
    * @param {Element} bodyWrap - The received stanza.
    */
   _connect_cb(bodyWrap) {
-    const error = this._checkStreamError(bodyWrap, core.Status.CONNFAIL);
+    const error = this._checkStreamError(bodyWrap, Status.CONNFAIL);
     if (error) {
-      return core.Status.CONNFAIL;
+      return Status.CONNFAIL;
     }
   }
 
@@ -27795,7 +26032,7 @@ class Websocket {
     const ns = message.getAttribute('xmlns');
     if (typeof ns !== 'string') {
       error = 'Missing xmlns in <open />';
-    } else if (ns !== core.NS.FRAMING) {
+    } else if (ns !== NS.FRAMING) {
       error = 'Wrong xmlns in <open />: ' + ns;
     }
     const ver = message.getAttribute('version');
@@ -27805,7 +26042,7 @@ class Websocket {
       error = 'Wrong version in <open />: ' + ver;
     }
     if (error) {
-      this._conn._changeConnectStatus(core.Status.CONNFAIL, error);
+      this._conn._changeConnectStatus(Status.CONNFAIL, error);
       this._conn._doDisconnect();
       return false;
     }
@@ -27846,13 +26083,13 @@ class Websocket {
         // Valid scenarios: WSS->WSS, WS->ANY
         const isSecureRedirect = service.indexOf('wss:') >= 0 && see_uri.indexOf('wss:') >= 0 || service.indexOf('ws:') >= 0;
         if (isSecureRedirect) {
-          this._conn._changeConnectStatus(core.Status.REDIRECT, 'Received see-other-uri, resetting connection');
+          this._conn._changeConnectStatus(Status.REDIRECT, 'Received see-other-uri, resetting connection');
           this._conn.reset();
           this._conn.service = see_uri;
           this._connect();
         }
       } else {
-        this._conn._changeConnectStatus(core.Status.CONNFAIL, 'Received closing stream');
+        this._conn._changeConnectStatus(Status.CONNFAIL, 'Received closing stream');
         this._conn._doDisconnect();
       }
     } else {
@@ -27865,7 +26102,7 @@ class Websocket {
 
   /**
    * Called by _onInitialMessage in order to replace itself with the general message handler.
-   * This method is overridden by Strophe.WorkerWebsocket, which manages a
+   * This method is overridden by WorkerWebsocket, which manages a
    * websocket connection via a service worker and doesn't have direct access
    * to the socket.
    */
@@ -27875,7 +26112,7 @@ class Websocket {
   }
 
   /**
-   * _Private_ function called by Strophe.Connection.disconnect
+   * _Private_ function called by Connection.disconnect
    * Disconnects and sends a last stanza if one is given
    * @param {Element|Builder} [pres] - This stanza will be sent before disconnecting.
    */
@@ -27885,15 +26122,15 @@ class Websocket {
         this._conn.send(pres);
       }
       const close = $build('close', {
-        'xmlns': core.NS.FRAMING
+        'xmlns': NS.FRAMING
       });
       this._conn.xmlOutput(close.tree());
-      const closeString = core.serialize(close);
+      const closeString = builder.serialize(close);
       this._conn.rawOutput(closeString);
       try {
         this.socket.send(closeString);
       } catch (e) {
-        core.warn("Couldn't send <close /> tag.");
+        src_log.warn(`Couldn't send <close /> tag. "${e.message}"`);
       }
     }
     setTimeout(() => this._conn._doDisconnect(), 0);
@@ -27904,7 +26141,7 @@ class Websocket {
    * Just closes the Socket for WebSockets
    */
   _doDisconnect() {
-    core.debug('WebSockets _doDisconnect was called');
+    src_log.debug('WebSockets _doDisconnect was called');
     this._closeSocket();
   }
 
@@ -27932,7 +26169,7 @@ class Websocket {
         this.socket.onmessage = null;
         this.socket.close();
       } catch (e) {
-        core.debug(e.message);
+        src_log.debug(e.message);
       }
     }
     this.socket = null;
@@ -27953,18 +26190,18 @@ class Websocket {
    */
   _onClose(e) {
     if (this._conn.connected && !this._conn.disconnecting) {
-      core.error('Websocket closed unexpectedly');
+      src_log.error('Websocket closed unexpectedly');
       this._conn._doDisconnect();
     } else if (e && e.code === 1006 && !this._conn.connected && this.socket) {
       // in case the onError callback was not called (Safari 10 does not
       // call onerror when the initial connection fails) we need to
       // dispatch a CONNFAIL status update to be consistent with the
       // behavior on other browsers.
-      core.error('Websocket closed unexcectedly');
-      this._conn._changeConnectStatus(core.Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
+      src_log.error('Websocket closed unexcectedly');
+      this._conn._changeConnectStatus(Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
       this._conn._doDisconnect();
     } else {
-      core.debug('Websocket closed');
+      src_log.debug('Websocket closed');
     }
   }
 
@@ -27979,8 +26216,8 @@ class Websocket {
    * @param {connectionCallback} callback
    */
   _no_auth_received(callback) {
-    core.error('Server did not offer a supported authentication mechanism');
-    this._conn._changeConnectStatus(core.Status.CONNFAIL, core.ErrorCondition.NO_AUTH_MECH);
+    src_log.error('Server did not offer a supported authentication mechanism');
+    this._conn._changeConnectStatus(Status.CONNFAIL, ErrorCondition.NO_AUTH_MECH);
     callback?.call(this._conn);
     this._conn._doDisconnect();
   }
@@ -28002,13 +26239,13 @@ class Websocket {
    * @param {Object} error - The websocket error.
    */
   _onError(error) {
-    core.error('Websocket error ' + JSON.stringify(error));
-    this._conn._changeConnectStatus(core.Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
+    src_log.error('Websocket error ' + JSON.stringify(error));
+    this._conn._changeConnectStatus(Status.CONNFAIL, 'The WebSocket connection could not be established or was disconnected.');
     this._disconnect();
   }
 
   /**
-   * _Private_ function called by Strophe.Connection._onIdle
+   * _Private_ function called by Connection._onIdle
    * sends all queued stanzas
    */
   _onIdle() {
@@ -28018,7 +26255,7 @@ class Websocket {
         if (data[i] !== null) {
           const stanza = data[i] === 'restart' ? this._buildStream().tree() : data[i];
           if (stanza === 'restart') throw new Error('Wrong type for stanza'); // Shut up tsc
-          const rawStanza = core.serialize(stanza);
+          const rawStanza = builder.serialize(stanza);
           this._conn.xmlOutput(stanza);
           this._conn.rawOutput(rawStanza);
           this.socket.send(rawStanza);
@@ -28071,14 +26308,14 @@ class Websocket {
       const data = this._streamWrap(message.data);
       elem = new DOMParser().parseFromString(data, 'text/xml').documentElement;
     }
-    if (this._checkStreamError(elem, core.Status.ERROR)) {
+    if (this._checkStreamError(elem, Status.ERROR)) {
       return;
     }
 
     //handle unavailable presence stanza before disconnecting
     if (this._conn.disconnecting && elem.firstElementChild.nodeName === 'presence' && elem.firstElementChild.getAttribute('type') === 'unavailable') {
       this._conn.xmlInput(elem);
-      this._conn.rawInput(core.serialize(elem));
+      this._conn.rawInput(builder.serialize(elem));
       // if we are already disconnecting we will ignore the unavailable stanza and
       // wait for the </stream:stream> tag before we close the connection
       return;
@@ -28092,10 +26329,10 @@ class Websocket {
    * @private
    */
   _onOpen() {
-    core.debug('Websocket open');
+    src_log.debug('Websocket open');
     const start = this._buildStream();
     this._conn.xmlOutput(start.tree());
-    const startString = core.serialize(start);
+    const startString = builder.serialize(start);
     this._conn.rawOutput(startString);
     this.socket.send(startString);
   }
@@ -28121,9 +26358,6 @@ class Websocket {
 /**
  * @license MIT
  * @copyright JC Brand
- *
- * @typedef {import("./connection.js").default} Connection
- * @typedef {import("./builder.js").default} Builder
  */
 
 
@@ -28135,8 +26369,12 @@ class Websocket {
  */
 class WorkerWebsocket extends websocket {
   /**
-   * Create and initialize a Strophe.WorkerWebsocket object.
-   * @param {Connection} connection - The Strophe.Connection
+   * @typedef {import("./connection.js").default} Connection
+   */
+
+  /**
+   * Create and initialize a WorkerWebsocket object.
+   * @param {Connection} connection - The Connection
    */
   constructor(connection) {
     super(connection);
@@ -28144,7 +26382,7 @@ class WorkerWebsocket extends websocket {
     this.worker = new SharedWorker(this._conn.options.worker, 'Strophe XMPP Connection');
     this.worker.onerror = e => {
       console?.error(e);
-      core.log(core.LogLevel.ERROR, `Shared Worker Error: ${e}`);
+      src_log.error(`Shared Worker Error: ${e}`);
     };
   }
 
@@ -28192,17 +26430,17 @@ class WorkerWebsocket extends websocket {
    * @param {string} jid
    */
   _attachCallback(status, jid) {
-    if (status === core.Status.ATTACHED) {
+    if (status === Status.ATTACHED) {
       this._conn.jid = jid;
       this._conn.authenticated = true;
       this._conn.connected = true;
       this._conn.restored = true;
-      this._conn._changeConnectStatus(core.Status.ATTACHED);
-    } else if (status === core.Status.ATTACHFAIL) {
+      this._conn._changeConnectStatus(Status.ATTACHED);
+    } else if (status === Status.ATTACHFAIL) {
       this._conn.authenticated = false;
       this._conn.connected = false;
       this._conn.restored = false;
-      this._conn._changeConnectStatus(core.Status.ATTACHFAIL);
+      this._conn._changeConnectStatus(Status.ATTACHFAIL);
     }
   }
 
@@ -28212,10 +26450,10 @@ class WorkerWebsocket extends websocket {
   _disconnect(pres) {
     pres && this._conn.send(pres);
     const close = $build('close', {
-      'xmlns': core.NS.FRAMING
+      'xmlns': NS.FRAMING
     });
     this._conn.xmlOutput(close.tree());
-    const closeString = core.serialize(close);
+    const closeString = builder.serialize(close);
     this._conn.rawOutput(closeString);
     this.worker.port.postMessage(['send', closeString]);
     this._conn._doDisconnect();
@@ -28241,13 +26479,6 @@ class WorkerWebsocket extends websocket {
    * @param {MessageEvent} ev
    */
   _onWorkerMessage(ev) {
-    /** @type {Object.<string, number>} */
-    const lmap = {};
-    lmap['debug'] = core.LogLevel.DEBUG;
-    lmap['info'] = core.LogLevel.INFO;
-    lmap['warn'] = core.LogLevel.WARN;
-    lmap['error'] = core.LogLevel.ERROR;
-    lmap['fatal'] = core.LogLevel.FATAL;
     const {
       data
     } = ev;
@@ -28259,19 +26490,1978 @@ class WorkerWebsocket extends websocket {
         this[/** @type {'_attachCallback'|'_onOpen'|'_onClose'|'_onError'} */
         method_name].apply(this, ev.data.slice(1));
       } catch (e) {
-        core.log(core.LogLevel.ERROR, e);
+        src_log.error(e);
       }
     } else if (method_name === 'log') {
+      /** @type {Object.<string, number>} */
+      const lmap = {
+        debug: LOG_LEVELS.DEBUG,
+        info: LOG_LEVELS.INFO,
+        warn: LOG_LEVELS.WARN,
+        error: LOG_LEVELS.ERROR,
+        fatal: LOG_LEVELS.FATAL
+      };
       const level = data[1];
       const msg = data[2];
-      core.log(lmap[level], msg);
+      src_log.log(lmap[level], msg);
     } else {
-      core.log(core.LogLevel.ERROR, `Found unhandled service worker message: ${data}`);
+      src_log.error(`Found unhandled service worker message: ${data}`);
     }
   }
 }
 /* harmony default export */ const worker_websocket = (WorkerWebsocket);
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/core.js
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/connection.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @typedef {import("./sasl.js").default} SASLMechanism
+ * @typedef {import("./request.js").default} Request
+ *
+ * @typedef {Object} ConnectionOptions
+ * @property {Cookies} [cookies]
+ *  Allows you to pass in cookies that will be included in HTTP requests.
+ *  Relevant to both the BOSH and Websocket transports.
+ *
+ *  The passed in value must be a map of cookie names and string values.
+ *
+ *  > { "myCookie": {
+ *  >     "value": "1234",
+ *  >     "domain": ".example.org",
+ *  >     "path": "/",
+ *  >     "expires": expirationDate
+ *  >     }
+ *  > }
+ *
+ *  Note that cookies can't be set in this way for domains other than the one
+ *  that's hosting Strophe (i.e. cross-domain).
+ *  Those cookies need to be set under those domains, for example they can be
+ *  set server-side by making a XHR call to that domain to ask it to set any
+ *  necessary cookies.
+ * @property {SASLMechanism[]} [mechanisms]
+ *  Allows you to specify the SASL authentication mechanisms that this
+ *  instance of Connection (and therefore your XMPP client) will support.
+ *
+ *  The value must be an array of objects with {@link SASLMechanism}
+ *  prototypes.
+ *
+ *  If nothing is specified, then the following mechanisms (and their
+ *  priorities) are registered:
+ *
+ *      Mechanism       Priority
+ *      ------------------------
+ *      SCRAM-SHA-512   72
+ *      SCRAM-SHA-384   71
+ *      SCRAM-SHA-256   70
+ *      SCRAM-SHA-1     60
+ *      PLAIN           50
+ *      OAUTHBEARER     40
+ *      X-OAUTH2        30
+ *      ANONYMOUS       20
+ *      EXTERNAL        10
+ *
+ * @property {boolean} [explicitResourceBinding]
+ *  If `explicitResourceBinding` is set to `true`, then the XMPP client
+ *  needs to explicitly call {@link Connection.bind} once the XMPP
+ *  server has advertised the `urn:ietf:propertys:xml:ns:xmpp-bind` feature.
+ *
+ *  Making this step explicit allows client authors to first finish other
+ *  stream related tasks, such as setting up an XEP-0198 Stream Management
+ *  session, before binding the JID resource for this session.
+ *
+ * @property {'ws'|'wss'} [protocol]
+ *  _Note: This option is only relevant to Websocket connections, and not BOSH_
+ *
+ *  If you want to connect to the current host with a WebSocket connection you
+ *  can tell Strophe to use WebSockets through the "protocol" option.
+ *  Valid values are `ws` for WebSocket and `wss` for Secure WebSocket.
+ *  So to connect to "wss://CURRENT_HOSTNAME/xmpp-websocket" you would call
+ *
+ *      const conn = new Strophe.Connection(
+ *          "/xmpp-websocket/",
+ *          {protocol: "wss"}
+ *      );
+ *
+ *  Note that relative URLs _NOT_ starting with a "/" will also include the path
+ *  of the current site.
+ *
+ *  Also because downgrading security is not permitted by browsers, when using
+ *  relative URLs both BOSH and WebSocket connections will use their secure
+ *  variants if the current connection to the site is also secure (https).
+ *
+ * @property {string} [worker]
+ *  _Note: This option is only relevant to Websocket connections, and not BOSH_
+ *
+ *  Set this option to URL from where the shared worker script should be loaded.
+ *
+ *  To run the websocket connection inside a shared worker.
+ *  This allows you to share a single websocket-based connection between
+ *  multiple Connection instances, for example one per browser tab.
+ *
+ *  The script to use is the one in `src/shared-connection-worker.js`.
+ *
+ * @property {boolean} [sync]
+ *  Used to control whether BOSH HTTP requests will be made synchronously or not.
+ *  The default behaviour is asynchronous. If you want to make requests
+ *  synchronous, make "sync" evaluate to true.
+ *
+ *  > const conn = new Strophe.Connection("/http-bind/", {sync: true});
+ *
+ *  You can also toggle this on an already established connection.
+ *
+ *  > conn.options.sync = true;
+ *
+ * @property {string[]} [customHeaders]
+ *  Used to provide custom HTTP headers to be included in the BOSH HTTP requests.
+ *
+ * @property {boolean} [keepalive]
+ *  Used to instruct Strophe to maintain the current BOSH session across
+ *  interruptions such as webpage reloads.
+ *
+ *  It will do this by caching the sessions tokens in sessionStorage, and when
+ *  "restore" is called it will check whether there are cached tokens with
+ *  which it can resume an existing session.
+ *
+ * @property {boolean} [withCredentials]
+ *  Used to indicate wether cookies should be included in HTTP requests (by default
+ *  they're not).
+ *  Set this value to `true` if you are connecting to a BOSH service
+ *  and for some reason need to send cookies to it.
+ *  In order for this to work cross-domain, the server must also enable
+ *  credentials by setting the `Access-Control-Allow-Credentials` response header
+ *  to "true". For most usecases however this setting should be false (which
+ *  is the default).
+ *  Additionally, when using `Access-Control-Allow-Credentials`, the
+ *  `Access-Control-Allow-Origin` header can't be set to the wildcard "*", but
+ *  instead must be restricted to actual domains.
+ *
+ * @property {string} [contentType]
+ *  Used to change the default Content-Type, which is "text/xml; charset=utf-8".
+ *  Can be useful to reduce the amount of CORS preflight requests that are sent
+ *  to the server.
+ */
+
+/**
+ * _Private_ variable Used to store plugin names that need
+ * initialization during Connection construction.
+ * @type {Object.<string, Object>}
+ */
+const connectionPlugins = {};
+
+/**
+ * **XMPP Connection manager**
+ *
+ * This class is the main part of Strophe.  It manages a BOSH or websocket
+ * connection to an XMPP server and dispatches events to the user callbacks
+ * as data arrives.
+ *
+ * It supports various authentication mechanisms (e.g. SASL PLAIN, SASL SCRAM),
+ * and more can be added via
+ * {@link Connection#registerSASLMechanisms|registerSASLMechanisms()}.
+ *
+ * After creating a Connection object, the user will typically
+ * call {@link Connection#connect|connect()} with a user supplied callback
+ * to handle connection level events like authentication failure,
+ * disconnection, or connection complete.
+ *
+ * The user will also have several event handlers defined by using
+ * {@link Connection#addHandler|addHandler()} and
+ * {@link Connection#addTimedHandler|addTimedHandler()}.
+ * These will allow the user code to respond to interesting stanzas or do
+ * something periodically with the connection. These handlers will be active
+ * once authentication is finished.
+ *
+ * To send data to the connection, use {@link Connection#send|send()}.
+ *
+ * @memberof Strophe
+ */
+class Connection {
+  /**
+   * @typedef {Object.<string, string>} Cookie
+   * @typedef {Cookie|Object.<string, Cookie>} Cookies
+   */
+
+  /**
+   * Create and initialize a {@link Connection} object.
+   *
+   * The transport-protocol for this connection will be chosen automatically
+   * based on the given service parameter. URLs starting with "ws://" or
+   * "wss://" will use WebSockets, URLs starting with "http://", "https://"
+   * or without a protocol will use [BOSH](https://xmpp.org/extensions/xep-0124.html).
+   *
+   * To make Strophe connect to the current host you can leave out the protocol
+   * and host part and just pass the path:
+   *
+   *  const conn = new Strophe.Connection("/http-bind/");
+   *
+   * @param {string} service - The BOSH or WebSocket service URL.
+   * @param {ConnectionOptions} options - A object containing configuration options
+   */
+  constructor(service) {
+    let options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    // The service URL
+    this.service = service;
+    // Configuration options
+    this.options = options;
+    this.setProtocol();
+
+    /* The connected JID. */
+    this.jid = '';
+    /* the JIDs domain */
+    this.domain = null;
+    /* stream:features */
+    this.features = null;
+
+    // SASL
+    /**
+     * @typedef {Object.<string, any>} SASLData
+     * @property {Object} [SASLData.keys]
+     */
+
+    /** @type {SASLData} */
+    this._sasl_data = {};
+    this.do_bind = false;
+    this.do_session = false;
+
+    /** @type {Object.<string, SASLMechanism>} */
+    this.mechanisms = {};
+
+    /** @type {TimedHandler[]} */
+    this.timedHandlers = [];
+
+    /** @type {Handler[]} */
+    this.handlers = [];
+
+    /** @type {TimedHandler[]} */
+    this.removeTimeds = [];
+
+    /** @type {Handler[]} */
+    this.removeHandlers = [];
+
+    /** @type {TimedHandler[]} */
+    this.addTimeds = [];
+
+    /** @type {Handler[]} */
+    this.addHandlers = [];
+    this.protocolErrorHandlers = {
+      /** @type {Object.<number, Function>} */
+      'HTTP': {},
+      /** @type {Object.<number, Function>} */
+      'websocket': {}
+    };
+    this._idleTimeout = null;
+    this._disconnectTimeout = null;
+    this.authenticated = false;
+    this.connected = false;
+    this.disconnecting = false;
+    this.do_authentication = true;
+    this.paused = false;
+    this.restored = false;
+
+    /** @type {(Element|'restart')[]} */
+    this._data = [];
+    this._uniqueId = 0;
+    this._sasl_success_handler = null;
+    this._sasl_failure_handler = null;
+    this._sasl_challenge_handler = null;
+
+    // Max retries before disconnecting
+    this.maxRetries = 5;
+
+    // Call onIdle callback every 1/10th of a second
+    this._idleTimeout = setTimeout(() => this._onIdle(), 100);
+    addCookies(this.options.cookies);
+    this.registerSASLMechanisms(this.options.mechanisms);
+
+    // A client must always respond to incoming IQ "set" and "get" stanzas.
+    // See https://datatracker.ietf.org/doc/html/rfc6120#section-8.2.3
+    //
+    // This is a fallback handler which gets called when no other handler
+    // was called for a received IQ "set" or "get".
+    this.iqFallbackHandler = new src_handler(
+    /**
+     * @param {Element} iq
+     */
+    iq => this.send($iq({
+      type: 'error',
+      id: iq.getAttribute('id')
+    }).c('error', {
+      'type': 'cancel'
+    }).c('service-unavailable', {
+      'xmlns': NS.STANZAS
+    })), null, 'iq', ['get', 'set']);
+
+    // initialize plugins
+    for (const k in connectionPlugins) {
+      if (Object.prototype.hasOwnProperty.call(connectionPlugins, k)) {
+        const F = function () {};
+        F.prototype = connectionPlugins[k];
+        // @ts-ignore
+        this[k] = new F();
+        // @ts-ignore
+        this[k].init(this);
+      }
+    }
+  }
+
+  /**
+   * Extends the Connection object with the given plugin.
+   * @param {string} name - The name of the extension.
+   * @param {Object} ptype - The plugin's prototype.
+   */
+  static addConnectionPlugin(name, ptype) {
+    connectionPlugins[name] = ptype;
+  }
+
+  /**
+   * Select protocal based on this.options or this.service
+   */
+  setProtocol() {
+    const proto = this.options.protocol || '';
+    if (this.options.worker) {
+      this._proto = new worker_websocket(this);
+    } else if (this.service.indexOf('ws:') === 0 || this.service.indexOf('wss:') === 0 || proto.indexOf('ws') === 0) {
+      this._proto = new websocket(this);
+    } else {
+      this._proto = new bosh(this);
+    }
+  }
+
+  /**
+   * Reset the connection.
+   *
+   * This function should be called after a connection is disconnected
+   * before that connection is reused.
+   */
+  reset() {
+    this._proto._reset();
+
+    // SASL
+    this.do_session = false;
+    this.do_bind = false;
+
+    // handler lists
+    this.timedHandlers = [];
+    this.handlers = [];
+    this.removeTimeds = [];
+    this.removeHandlers = [];
+    this.addTimeds = [];
+    this.addHandlers = [];
+    this.authenticated = false;
+    this.connected = false;
+    this.disconnecting = false;
+    this.restored = false;
+    this._data = [];
+    /** @type {Request[]} */
+    this._requests = [];
+    this._uniqueId = 0;
+  }
+
+  /**
+   * Pause the request manager.
+   *
+   * This will prevent Strophe from sending any more requests to the
+   * server.  This is very useful for temporarily pausing
+   * BOSH-Connections while a lot of send() calls are happening quickly.
+   * This causes Strophe to send the data in a single request, saving
+   * many request trips.
+   */
+  pause() {
+    this.paused = true;
+  }
+
+  /**
+   * Resume the request manager.
+   *
+   * This resumes after pause() has been called.
+   */
+  resume() {
+    this.paused = false;
+  }
+
+  /**
+   * Generate a unique ID for use in <iq/> elements.
+   *
+   * All <iq/> stanzas are required to have unique id attributes.  This
+   * function makes creating these easy.  Each connection instance has
+   * a counter which starts from zero, and the value of this counter
+   * plus a colon followed by the suffix becomes the unique id. If no
+   * suffix is supplied, the counter is used as the unique id.
+   *
+   * Suffixes are used to make debugging easier when reading the stream
+   * data, and their use is recommended.  The counter resets to 0 for
+   * every new connection for the same reason.  For connections to the
+   * same server that authenticate the same way, all the ids should be
+   * the same, which makes it easy to see changes.  This is useful for
+   * automated testing as well.
+   *
+   * @param {string} suffix - A optional suffix to append to the id.
+   * @returns {string} A unique string to be used for the id attribute.
+   */
+  // eslint-disable-next-line class-methods-use-this
+  getUniqueId(suffix) {
+    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = Math.random() * 16 | 0,
+        v = c === 'x' ? r : r & 0x3 | 0x8;
+      return v.toString(16);
+    });
+    if (typeof suffix === 'string' || typeof suffix === 'number') {
+      return uuid + ':' + suffix;
+    } else {
+      return uuid + '';
+    }
+  }
+
+  /**
+   * Register a handler function for when a protocol (websocker or HTTP)
+   * error occurs.
+   *
+   * NOTE: Currently only HTTP errors for BOSH requests are handled.
+   * Patches that handle websocket errors would be very welcome.
+   *
+   * @example
+   *  function onError(err_code){
+   *    //do stuff
+   *  }
+   *
+   *  const conn = Strophe.connect('http://example.com/http-bind');
+   *  conn.addProtocolErrorHandler('HTTP', 500, onError);
+   *  // Triggers HTTP 500 error and onError handler will be called
+   *  conn.connect('user_jid@incorrect_jabber_host', 'secret', onConnect);
+   *
+   * @param {'HTTP'|'websocket'} protocol - 'HTTP' or 'websocket'
+   * @param {number} status_code - Error status code (e.g 500, 400 or 404)
+   * @param {Function} callback - Function that will fire on Http error
+   */
+  addProtocolErrorHandler(protocol, status_code, callback) {
+    this.protocolErrorHandlers[protocol][status_code] = callback;
+  }
+
+  /**
+   * @typedef {Object} Password
+   * @property {string} Password.name
+   * @property {string} Password.ck
+   * @property {string} Password.sk
+   * @property {number} Password.iter
+   * @property {string} Password.salt
+   */
+
+  /**
+   * Starts the connection process.
+   *
+   * As the connection process proceeds, the user supplied callback will
+   * be triggered multiple times with status updates.  The callback
+   * should take two arguments - the status code and the error condition.
+   *
+   * The status code will be one of the values in the Strophe.Status
+   * constants.  The error condition will be one of the conditions
+   * defined in RFC 3920 or the condition 'strophe-parsererror'.
+   *
+   * The Parameters _wait_, _hold_ and _route_ are optional and only relevant
+   * for BOSH connections. Please see XEP 124 for a more detailed explanation
+   * of the optional parameters.
+   *
+   * @param {string} jid - The user's JID.  This may be a bare JID,
+   *     or a full JID.  If a node is not supplied, SASL OAUTHBEARER or
+   *     SASL ANONYMOUS authentication will be attempted (OAUTHBEARER will
+   *     process the provided password value as an access token).
+   *   (String or Object) pass - The user's password, or an object containing
+   *     the users SCRAM client and server keys, in a fashion described as follows:
+   *
+   *     { name: String, representing the hash used (eg. SHA-1),
+   *       salt: String, base64 encoded salt used to derive the client key,
+   *       iter: Int,    the iteration count used to derive the client key,
+   *       ck:   String, the base64 encoding of the SCRAM client key
+   *       sk:   String, the base64 encoding of the SCRAM server key
+   *     }
+   * @param {string|Password} pass - The user password
+   * @param {Function} callback - The connect callback function.
+   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {string} [route] - The optional route value.
+   * @param {string} [authcid] - The optional alternative authentication identity
+   *     (username) if intending to impersonate another user.
+   *     When using the SASL-EXTERNAL authentication mechanism, for example
+   *     with client certificates, then the authcid value is used to
+   *     determine whether an authorization JID (authzid) should be sent to
+   *     the server. The authzid should NOT be sent to the server if the
+   *     authzid and authcid are the same. So to prevent it from being sent
+   *     (for example when the JID is already contained in the client
+   *     certificate), set authcid to that same JID. See XEP-178 for more
+   *     details.
+   *  @param {number} [disconnection_timeout=3000] - The optional disconnection timeout
+   *     in milliseconds before _doDisconnect will be called.
+   */
+  connect(jid, pass, callback, wait, hold, route, authcid) {
+    let disconnection_timeout = arguments.length > 7 && arguments[7] !== undefined ? arguments[7] : 3000;
+    this.jid = jid;
+    /** Authorization identity */
+    this.authzid = getBareJidFromJid(this.jid);
+    /** Authentication identity (User name) */
+    this.authcid = authcid || getNodeFromJid(this.jid);
+    /** Authentication identity (User password) */
+    this.pass = pass;
+
+    /**
+     * The SASL SCRAM client and server keys. This variable will be populated with a non-null
+     * object of the above described form after a successful SCRAM connection
+     */
+    this.scram_keys = null;
+    this.connect_callback = callback;
+    this.disconnecting = false;
+    this.connected = false;
+    this.authenticated = false;
+    this.restored = false;
+    this.disconnection_timeout = disconnection_timeout;
+
+    // parse jid for domain
+    this.domain = getDomainFromJid(this.jid);
+    this._changeConnectStatus(Status.CONNECTING, null);
+    this._proto._connect(wait, hold, route);
+  }
+
+  /**
+   * Attach to an already created and authenticated BOSH session.
+   *
+   * This function is provided to allow Strophe to attach to BOSH
+   * sessions which have been created externally, perhaps by a Web
+   * application.  This is often used to support auto-login type features
+   * without putting user credentials into the page.
+   *
+   * @param {string|Function} jid - The full JID that is bound by the session.
+   * @param {string} [sid] - The SID of the BOSH session.
+   * @param {number} [rid] - The current RID of the BOSH session.  This RID
+   *     will be used by the next request.
+   * @param {Function} [callback] - The connect callback function.
+   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   *     Other settings will require tweaks to the Strophe.TIMEOUT value.
+   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} [wind] - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
+   */
+  attach(jid, sid, rid, callback, wait, hold, wind) {
+    if (this._proto instanceof bosh && typeof jid === 'string') {
+      return this._proto._attach(jid, sid, rid, callback, wait, hold, wind);
+    } else if (this._proto instanceof worker_websocket && typeof jid === 'function') {
+      const callback = jid;
+      return this._proto._attach(callback);
+    } else {
+      throw new SessionError('The "attach" method is not available for your connection protocol');
+    }
+  }
+
+  /**
+   * Attempt to restore a cached BOSH session.
+   *
+   * This function is only useful in conjunction with providing the
+   * "keepalive":true option when instantiating a new {@link Connection}.
+   *
+   * When "keepalive" is set to true, Strophe will cache the BOSH tokens
+   * RID (Request ID) and SID (Session ID) and then when this function is
+   * called, it will attempt to restore the session from those cached
+   * tokens.
+   *
+   * This function must therefore be called instead of connect or attach.
+   *
+   * For an example on how to use it, please see examples/restore.js
+   *
+   * @param {string} jid - The user's JID.  This may be a bare JID or a full JID.
+   * @param {Function} callback - The connect callback function.
+   * @param {number} [wait] - The optional HTTPBIND wait value.  This is the
+   *     time the server will wait before returning an empty result for
+   *     a request.  The default setting of 60 seconds is recommended.
+   * @param {number} [hold] - The optional HTTPBIND hold value.  This is the
+   *     number of connections the server will hold at one time.  This
+   *     should almost always be set to 1 (the default).
+   * @param {number} [wind] - The optional HTTBIND window value.  This is the
+   *     allowed range of request ids that are valid.  The default is 5.
+   */
+  restore(jid, callback, wait, hold, wind) {
+    if (!(this._proto instanceof bosh) || !this._sessionCachingSupported()) {
+      throw new SessionError('The "restore" method can only be used with a BOSH connection.');
+    }
+    if (this._sessionCachingSupported()) {
+      this._proto._restore(jid, callback, wait, hold, wind);
+    }
+  }
+
+  /**
+   * Checks whether sessionStorage and JSON are supported and whether we're
+   * using BOSH.
+   */
+  _sessionCachingSupported() {
+    if (this._proto instanceof bosh) {
+      if (!JSON) {
+        return false;
+      }
+      try {
+        sessionStorage.setItem('_strophe_', '_strophe_');
+        sessionStorage.removeItem('_strophe_');
+      } catch (e) {
+        // eslint-disable-line no-unused-vars
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * User overrideable function that receives XML data coming into the
+   * connection.
+   *
+   * The default function does nothing.  User code can override this with
+   * > Connection.xmlInput = function (elem) {
+   * >   (user code)
+   * > };
+   *
+   * Due to limitations of current Browsers' XML-Parsers the opening and closing
+   * <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
+   *
+   * BOSH-Connections will have all stanzas wrapped in a <body> tag. See
+   * <Bosh.strip> if you want to strip this tag.
+   *
+   * @param {Node|MessageEvent} elem - The XML data received by the connection.
+   */
+  // eslint-disable-next-line no-unused-vars, class-methods-use-this
+  xmlInput(elem) {
+    return;
+  }
+
+  /**
+   * User overrideable function that receives XML data sent to the
+   * connection.
+   *
+   * The default function does nothing.  User code can override this with
+   * > Connection.xmlOutput = function (elem) {
+   * >   (user code)
+   * > };
+   *
+   * Due to limitations of current Browsers' XML-Parsers the opening and closing
+   * <stream> tag for WebSocket-Connoctions will be passed as selfclosing here.
+   *
+   * BOSH-Connections will have all stanzas wrapped in a <body> tag. See
+   * <Bosh.strip> if you want to strip this tag.
+   *
+   * @param {Element} elem - The XMLdata sent by the connection.
+   */
+  // eslint-disable-next-line no-unused-vars, class-methods-use-this
+  xmlOutput(elem) {
+    return;
+  }
+
+  /**
+   * User overrideable function that receives raw data coming into the
+   * connection.
+   *
+   * The default function does nothing.  User code can override this with
+   * > Connection.rawInput = function (data) {
+   * >   (user code)
+   * > };
+   *
+   * @param {string} data - The data received by the connection.
+   */
+  // eslint-disable-next-line no-unused-vars, class-methods-use-this
+  rawInput(data) {
+    return;
+  }
+
+  /**
+   * User overrideable function that receives raw data sent to the
+   * connection.
+   *
+   * The default function does nothing.  User code can override this with
+   * > Connection.rawOutput = function (data) {
+   * >   (user code)
+   * > };
+   *
+   * @param {string} data - The data sent by the connection.
+   */
+  // eslint-disable-next-line no-unused-vars, class-methods-use-this
+  rawOutput(data) {
+    return;
+  }
+
+  /**
+   * User overrideable function that receives the new valid rid.
+   *
+   * The default function does nothing. User code can override this with
+   * > Connection.nextValidRid = function (rid) {
+   * >    (user code)
+   * > };
+   *
+   * @param {number} rid - The next valid rid
+   */
+  // eslint-disable-next-line no-unused-vars, class-methods-use-this
+  nextValidRid(rid) {
+    return;
+  }
+
+  /**
+   * Send a stanza.
+   *
+   * This function is called to push data onto the send queue to
+   * go out over the wire.  Whenever a request is sent to the BOSH
+   * server, all pending data is sent and the queue is flushed.
+   *
+   * @param {Element|Builder|Element[]|Builder[]} stanza - The stanza to send
+   */
+  send(stanza) {
+    if (stanza === null) return;
+    if (Array.isArray(stanza)) {
+      stanza.forEach(s => this._queueData(s instanceof builder ? s.tree() : s));
+    } else {
+      const el = stanza instanceof builder ? stanza.tree() : stanza;
+      this._queueData(el);
+    }
+    this._proto._send();
+  }
+
+  /**
+   * Immediately send any pending outgoing data.
+   *
+   * Normally send() queues outgoing data until the next idle period
+   * (100ms), which optimizes network use in the common cases when
+   * several send()s are called in succession. flush() can be used to
+   * immediately send all pending data.
+   */
+  flush() {
+    // cancel the pending idle period and run the idle function
+    // immediately
+    clearTimeout(this._idleTimeout);
+    this._onIdle();
+  }
+
+  /**
+   * Helper function to send presence stanzas. The main benefit is for
+   * sending presence stanzas for which you expect a responding presence
+   * stanza with the same id (for example when leaving a chat room).
+   *
+   * @param {Element} stanza - The stanza to send.
+   * @param {Function} [callback] - The callback function for a successful request.
+   * @param {Function} [errback] - The callback function for a failed or timed
+   *    out request.  On timeout, the stanza will be null.
+   * @param {number} [timeout] - The time specified in milliseconds for a
+   *    timeout to occur.
+   * @return {string} The id used to send the presence.
+   */
+  sendPresence(stanza, callback, errback, timeout) {
+    /** @type {TimedHandler} */
+    let timeoutHandler = null;
+    const el = stanza instanceof builder ? stanza.tree() : stanza;
+    let id = el.getAttribute('id');
+    if (!id) {
+      // inject id if not found
+      id = this.getUniqueId('sendPresence');
+      el.setAttribute('id', id);
+    }
+    if (typeof callback === 'function' || typeof errback === 'function') {
+      const handler = this.addHandler( /** @param {Element} stanza */
+      stanza => {
+        // remove timeout handler if there is one
+        if (timeoutHandler) this.deleteTimedHandler(timeoutHandler);
+        if (stanza.getAttribute('type') === 'error') {
+          errback?.(stanza);
+        } else if (callback) {
+          callback(stanza);
+        }
+      }, null, 'presence', null, id);
+
+      // if timeout specified, set up a timeout handler.
+      if (timeout) {
+        timeoutHandler = this.addTimedHandler(timeout, () => {
+          // get rid of normal handler
+          this.deleteHandler(handler);
+          // call errback on timeout with null stanza
+          errback?.(null);
+          return false;
+        });
+      }
+    }
+    this.send(el);
+    return id;
+  }
+
+  /**
+   * Helper function to send IQ stanzas.
+   *
+   * @param {Element|Builder} stanza - The stanza to send.
+   * @param {Function} [callback] - The callback function for a successful request.
+   * @param {Function} [errback] - The callback function for a failed or timed
+   *     out request.  On timeout, the stanza will be null.
+   * @param {number} [timeout] - The time specified in milliseconds for a
+   *     timeout to occur.
+   * @return {string} The id used to send the IQ.
+   */
+  sendIQ(stanza, callback, errback, timeout) {
+    /** @type {TimedHandler} */
+    let timeoutHandler = null;
+    const el = stanza instanceof builder ? stanza.tree() : stanza;
+    let id = el.getAttribute('id');
+    if (!id) {
+      // inject id if not found
+      id = this.getUniqueId('sendIQ');
+      el.setAttribute('id', id);
+    }
+    if (typeof callback === 'function' || typeof errback === 'function') {
+      const handler = this.addHandler( /** @param {Element} stanza */
+      stanza => {
+        // remove timeout handler if there is one
+        if (timeoutHandler) this.deleteTimedHandler(timeoutHandler);
+        const iqtype = stanza.getAttribute('type');
+        if (iqtype === 'result') {
+          callback?.(stanza);
+        } else if (iqtype === 'error') {
+          errback?.(stanza);
+        } else {
+          const error = new Error(`Got bad IQ type of ${iqtype}`);
+          error.name = 'StropheError';
+          throw error;
+        }
+      }, null, 'iq', ['error', 'result'], id);
+
+      // if timeout specified, set up a timeout handler.
+      if (timeout) {
+        timeoutHandler = this.addTimedHandler(timeout, () => {
+          // get rid of normal handler
+          this.deleteHandler(handler);
+          // call errback on timeout with null stanza
+          errback?.(null);
+          return false;
+        });
+      }
+    }
+    this.send(el);
+    return id;
+  }
+
+  /**
+   * Queue outgoing data for later sending.  Also ensures that the data
+   * is a DOMElement.
+   * @private
+   * @param {Element} element
+   */
+  _queueData(element) {
+    if (element === null || !element.tagName || !element.childNodes) {
+      const error = new Error('Cannot queue non-DOMElement.');
+      error.name = 'StropheError';
+      throw error;
+    }
+    this._data.push(element);
+  }
+
+  /**
+   * Send an xmpp:restart stanza.
+   * @private
+   */
+  _sendRestart() {
+    this._data.push('restart');
+    this._proto._sendRestart();
+    this._idleTimeout = setTimeout(() => this._onIdle(), 100);
+  }
+
+  /**
+   * Add a timed handler to the connection.
+   *
+   * This function adds a timed handler.  The provided handler will
+   * be called every period milliseconds until it returns false,
+   * the connection is terminated, or the handler is removed.  Handlers
+   * that wish to continue being invoked should return true.
+   *
+   * Because of method binding it is necessary to save the result of
+   * this function if you wish to remove a handler with
+   * deleteTimedHandler().
+   *
+   * Note that user handlers are not active until authentication is
+   * successful.
+   *
+   * @param {number} period - The period of the handler.
+   * @param {Function} handler - The callback function.
+   * @return {TimedHandler} A reference to the handler that can be used to remove it.
+   */
+  addTimedHandler(period, handler) {
+    const thand = new timed_handler(period, handler);
+    this.addTimeds.push(thand);
+    return thand;
+  }
+
+  /**
+   * Delete a timed handler for a connection.
+   *
+   * This function removes a timed handler from the connection.  The
+   * handRef parameter is *not* the function passed to addTimedHandler(),
+   * but is the reference returned from addTimedHandler().
+   * @param {TimedHandler} handRef - The handler reference.
+   */
+  deleteTimedHandler(handRef) {
+    // this must be done in the Idle loop so that we don't change
+    // the handlers during iteration
+    this.removeTimeds.push(handRef);
+  }
+
+  /**
+   * @typedef {Object} HandlerOptions
+   * @property {boolean} [HandlerOptions.matchBareFromJid]
+   * @property {boolean} [HandlerOptions.ignoreNamespaceFragment]
+   */
+
+  /**
+   * Add a stanza handler for the connection.
+   *
+   * This function adds a stanza handler to the connection.  The
+   * handler callback will be called for any stanza that matches
+   * the parameters.  Note that if multiple parameters are supplied,
+   * they must all match for the handler to be invoked.
+   *
+   * The handler will receive the stanza that triggered it as its argument.
+   * *The handler should return true if it is to be invoked again;
+   * returning false will remove the handler after it returns.*
+   *
+   * As a convenience, the ns parameters applies to the top level element
+   * and also any of its immediate children.  This is primarily to make
+   * matching /iq/query elements easy.
+   *
+   * ### Options
+   *
+   * With the options argument, you can specify boolean flags that affect how
+   * matches are being done.
+   *
+   * Currently two flags exist:
+   *
+   * * *matchBareFromJid*:
+   *     When set to true, the from parameter and the
+   *     from attribute on the stanza will be matched as bare JIDs instead
+   *     of full JIDs. To use this, pass {matchBareFromJid: true} as the
+   *     value of options. The default value for matchBareFromJid is false.
+   *
+   * * *ignoreNamespaceFragment*:
+   *     When set to true, a fragment specified on the stanza's namespace
+   *     URL will be ignored when it's matched with the one configured for
+   *     the handler.
+   *
+   *     This means that if you register like this:
+   *
+   *     >   connection.addHandler(
+   *     >       handler,
+   *     >       'http://jabber.org/protocol/muc',
+   *     >       null, null, null, null,
+   *     >       {'ignoreNamespaceFragment': true}
+   *     >   );
+   *
+   *     Then a stanza with XML namespace of
+   *     'http://jabber.org/protocol/muc#user' will also be matched. If
+   *     'ignoreNamespaceFragment' is false, then only stanzas with
+   *     'http://jabber.org/protocol/muc' will be matched.
+   *
+   * ### Deleting the handler
+   *
+   * The return value should be saved if you wish to remove the handler
+   * with `deleteHandler()`.
+   *
+   * @param {Function} handler - The user callback.
+   * @param {string} ns - The namespace to match.
+   * @param {string} name - The stanza name to match.
+   * @param {string|string[]} type - The stanza type (or types if an array) to match.
+   * @param {string} [id] - The stanza id attribute to match.
+   * @param {string} [from] - The stanza from attribute to match.
+   * @param {HandlerOptions} [options] - The handler options
+   * @return {Handler} A reference to the handler that can be used to remove it.
+   */
+  addHandler(handler, ns, name, type, id, from, options) {
+    const hand = new src_handler(handler, ns, name, type, id, from, options);
+    this.addHandlers.push(hand);
+    return hand;
+  }
+
+  /**
+   * Delete a stanza handler for a connection.
+   *
+   * This function removes a stanza handler from the connection.  The
+   * handRef parameter is *not* the function passed to addHandler(),
+   * but is the reference returned from addHandler().
+   *
+   * @param {Handler} handRef - The handler reference.
+   */
+  deleteHandler(handRef) {
+    // this must be done in the Idle loop so that we don't change
+    // the handlers during iteration
+    this.removeHandlers.push(handRef);
+    // If a handler is being deleted while it is being added,
+    // prevent it from getting added
+    const i = this.addHandlers.indexOf(handRef);
+    if (i >= 0) {
+      this.addHandlers.splice(i, 1);
+    }
+  }
+
+  /**
+   * Register the SASL mechanisms which will be supported by this instance of
+   * Connection (i.e. which this XMPP client will support).
+   * @param {SASLMechanism[]} mechanisms - Array of objects with SASLMechanism prototypes
+   */
+  registerSASLMechanisms(mechanisms) {
+    this.mechanisms = {};
+    (mechanisms || [sasl_anon, sasl_external, sasl_oauthbearer, sasl_xoauth2, sasl_plain, sasl_sha1, sasl_sha256, sasl_sha384, sasl_sha512]).forEach(m => this.registerSASLMechanism(m));
+  }
+
+  /**
+   * Register a single SASL mechanism, to be supported by this client.
+   * @param {any} Mechanism - Object with a Strophe.SASLMechanism prototype
+   */
+  registerSASLMechanism(Mechanism) {
+    const mechanism = new Mechanism();
+    this.mechanisms[mechanism.mechname] = mechanism;
+  }
+
+  /**
+   * Start the graceful disconnection process.
+   *
+   * This function starts the disconnection process.  This process starts
+   * by sending unavailable presence and sending BOSH body of type
+   * terminate.  A timeout handler makes sure that disconnection happens
+   * even if the BOSH server does not respond.
+   * If the Connection object isn't connected, at least tries to abort all pending requests
+   * so the connection object won't generate successful requests (which were already opened).
+   *
+   * The user supplied connection callback will be notified of the
+   * progress as this process happens.
+   *
+   * @param {string} [reason] - The reason the disconnect is occuring.
+   */
+  disconnect(reason) {
+    this._changeConnectStatus(Status.DISCONNECTING, reason);
+    if (reason) {
+      src_log.info('Disconnect was called because: ' + reason);
+    } else {
+      src_log.debug('Disconnect was called');
+    }
+    if (this.connected) {
+      let pres = null;
+      this.disconnecting = true;
+      if (this.authenticated) {
+        pres = $pres({
+          'xmlns': NS.CLIENT,
+          'type': 'unavailable'
+        });
+      }
+      // setup timeout handler
+      this._disconnectTimeout = this._addSysTimedHandler(this.disconnection_timeout, this._onDisconnectTimeout.bind(this));
+      this._proto._disconnect(pres);
+    } else {
+      src_log.debug('Disconnect was called before Strophe connected to the server');
+      this._proto._abortAllRequests();
+      this._doDisconnect();
+    }
+  }
+
+  /**
+   * _Private_ helper function that makes sure plugins and the user's
+   * callback are notified of connection status changes.
+   * @param {number} status - the new connection status, one of the values
+   *     in Strophe.Status
+   * @param {string|null} [condition] - the error condition
+   * @param {Element} [elem] - The triggering stanza.
+   */
+  _changeConnectStatus(status, condition, elem) {
+    // notify all plugins listening for status changes
+    for (const k in connectionPlugins) {
+      if (Object.prototype.hasOwnProperty.call(connectionPlugins, k)) {
+        // @ts-ignore
+        const plugin = this[k];
+        if (plugin.statusChanged) {
+          try {
+            plugin.statusChanged(status, condition);
+          } catch (err) {
+            src_log.error(`${k} plugin caused an exception changing status: ${err}`);
+          }
+        }
+      }
+    }
+    // notify the user's callback
+    if (this.connect_callback) {
+      try {
+        this.connect_callback(status, condition, elem);
+      } catch (e) {
+        handleError(e);
+        src_log.error(`User connection callback caused an exception: ${e}`);
+      }
+    }
+  }
+
+  /**
+   * _Private_ function to disconnect.
+   *
+   * This is the last piece of the disconnection logic.  This resets the
+   * connection and alerts the user's connection callback.
+   * @param {string|null} [condition] - the error condition
+   */
+  _doDisconnect(condition) {
+    if (typeof this._idleTimeout === 'number') {
+      clearTimeout(this._idleTimeout);
+    }
+
+    // Cancel Disconnect Timeout
+    if (this._disconnectTimeout !== null) {
+      this.deleteTimedHandler(this._disconnectTimeout);
+      this._disconnectTimeout = null;
+    }
+    src_log.debug('_doDisconnect was called');
+    this._proto._doDisconnect();
+    this.authenticated = false;
+    this.disconnecting = false;
+    this.restored = false;
+
+    // delete handlers
+    this.handlers = [];
+    this.timedHandlers = [];
+    this.removeTimeds = [];
+    this.removeHandlers = [];
+    this.addTimeds = [];
+    this.addHandlers = [];
+
+    // tell the parent we disconnected
+    this._changeConnectStatus(Status.DISCONNECTED, condition);
+    this.connected = false;
+  }
+
+  /**
+   * _Private_ handler to processes incoming data from the the connection.
+   *
+   * Except for _connect_cb handling the initial connection request,
+   * this function handles the incoming data for all requests.  This
+   * function also fires stanza handlers that match each incoming
+   * stanza.
+   * @param {Element | Request} req - The request that has data ready.
+   * @param {string} [raw] - The stanza as raw string.
+   */
+  _dataRecv(req, raw) {
+    const elem = /** @type {Element} */
+    '_reqToData' in this._proto ? this._proto._reqToData( /** @type {Request} */req) : req;
+    if (elem === null) {
+      return;
+    }
+    if (this.xmlInput !== Connection.prototype.xmlInput) {
+      if (elem.nodeName === this._proto.strip && elem.childNodes.length) {
+        this.xmlInput(elem.childNodes[0]);
+      } else {
+        this.xmlInput(elem);
+      }
+    }
+    if (this.rawInput !== Connection.prototype.rawInput) {
+      if (raw) {
+        this.rawInput(raw);
+      } else {
+        this.rawInput(builder.serialize(elem));
+      }
+    }
+
+    // remove handlers scheduled for deletion
+    while (this.removeHandlers.length > 0) {
+      const hand = this.removeHandlers.pop();
+      const i = this.handlers.indexOf(hand);
+      if (i >= 0) {
+        this.handlers.splice(i, 1);
+      }
+    }
+
+    // add handlers scheduled for addition
+    while (this.addHandlers.length > 0) {
+      this.handlers.push(this.addHandlers.pop());
+    }
+
+    // handle graceful disconnect
+    if (this.disconnecting && this._proto._emptyQueue()) {
+      this._doDisconnect();
+      return;
+    }
+    const type = elem.getAttribute('type');
+    if (type !== null && type === 'terminate') {
+      // Don't process stanzas that come in after disconnect
+      if (this.disconnecting) {
+        return;
+      }
+      // an error occurred
+      let cond = elem.getAttribute('condition');
+      const conflict = elem.getElementsByTagName('conflict');
+      if (cond !== null) {
+        if (cond === 'remote-stream-error' && conflict.length > 0) {
+          cond = 'conflict';
+        }
+        this._changeConnectStatus(Status.CONNFAIL, cond);
+      } else {
+        this._changeConnectStatus(Status.CONNFAIL, ErrorCondition.UNKNOWN_REASON);
+      }
+      this._doDisconnect(cond);
+      return;
+    }
+
+    // send each incoming stanza through the handler chain
+    forEachChild(elem, null, /** @param {Element} child */
+    child => {
+      const matches = [];
+      this.handlers = this.handlers.reduce((handlers, handler) => {
+        try {
+          if (handler.isMatch(child) && (this.authenticated || !handler.user)) {
+            if (handler.run(child)) {
+              handlers.push(handler);
+            }
+            matches.push(handler);
+          } else {
+            handlers.push(handler);
+          }
+        } catch (e) {
+          // if the handler throws an exception, we consider it as false
+          src_log.warn('Removing Strophe handlers due to uncaught exception: ' + e.message);
+        }
+        return handlers;
+      }, []);
+
+      // If no handler was fired for an incoming IQ with type="set",
+      // then we return an IQ error stanza with service-unavailable.
+      if (!matches.length && this.iqFallbackHandler.isMatch(child)) {
+        this.iqFallbackHandler.run(child);
+      }
+    });
+  }
+
+  /**
+   * @callback connectionCallback
+   * @param {Connection} connection
+   */
+
+  /**
+   * _Private_ handler for initial connection request.
+   *
+   * This handler is used to process the initial connection request
+   * response from the BOSH server. It is used to set up authentication
+   * handlers and start the authentication process.
+   *
+   * SASL authentication will be attempted if available, otherwise
+   * the code will fall back to legacy authentication.
+   *
+   * @param {Element | Request} req - The current request.
+   * @param {connectionCallback} _callback - low level (xmpp) connect callback function.
+   *     Useful for plugins with their own xmpp connect callback (when they
+   *     want to do something special).
+   * @param {string} [raw] - The stanza as raw string.
+   */
+  _connect_cb(req, _callback, raw) {
+    src_log.debug('_connect_cb was called');
+    this.connected = true;
+    let bodyWrap;
+    try {
+      bodyWrap = /** @type {Element} */
+      '_reqToData' in this._proto ? this._proto._reqToData( /** @type {Request} */req) : req;
+    } catch (e) {
+      if (e.name !== ErrorCondition.BAD_FORMAT) {
+        throw e;
+      }
+      this._changeConnectStatus(Status.CONNFAIL, ErrorCondition.BAD_FORMAT);
+      this._doDisconnect(ErrorCondition.BAD_FORMAT);
+    }
+    if (!bodyWrap) {
+      return;
+    }
+    if (this.xmlInput !== Connection.prototype.xmlInput) {
+      if (bodyWrap.nodeName === this._proto.strip && bodyWrap.childNodes.length) {
+        this.xmlInput(bodyWrap.childNodes[0]);
+      } else {
+        this.xmlInput(bodyWrap);
+      }
+    }
+    if (this.rawInput !== Connection.prototype.rawInput) {
+      if (raw) {
+        this.rawInput(raw);
+      } else {
+        this.rawInput(builder.serialize(bodyWrap));
+      }
+    }
+    const conncheck = this._proto._connect_cb(bodyWrap);
+    if (conncheck === Status.CONNFAIL) {
+      return;
+    }
+
+    // Check for the stream:features tag
+    let hasFeatures;
+    if (bodyWrap.getElementsByTagNameNS) {
+      hasFeatures = bodyWrap.getElementsByTagNameNS(NS.STREAM, 'features').length > 0;
+    } else {
+      hasFeatures = bodyWrap.getElementsByTagName('stream:features').length > 0 || bodyWrap.getElementsByTagName('features').length > 0;
+    }
+    if (!hasFeatures) {
+      this._proto._no_auth_received(_callback);
+      return;
+    }
+    const matched = Array.from(bodyWrap.getElementsByTagName('mechanism')).map(m => this.mechanisms[m.textContent]).filter(m => m);
+    if (matched.length === 0) {
+      if (bodyWrap.getElementsByTagName('auth').length === 0) {
+        // There are no matching SASL mechanisms and also no legacy
+        // auth available.
+        this._proto._no_auth_received(_callback);
+        return;
+      }
+    }
+    if (this.do_authentication !== false) {
+      this.authenticate(matched);
+    }
+  }
+
+  /**
+   * Sorts an array of objects with prototype SASLMechanism according to
+   * their priorities.
+   * @param {SASLMechanism[]} mechanisms - Array of SASL mechanisms.
+   */
+  // eslint-disable-next-line  class-methods-use-this
+  sortMechanismsByPriority(mechanisms) {
+    // Sorting mechanisms according to priority.
+    for (let i = 0; i < mechanisms.length - 1; ++i) {
+      let higher = i;
+      for (let j = i + 1; j < mechanisms.length; ++j) {
+        if (mechanisms[j].priority > mechanisms[higher].priority) {
+          higher = j;
+        }
+      }
+      if (higher !== i) {
+        const swap = mechanisms[i];
+        mechanisms[i] = mechanisms[higher];
+        mechanisms[higher] = swap;
+      }
+    }
+    return mechanisms;
+  }
+
+  /**
+   * Set up authentication
+   *
+   * Continues the initial connection request by setting up authentication
+   * handlers and starting the authentication process.
+   *
+   * SASL authentication will be attempted if available, otherwise
+   * the code will fall back to legacy authentication.
+   *
+   * @param {SASLMechanism[]} matched - Array of SASL mechanisms supported.
+   */
+  authenticate(matched) {
+    if (!this._attemptSASLAuth(matched)) {
+      this._attemptLegacyAuth();
+    }
+  }
+
+  /**
+   * Iterate through an array of SASL mechanisms and attempt authentication
+   * with the highest priority (enabled) mechanism.
+   *
+   * @private
+   * @param {SASLMechanism[]} mechanisms - Array of SASL mechanisms.
+   * @return {Boolean} mechanism_found - true or false, depending on whether a
+   *  valid SASL mechanism was found with which authentication could be started.
+   */
+  _attemptSASLAuth(mechanisms) {
+    mechanisms = this.sortMechanismsByPriority(mechanisms || []);
+    let mechanism_found = false;
+    for (let i = 0; i < mechanisms.length; ++i) {
+      if (!mechanisms[i].test(this)) {
+        continue;
+      }
+      this._sasl_success_handler = this._addSysHandler(this._sasl_success_cb.bind(this), null, 'success', null, null);
+      this._sasl_failure_handler = this._addSysHandler(this._sasl_failure_cb.bind(this), null, 'failure', null, null);
+      this._sasl_challenge_handler = this._addSysHandler(this._sasl_challenge_cb.bind(this), null, 'challenge', null, null);
+      this._sasl_mechanism = mechanisms[i];
+      this._sasl_mechanism.onStart(this);
+      const request_auth_exchange = $build('auth', {
+        'xmlns': NS.SASL,
+        'mechanism': this._sasl_mechanism.mechname
+      });
+      if (this._sasl_mechanism.isClientFirst) {
+        const response = this._sasl_mechanism.clientChallenge(this);
+        request_auth_exchange.t(btoa( /** @type {string} */response));
+      }
+      this.send(request_auth_exchange.tree());
+      mechanism_found = true;
+      break;
+    }
+    return mechanism_found;
+  }
+
+  /**
+   * _Private_ handler for the SASL challenge
+   * @private
+   * @param {Element} elem
+   */
+  async _sasl_challenge_cb(elem) {
+    const challenge = atob(getText(elem));
+    const response = await this._sasl_mechanism.onChallenge(this, challenge);
+    const stanza = $build('response', {
+      'xmlns': NS.SASL
+    });
+    if (response) stanza.t(btoa(response));
+    this.send(stanza.tree());
+    return true;
+  }
+
+  /**
+   * Attempt legacy (i.e. non-SASL) authentication.
+   * @private
+   */
+  _attemptLegacyAuth() {
+    if (getNodeFromJid(this.jid) === null) {
+      // we don't have a node, which is required for non-anonymous
+      // client connections
+      this._changeConnectStatus(Status.CONNFAIL, ErrorCondition.MISSING_JID_NODE);
+      this.disconnect(ErrorCondition.MISSING_JID_NODE);
+    } else {
+      // Fall back to legacy authentication
+      this._changeConnectStatus(Status.AUTHENTICATING, null);
+      this._addSysHandler(this._onLegacyAuthIQResult.bind(this), null, null, null, '_auth_1');
+      this.send($iq({
+        'type': 'get',
+        'to': this.domain,
+        'id': '_auth_1'
+      }).c('query', {
+        xmlns: NS.AUTH
+      }).c('username', {}).t(getNodeFromJid(this.jid)).tree());
+    }
+  }
+
+  /**
+   * _Private_ handler for legacy authentication.
+   *
+   * This handler is called in response to the initial <iq type='get'/>
+   * for legacy authentication.  It builds an authentication <iq/> and
+   * sends it, creating a handler (calling back to _auth2_cb()) to
+   * handle the result
+   * @private
+   * @return {false} `false` to remove the handler.
+   */
+  _onLegacyAuthIQResult() {
+    const pass = typeof this.pass === 'string' ? this.pass : '';
+
+    // build plaintext auth iq
+    const iq = $iq({
+      type: 'set',
+      id: '_auth_2'
+    }).c('query', {
+      xmlns: NS.AUTH
+    }).c('username', {}).t(getNodeFromJid(this.jid)).up().c('password').t(pass);
+    if (!getResourceFromJid(this.jid)) {
+      // since the user has not supplied a resource, we pick
+      // a default one here.  unlike other auth methods, the server
+      // cannot do this for us.
+      this.jid = getBareJidFromJid(this.jid) + '/strophe';
+    }
+    iq.up().c('resource', {}).t(getResourceFromJid(this.jid));
+    this._addSysHandler(this._auth2_cb.bind(this), null, null, null, '_auth_2');
+    this.send(iq.tree());
+    return false;
+  }
+
+  /**
+   * _Private_ handler for succesful SASL authentication.
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
+   */
+  _sasl_success_cb(elem) {
+    if (this._sasl_data['server-signature']) {
+      let serverSignature;
+      const success = atob(getText(elem));
+      const attribMatch = /([a-z]+)=([^,]+)(,|$)/;
+      const matches = success.match(attribMatch);
+      if (matches[1] === 'v') {
+        serverSignature = matches[2];
+      }
+      if (serverSignature !== this._sasl_data['server-signature']) {
+        // remove old handlers
+        this.deleteHandler(this._sasl_failure_handler);
+        this._sasl_failure_handler = null;
+        if (this._sasl_challenge_handler) {
+          this.deleteHandler(this._sasl_challenge_handler);
+          this._sasl_challenge_handler = null;
+        }
+        this._sasl_data = {};
+        return this._sasl_failure_cb(null);
+      }
+    }
+    src_log.info('SASL authentication succeeded.');
+    if (this._sasl_data.keys) {
+      this.scram_keys = this._sasl_data.keys;
+    }
+    if (this._sasl_mechanism) {
+      this._sasl_mechanism.onSuccess();
+    }
+    // remove old handlers
+    this.deleteHandler(this._sasl_failure_handler);
+    this._sasl_failure_handler = null;
+    if (this._sasl_challenge_handler) {
+      this.deleteHandler(this._sasl_challenge_handler);
+      this._sasl_challenge_handler = null;
+    }
+    /** @type {Handler[]} */
+    const streamfeature_handlers = [];
+
+    /**
+     * @param {Handler[]} handlers
+     * @param {Element} elem
+     */
+    const wrapper = (handlers, elem) => {
+      while (handlers.length) {
+        this.deleteHandler(handlers.pop());
+      }
+      this._onStreamFeaturesAfterSASL(elem);
+      return false;
+    };
+    streamfeature_handlers.push(this._addSysHandler( /** @param {Element} elem */
+    elem => wrapper(streamfeature_handlers, elem), null, 'stream:features', null, null));
+    streamfeature_handlers.push(this._addSysHandler( /** @param {Element} elem */
+    elem => wrapper(streamfeature_handlers, elem), NS.STREAM, 'features', null, null));
+
+    // we must send an xmpp:restart now
+    this._sendRestart();
+    return false;
+  }
+
+  /**
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
+   */
+  _onStreamFeaturesAfterSASL(elem) {
+    // save stream:features for future usage
+    this.features = elem;
+    for (let i = 0; i < elem.childNodes.length; i++) {
+      const child = elem.childNodes[i];
+      if (child.nodeName === 'bind') {
+        this.do_bind = true;
+      }
+      if (child.nodeName === 'session') {
+        this.do_session = true;
+      }
+    }
+    if (!this.do_bind) {
+      this._changeConnectStatus(Status.AUTHFAIL, null);
+      return false;
+    } else if (!this.options.explicitResourceBinding) {
+      this.bind();
+    } else {
+      this._changeConnectStatus(Status.BINDREQUIRED, null);
+    }
+    return false;
+  }
+
+  /**
+   * Sends an IQ to the XMPP server to bind a JID resource for this session.
+   *
+   * https://tools.ietf.org/html/rfc6120#section-7.5
+   *
+   * If `explicitResourceBinding` was set to a truthy value in the options
+   * passed to the Connection constructor, then this function needs
+   * to be called explicitly by the client author.
+   *
+   * Otherwise it'll be called automatically as soon as the XMPP server
+   * advertises the "urn:ietf:params:xml:ns:xmpp-bind" stream feature.
+   */
+  bind() {
+    if (!this.do_bind) {
+      src_log.info(`Connection.prototype.bind called but "do_bind" is false`);
+      return;
+    }
+    this._addSysHandler(this._onResourceBindResultIQ.bind(this), null, null, null, '_bind_auth_2');
+    const resource = getResourceFromJid(this.jid);
+    if (resource) {
+      this.send($iq({
+        type: 'set',
+        id: '_bind_auth_2'
+      }).c('bind', {
+        xmlns: NS.BIND
+      }).c('resource', {}).t(resource).tree());
+    } else {
+      this.send($iq({
+        type: 'set',
+        id: '_bind_auth_2'
+      }).c('bind', {
+        xmlns: NS.BIND
+      }).tree());
+    }
+  }
+
+  /**
+   * _Private_ handler for binding result and session start.
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
+   */
+  _onResourceBindResultIQ(elem) {
+    if (elem.getAttribute('type') === 'error') {
+      src_log.warn('Resource binding failed.');
+      const conflict = elem.getElementsByTagName('conflict');
+      let condition;
+      if (conflict.length > 0) {
+        condition = ErrorCondition.CONFLICT;
+      }
+      this._changeConnectStatus(Status.AUTHFAIL, condition, elem);
+      return false;
+    }
+    // TODO - need to grab errors
+    const bind = elem.getElementsByTagName('bind');
+    if (bind.length > 0) {
+      const jidNode = bind[0].getElementsByTagName('jid');
+      if (jidNode.length > 0) {
+        this.authenticated = true;
+        this.jid = getText(jidNode[0]);
+        if (this.do_session) {
+          this._establishSession();
+        } else {
+          this._changeConnectStatus(Status.CONNECTED, null);
+        }
+      }
+    } else {
+      src_log.warn('Resource binding failed.');
+      this._changeConnectStatus(Status.AUTHFAIL, null, elem);
+      return false;
+    }
+  }
+
+  /**
+   * Send IQ request to establish a session with the XMPP server.
+   *
+   * See https://xmpp.org/rfcs/rfc3921.html#session
+   *
+   * Note: The protocol for session establishment has been determined as
+   * unnecessary and removed in RFC-6121.
+   * @private
+   */
+  _establishSession() {
+    if (!this.do_session) {
+      throw new Error(`Connection.prototype._establishSession ` + `called but apparently ${NS.SESSION} wasn't advertised by the server`);
+    }
+    this._addSysHandler(this._onSessionResultIQ.bind(this), null, null, null, '_session_auth_2');
+    this.send($iq({
+      type: 'set',
+      id: '_session_auth_2'
+    }).c('session', {
+      xmlns: NS.SESSION
+    }).tree());
+  }
+
+  /**
+   * _Private_ handler for the server's IQ response to a client's session
+   * request.
+   *
+   * This sets Connection.authenticated to true on success, which
+   * starts the processing of user handlers.
+   *
+   * See https://xmpp.org/rfcs/rfc3921.html#session
+   *
+   * Note: The protocol for session establishment has been determined as
+   * unnecessary and removed in RFC-6121.
+   * @private
+   * @param {Element} elem - The matching stanza.
+   * @return {false} `false` to remove the handler.
+   */
+  _onSessionResultIQ(elem) {
+    if (elem.getAttribute('type') === 'result') {
+      this.authenticated = true;
+      this._changeConnectStatus(Status.CONNECTED, null);
+    } else if (elem.getAttribute('type') === 'error') {
+      this.authenticated = false;
+      src_log.warn('Session creation failed.');
+      this._changeConnectStatus(Status.AUTHFAIL, null, elem);
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * _Private_ handler for SASL authentication failure.
+   * @param {Element} [elem] - The matching stanza.
+   * @return {false} `false` to remove the handler.
+   */
+  _sasl_failure_cb(elem) {
+    // delete unneeded handlers
+    if (this._sasl_success_handler) {
+      this.deleteHandler(this._sasl_success_handler);
+      this._sasl_success_handler = null;
+    }
+    if (this._sasl_challenge_handler) {
+      this.deleteHandler(this._sasl_challenge_handler);
+      this._sasl_challenge_handler = null;
+    }
+    if (this._sasl_mechanism) this._sasl_mechanism.onFailure();
+    this._changeConnectStatus(Status.AUTHFAIL, null, elem);
+    return false;
+  }
+
+  /**
+   * _Private_ handler to finish legacy authentication.
+   *
+   * This handler is called when the result from the jabber:iq:auth
+   * <iq/> stanza is returned.
+   * @private
+   * @param {Element} elem - The stanza that triggered the callback.
+   * @return {false} `false` to remove the handler.
+   */
+  _auth2_cb(elem) {
+    if (elem.getAttribute('type') === 'result') {
+      this.authenticated = true;
+      this._changeConnectStatus(Status.CONNECTED, null);
+    } else if (elem.getAttribute('type') === 'error') {
+      this._changeConnectStatus(Status.AUTHFAIL, null, elem);
+      this.disconnect('authentication failed');
+    }
+    return false;
+  }
+
+  /**
+   * _Private_ function to add a system level timed handler.
+   *
+   * This function is used to add a TimedHandler for the
+   * library code.  System timed handlers are allowed to run before
+   * authentication is complete.
+   * @param {number} period - The period of the handler.
+   * @param {Function} handler - The callback function.
+   */
+  _addSysTimedHandler(period, handler) {
+    const thand = new timed_handler(period, handler);
+    thand.user = false;
+    this.addTimeds.push(thand);
+    return thand;
+  }
+
+  /**
+   * _Private_ function to add a system level stanza handler.
+   *
+   * This function is used to add a Handler for the
+   * library code.  System stanza handlers are allowed to run before
+   * authentication is complete.
+   * @param {Function} handler - The callback function.
+   * @param {string} ns - The namespace to match.
+   * @param {string} name - The stanza name to match.
+   * @param {string} type - The stanza type attribute to match.
+   * @param {string} id - The stanza id attribute to match.
+   */
+  _addSysHandler(handler, ns, name, type, id) {
+    const hand = new src_handler(handler, ns, name, type, id);
+    hand.user = false;
+    this.addHandlers.push(hand);
+    return hand;
+  }
+
+  /**
+   * _Private_ timeout handler for handling non-graceful disconnection.
+   *
+   * If the graceful disconnect process does not complete within the
+   * time allotted, this handler finishes the disconnect anyway.
+   * @return {false} `false` to remove the handler.
+   */
+  _onDisconnectTimeout() {
+    src_log.debug('_onDisconnectTimeout was called');
+    this._changeConnectStatus(Status.CONNTIMEOUT, null);
+    this._proto._onDisconnectTimeout();
+    // actually disconnect
+    this._doDisconnect();
+    return false;
+  }
+
+  /**
+   * _Private_ handler to process events during idle cycle.
+   *
+   * This handler is called every 100ms to fire timed handlers that
+   * are ready and keep poll requests going.
+   */
+  _onIdle() {
+    // add timed handlers scheduled for addition
+    // NOTE: we add before remove in the case a timed handler is
+    // added and then deleted before the next _onIdle() call.
+    while (this.addTimeds.length > 0) {
+      this.timedHandlers.push(this.addTimeds.pop());
+    }
+
+    // remove timed handlers that have been scheduled for deletion
+    while (this.removeTimeds.length > 0) {
+      const thand = this.removeTimeds.pop();
+      const i = this.timedHandlers.indexOf(thand);
+      if (i >= 0) {
+        this.timedHandlers.splice(i, 1);
+      }
+    }
+
+    // call ready timed handlers
+    const now = new Date().getTime();
+    const newList = [];
+    for (let i = 0; i < this.timedHandlers.length; i++) {
+      const thand = this.timedHandlers[i];
+      if (this.authenticated || !thand.user) {
+        const since = thand.lastCalled + thand.period;
+        if (since - now <= 0) {
+          if (thand.run()) {
+            newList.push(thand);
+          }
+        } else {
+          newList.push(thand);
+        }
+      }
+    }
+    this.timedHandlers = newList;
+    clearTimeout(this._idleTimeout);
+    this._proto._onIdle();
+
+    // reactivate the timer only if connected
+    if (this.connected) {
+      this._idleTimeout = setTimeout(() => this._onIdle(), 100);
+    }
+  }
+}
+/* harmony default export */ const connection = (Connection);
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/stanza.js
+
+
+
+
+/**
+ * A Stanza represents a XML element used in XMPP (commonly referred to as stanzas).
+ */
+class Stanza extends builder {
+  /** @type {string} */
+  #string;
+  /** @type {Array<string>} */
+  #strings;
+  /**
+   * @typedef {Array<string|Stanza|Builder>} StanzaValue
+   * @type {StanzaValue|Array<StanzaValue>}
+   */
+  #values;
+
+  /**
+   * @param {string[]} strings
+   * @param {any[]} values
+   */
+  constructor(strings, values) {
+    super('stanza');
+    this.#strings = strings;
+    this.#values = values;
+  }
+
+  /**
+   * A directive which can be used to pass a string of XML as a value to the
+   * stx tagged template literal.
+   *
+   * It's considered "unsafe" because it can pose a security risk if used with
+   * untrusted input.
+   *
+   * @param {string} string
+   * @returns {Builder}
+   * @example
+   *    const status = '<status>I am busy!</status>';
+   *    const pres = stx`
+   *       <presence from='juliet@example.com/chamber' id='pres1'>
+   *           <show>dnd</show>
+   *           ${unsafeXML(status)}
+   *       </presence>`;
+   *    connection.send(pres);
+   */
+  static unsafeXML(string) {
+    return builder.fromString(string);
+  }
+
+  /**
+   * Turns the passed-in string into an XML Element.
+   * @param {string} string
+   * @param {boolean} [throwErrorIfInvalidNS]
+   * @returns {Element}
+   */
+  static toElement(string, throwErrorIfInvalidNS) {
+    const doc = xmlHtmlNode(string);
+    const parserError = getParserError(doc);
+    if (parserError) {
+      throw new Error(`Parser Error: ${parserError}`);
+    }
+    const node = getFirstElementChild(doc);
+    if (['message', 'iq', 'presence'].includes(node.nodeName.toLowerCase()) && node.namespaceURI !== 'jabber:client' && node.namespaceURI !== 'jabber:server') {
+      const err_msg = `Invalid namespaceURI ${node.namespaceURI}`;
+      if (throwErrorIfInvalidNS) {
+        throw new Error(err_msg);
+      } else {
+        src_log.error(err_msg);
+      }
+    }
+    return node;
+  }
+  buildTree() {
+    return Stanza.toElement(this.toString(), true);
+  }
+
+  /**
+   * @return {string}
+   */
+  toString() {
+    this.#string = this.#string || this.#strings.reduce((acc, str) => {
+      const idx = this.#strings.indexOf(str);
+      const value = this.#values.length > idx ? this.#values[idx] : '';
+      return acc + str + (Array.isArray(value) ? value.map(v => v instanceof Stanza || v instanceof builder ? v : xmlescape(v.toString())).join('') : value instanceof Stanza || value instanceof builder ? value : xmlescape(value.toString()));
+    }, '').trim();
+    return this.#string;
+  }
+}
+
+/**
+ * Tagged template literal function which generates {@link Stanza} objects
+ *
+ * @example
+ *      const pres = stx`<presence type="${type}" xmlns="jabber:client"><show>${show}</show></presence>`
+ *
+ *      connection.send(msg);
+ *
+ * @example
+ *      const msg = stx`<message
+ *          from='sender@example.org'
+ *          id='hgn27af1'
+ *          to='recipient@example.org'
+ *          type='chat'>
+ *          <body>Hello world</body>
+ *      </message>`;
+ *
+ *      connection.send(msg);
+ *
+ * @param {string[]} strings
+ * @param {...any} values
+ * @returns {Stanza}
+ */
+function stx(strings) {
+  for (var _len = arguments.length, values = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    values[_key - 1] = arguments[_key];
+  }
+  return new Stanza(strings, values);
+}
+;// CONCATENATED MODULE: ./node_modules/strophe.js/src/index.js
+/*global globalThis*/
+
+
+
 
 
 
@@ -28328,17 +28518,43 @@ class WorkerWebsocket extends websocket {
  * @property {Object.<string, string>} NS
  * @property {XHTML} XHTML
  */
-const core_Strophe = {
+const Strophe = {
   /** @constant: VERSION */
-  VERSION: '1.6.1',
-  TIMEOUT: 1.1,
-  SECONDARY_TIMEOUT: 0.1,
+  VERSION: '3.0.0',
+  /**
+   * @returns {number}
+   */
+  get TIMEOUT() {
+    return bosh.getTimeoutMultplier();
+  },
+  /**
+   * @param {number} n
+   */
+  set TIMEOUT(n) {
+    bosh.setTimeoutMultiplier(n);
+  },
+  /**
+   * @returns {number}
+   */
+  get SECONDARY_TIMEOUT() {
+    return bosh.getSecondaryTimeoutMultplier();
+  },
+  /**
+   * @param {number} n
+   */
+  set SECONDARY_TIMEOUT(n) {
+    bosh.setSecondaryTimeoutMultiplier(n);
+  },
+  ...utils_namespaceObject,
+  ...src_log,
   shims: strophe_shims_namespaceObject,
   Request: request,
   // Transports
   Bosh: bosh,
   Websocket: websocket,
   WorkerWebsocket: worker_websocket,
+  Connection: connection,
+  Handler: src_handler,
   // Available authentication mechanisms
   SASLAnonymous: sasl_anon,
   SASLPlain: sasl_plain,
@@ -28349,24 +28565,42 @@ const core_Strophe = {
   SASLOAuthBearer: sasl_oauthbearer,
   SASLExternal: sasl_external,
   SASLXOAuth2: sasl_xoauth2,
+  Stanza: Stanza,
   Builder: builder,
-  Connection: connection,
   ElementType: ElementType,
   ErrorCondition: ErrorCondition,
-  Handler: src_handler,
-  LogLevel: LogLevel,
+  LogLevel: LOG_LEVELS,
   /** @type {Object.<string, string>} */
   NS: NS,
   SASLMechanism: sasl,
   /** @type {Status} */
   Status: Status,
   TimedHandler: timed_handler,
-  ...utils_namespaceObject,
   XHTML: {
     ...XHTML,
     validTag: validTag,
     validCSS: validCSS,
     validAttribute: validAttribute
+  },
+  /**
+   * Render a DOM element and all descendants to a String.
+   * @method Strophe.serialize
+   * @param {Element|Builder} elem - A DOM element.
+   * @return {string} - The serialized element tree as a String.
+   */
+  serialize(elem) {
+    return builder.serialize(elem);
+  },
+  /**
+   * @typedef {import('./constants').LogLevel} LogLevel
+   *
+   * Library consumers can use this function to set the log level of Strophe.
+   * The default log level is Strophe.LogLevel.INFO.
+   * @param {LogLevel} level
+   * @example Strophe.setLogLevel(Strophe.LogLevel.DEBUG);
+   */
+  setLogLevel(level) {
+    src_log.setLogLevel(level);
   },
   /**
    * This function is used to extend the current namespaces in
@@ -28379,200 +28613,31 @@ const core_Strophe = {
    * @param {string} value - The actual namespace.
    */
   addNamespace(name, value) {
-    core_Strophe.NS[name] = value;
+    Strophe.NS[name] = value;
   },
-  /**
-   * _Private_ function that properly logs an error to the console
-   * @private
-   * @param {Error} e
-   */
-  _handleError(e) {
-    if (typeof e.stack !== 'undefined') {
-      core_Strophe.fatal(e.stack);
-    }
-    core_Strophe.fatal('error: ' + e.message);
-  },
-  /**
-   * User overrideable logging function.
-   *
-   * This function is called whenever the Strophe library calls any
-   * of the logging functions.  The default implementation of this
-   * function logs only fatal errors.  If client code wishes to handle the logging
-   * messages, it should override this with
-   * > Strophe.log = function (level, msg) {
-   * >   (user code here)
-   * > };
-   *
-   * Please note that data sent and received over the wire is logged
-   * via {@link Strophe.Connection#rawInput|Strophe.Connection.rawInput()}
-   * and {@link Strophe.Connection#rawOutput|Strophe.Connection.rawOutput()}.
-   *
-   * The different levels and their meanings are
-   *
-   *   DEBUG - Messages useful for debugging purposes.
-   *   INFO - Informational messages.  This is mostly information like
-   *     'disconnect was called' or 'SASL auth succeeded'.
-   *   WARN - Warnings about potential problems.  This is mostly used
-   *     to report transient connection errors like request timeouts.
-   *   ERROR - Some error occurred.
-   *   FATAL - A non-recoverable fatal error occurred.
-   *
-   * @param {number} level - The log level of the log message.
-   *     This will be one of the values in Strophe.LogLevel.
-   * @param {string} msg - The log message.
-   */
-  log(level, msg) {
-    if (level === this.LogLevel.FATAL) {
-      console?.error(msg);
-    }
-  },
-  /**
-   * Log a message at the Strophe.LogLevel.DEBUG level.
-   * @param {string} msg - The log message.
-   */
-  debug(msg) {
-    this.log(this.LogLevel.DEBUG, msg);
-  },
-  /**
-   * Log a message at the Strophe.LogLevel.INFO level.
-   * @param {string} msg - The log message.
-   */
-  info(msg) {
-    this.log(this.LogLevel.INFO, msg);
-  },
-  /**
-   * Log a message at the Strophe.LogLevel.WARN level.
-   * @param {string} msg - The log message.
-   */
-  warn(msg) {
-    this.log(this.LogLevel.WARN, msg);
-  },
-  /**
-   * Log a message at the Strophe.LogLevel.ERROR level.
-   * @param {string} msg - The log message.
-   */
-  error(msg) {
-    this.log(this.LogLevel.ERROR, msg);
-  },
-  /**
-   * Log a message at the Strophe.LogLevel.FATAL level.
-   * @param {string} msg - The log message.
-   */
-  fatal(msg) {
-    this.log(this.LogLevel.FATAL, msg);
-  },
-  /**
-   * _Private_ variable that keeps track of the request ids for connections.
-   * @private
-   */
-  _requestId: 0,
-  /**
-   * _Private_ variable Used to store plugin names that need
-   * initialization on Strophe.Connection construction.
-   * @private
-   * @type {Object.<string, Object>}
-   */
-  _connectionPlugins: {},
   /**
    * Extends the Strophe.Connection object with the given plugin.
    * @param {string} name - The name of the extension.
    * @param {Object} ptype - The plugin's prototype.
    */
   addConnectionPlugin(name, ptype) {
-    core_Strophe._connectionPlugins[name] = ptype;
+    connection.addConnectionPlugin(name, ptype);
   }
 };
-/* harmony default export */ const core = (core_Strophe);
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/stanza.js
-
-const PARSE_ERROR_NS = 'http://www.w3.org/1999/xhtml';
-
-/**
- * @param { string } string
- * @param { boolean } [throwErrorIfInvalidNS]
- * @return { Element }
- */
-function toStanza(string, throwErrorIfInvalidNS) {
-  const doc = Strophe.xmlHtmlNode(string);
-  if (doc.getElementsByTagNameNS(PARSE_ERROR_NS, 'parsererror').length) {
-    throw new Error(`Parser Error: ${string}`);
-  }
-  const node = doc.firstElementChild;
-  if (['message', 'iq', 'presence'].includes(node.nodeName.toLowerCase()) && node.namespaceURI !== 'jabber:client' && node.namespaceURI !== 'jabber:server') {
-    const err_msg = `Invalid namespaceURI ${node.namespaceURI}`;
-    if (throwErrorIfInvalidNS) {
-      throw new Error(err_msg);
-    } else {
-      Strophe.log(Strophe.LogLevel.ERROR, err_msg);
-    }
-  }
-  return node;
-}
-
-/**
- * A Stanza represents a XML element used in XMPP (commonly referred to as
- * stanzas).
- */
-class Stanza {
-  /**
-   * @param { string[] } strings
-   * @param { any[] } values
-   */
-  constructor(strings, values) {
-    this.strings = strings;
-    this.values = values;
-  }
-
-  /**
-   * @return { string }
-   */
-  toString() {
-    this.string = this.string || this.strings.reduce((acc, str) => {
-      const idx = this.strings.indexOf(str);
-      const value = this.values.length > idx ? this.values[idx].toString() : '';
-      return acc + str + value;
-    }, '');
-    return this.string;
-  }
-
-  /**
-   * @return { Element }
-   */
-  tree() {
-    this.node = this.node ?? toStanza(this.toString(), true);
-    return this.node;
-  }
-}
-
-/**
- * Tagged template literal function which generates {@link Stanza } objects
- * @example stx`<presence type="${type}" xmlns="jabber:client"><show>${show}</show></presence>`
- *
- * @param { string[] } strings
- * @param { ...any } values
- */
-function stx(strings) {
-  for (var _len = arguments.length, values = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-    values[_key - 1] = arguments[_key];
-  }
-  return new Stanza(strings, values);
-}
-;// CONCATENATED MODULE: ./node_modules/strophe.js/src/index.js
-/*global globalThis*/
-
-
-
-
 globalThis.$build = $build;
 globalThis.$iq = $iq;
 globalThis.$msg = $msg;
 globalThis.$pres = $pres;
-globalThis.Strophe = core;
+globalThis.Strophe = Strophe;
+globalThis.stx = stx;
+const toStanza = Stanza.toElement;
+globalThis.toStanza = Stanza.toElement; // Deprecated
+
 
 ;// CONCATENATED MODULE: ./src/headless/shared/constants.js
 
 const BOSH_WAIT = 59;
-const VERSION_NAME = "v10.1.7";
+const VERSION_NAME = "v10.1.8";
 const STATUS_WEIGHTS = {
   offline: 6,
   unavailable: 5,
@@ -28611,54 +28676,54 @@ const CHATROOMS_TYPE = 'chatroom';
 const HEADLINES_TYPE = 'headline';
 const CONTROLBOX_TYPE = 'controlbox';
 const CONNECTION_STATUS = {};
-CONNECTION_STATUS[core.Status.ATTACHED] = 'ATTACHED';
-CONNECTION_STATUS[core.Status.AUTHENTICATING] = 'AUTHENTICATING';
-CONNECTION_STATUS[core.Status.AUTHFAIL] = 'AUTHFAIL';
-CONNECTION_STATUS[core.Status.CONNECTED] = 'CONNECTED';
-CONNECTION_STATUS[core.Status.CONNECTING] = 'CONNECTING';
-CONNECTION_STATUS[core.Status.CONNFAIL] = 'CONNFAIL';
-CONNECTION_STATUS[core.Status.DISCONNECTED] = 'DISCONNECTED';
-CONNECTION_STATUS[core.Status.DISCONNECTING] = 'DISCONNECTING';
-CONNECTION_STATUS[core.Status.ERROR] = 'ERROR';
-CONNECTION_STATUS[core.Status.RECONNECTING] = 'RECONNECTING';
-CONNECTION_STATUS[core.Status.REDIRECT] = 'REDIRECT';
+CONNECTION_STATUS[Strophe.Status.ATTACHED] = 'ATTACHED';
+CONNECTION_STATUS[Strophe.Status.AUTHENTICATING] = 'AUTHENTICATING';
+CONNECTION_STATUS[Strophe.Status.AUTHFAIL] = 'AUTHFAIL';
+CONNECTION_STATUS[Strophe.Status.CONNECTED] = 'CONNECTED';
+CONNECTION_STATUS[Strophe.Status.CONNECTING] = 'CONNECTING';
+CONNECTION_STATUS[Strophe.Status.CONNFAIL] = 'CONNFAIL';
+CONNECTION_STATUS[Strophe.Status.DISCONNECTED] = 'DISCONNECTED';
+CONNECTION_STATUS[Strophe.Status.DISCONNECTING] = 'DISCONNECTING';
+CONNECTION_STATUS[Strophe.Status.ERROR] = 'ERROR';
+CONNECTION_STATUS[Strophe.Status.RECONNECTING] = 'RECONNECTING';
+CONNECTION_STATUS[Strophe.Status.REDIRECT] = 'REDIRECT';
 
 // Add Strophe Namespaces
-core.addNamespace('ACTIVITY', 'http://jabber.org/protocol/activity');
-core.addNamespace('CARBONS', 'urn:xmpp:carbons:2');
-core.addNamespace('CHATSTATES', 'http://jabber.org/protocol/chatstates');
-core.addNamespace('CSI', 'urn:xmpp:csi:0');
-core.addNamespace('DELAY', 'urn:xmpp:delay');
-core.addNamespace('EME', 'urn:xmpp:eme:0');
-core.addNamespace('FASTEN', 'urn:xmpp:fasten:0');
-core.addNamespace('FORWARD', 'urn:xmpp:forward:0');
-core.addNamespace('HINTS', 'urn:xmpp:hints');
-core.addNamespace('HTTPUPLOAD', 'urn:xmpp:http:upload:0');
-core.addNamespace('MAM', 'urn:xmpp:mam:2');
-core.addNamespace('MARKERS', 'urn:xmpp:chat-markers:0');
-core.addNamespace('MENTIONS', 'urn:xmpp:mmn:0');
-core.addNamespace('MESSAGE_CORRECT', 'urn:xmpp:message-correct:0');
-core.addNamespace('MODERATE', 'urn:xmpp:message-moderate:0');
-core.addNamespace('NICK', 'http://jabber.org/protocol/nick');
-core.addNamespace('OCCUPANTID', 'urn:xmpp:occupant-id:0');
-core.addNamespace('OMEMO', 'eu.siacs.conversations.axolotl');
-core.addNamespace('OUTOFBAND', 'jabber:x:oob');
-core.addNamespace('PUBSUB', 'http://jabber.org/protocol/pubsub');
-core.addNamespace('RAI', 'urn:xmpp:rai:0');
-core.addNamespace('RECEIPTS', 'urn:xmpp:receipts');
-core.addNamespace('REFERENCE', 'urn:xmpp:reference:0');
-core.addNamespace('REGISTER', 'jabber:iq:register');
-core.addNamespace('RETRACT', 'urn:xmpp:message-retract:0');
-core.addNamespace('ROSTERX', 'http://jabber.org/protocol/rosterx');
-core.addNamespace('RSM', 'http://jabber.org/protocol/rsm');
-core.addNamespace('SID', 'urn:xmpp:sid:0');
-core.addNamespace('SPOILER', 'urn:xmpp:spoiler:0');
-core.addNamespace('STANZAS', 'urn:ietf:params:xml:ns:xmpp-stanzas');
-core.addNamespace('STYLING', 'urn:xmpp:styling:0');
-core.addNamespace('VCARD', 'vcard-temp');
-core.addNamespace('VCARDUPDATE', 'vcard-temp:x:update');
-core.addNamespace('XFORM', 'jabber:x:data');
-core.addNamespace('XHTML', 'http://www.w3.org/1999/xhtml');
+Strophe.addNamespace('ACTIVITY', 'http://jabber.org/protocol/activity');
+Strophe.addNamespace('CARBONS', 'urn:xmpp:carbons:2');
+Strophe.addNamespace('CHATSTATES', 'http://jabber.org/protocol/chatstates');
+Strophe.addNamespace('CSI', 'urn:xmpp:csi:0');
+Strophe.addNamespace('DELAY', 'urn:xmpp:delay');
+Strophe.addNamespace('EME', 'urn:xmpp:eme:0');
+Strophe.addNamespace('FASTEN', 'urn:xmpp:fasten:0');
+Strophe.addNamespace('FORWARD', 'urn:xmpp:forward:0');
+Strophe.addNamespace('HINTS', 'urn:xmpp:hints');
+Strophe.addNamespace('HTTPUPLOAD', 'urn:xmpp:http:upload:0');
+Strophe.addNamespace('MAM', 'urn:xmpp:mam:2');
+Strophe.addNamespace('MARKERS', 'urn:xmpp:chat-markers:0');
+Strophe.addNamespace('MENTIONS', 'urn:xmpp:mmn:0');
+Strophe.addNamespace('MESSAGE_CORRECT', 'urn:xmpp:message-correct:0');
+Strophe.addNamespace('MODERATE', 'urn:xmpp:message-moderate:0');
+Strophe.addNamespace('NICK', 'http://jabber.org/protocol/nick');
+Strophe.addNamespace('OCCUPANTID', 'urn:xmpp:occupant-id:0');
+Strophe.addNamespace('OMEMO', 'eu.siacs.conversations.axolotl');
+Strophe.addNamespace('OUTOFBAND', 'jabber:x:oob');
+Strophe.addNamespace('PUBSUB', 'http://jabber.org/protocol/pubsub');
+Strophe.addNamespace('RAI', 'urn:xmpp:rai:0');
+Strophe.addNamespace('RECEIPTS', 'urn:xmpp:receipts');
+Strophe.addNamespace('REFERENCE', 'urn:xmpp:reference:0');
+Strophe.addNamespace('REGISTER', 'jabber:iq:register');
+Strophe.addNamespace('RETRACT', 'urn:xmpp:message-retract:0');
+Strophe.addNamespace('ROSTERX', 'http://jabber.org/protocol/rosterx');
+Strophe.addNamespace('RSM', 'http://jabber.org/protocol/rsm');
+Strophe.addNamespace('SID', 'urn:xmpp:sid:0');
+Strophe.addNamespace('SPOILER', 'urn:xmpp:spoiler:0');
+Strophe.addNamespace('STANZAS', 'urn:ietf:params:xml:ns:xmpp-stanzas');
+Strophe.addNamespace('STYLING', 'urn:xmpp:styling:0');
+Strophe.addNamespace('VCARD', 'vcard-temp');
+Strophe.addNamespace('VCARDUPDATE', 'vcard-temp:x:update');
+Strophe.addNamespace('XFORM', 'jabber:x:data');
+Strophe.addNamespace('XHTML', 'http://www.w3.org/1999/xhtml');
 
 // Core plugins are whitelisted automatically
 // These are just the @converse/headless plugins, for the full converse,
@@ -29987,7 +30052,7 @@ function bufferToString(buffer) {
 // Serialize a value, afterwards executing a callback (which usually
 // instructs the `setItem()` callback/promise to be executed). This is how
 // we store binary data with localStorage.
-function serializer_serialize(value, callback) {
+function serialize(value, callback) {
   var valueType = '';
   if (value) {
     valueType = serializer_toString.call(value);
@@ -30112,7 +30177,7 @@ function deserialize(value) {
   }
 }
 var localforageSerializer = {
-  serialize: serializer_serialize,
+  serialize: serialize,
   deserialize: deserialize,
   stringToBuffer: stringToBuffer,
   bufferToString: bufferToString
@@ -32240,13 +32305,13 @@ function getAppSetting(key) {
   }
 }
 function extendAppSettings(settings) {
-  utils_core.merge(DEFAULT_SETTINGS, settings);
+  core.merge(DEFAULT_SETTINGS, settings);
   // When updating the settings, we need to avoid overwriting the
   // initialization_settings (i.e. the settings passed in via converse.initialize).
   const allowed_keys = Object.keys(lodash_es_pick(settings, Object.keys(DEFAULT_SETTINGS)));
   const allowed_site_settings = lodash_es_pick(init_settings, allowed_keys);
   const updated_settings = lodash_es_assignIn(lodash_es_pick(settings, allowed_keys), allowed_site_settings);
-  utils_core.merge(app_settings, updated_settings);
+  core.merge(app_settings, updated_settings);
 }
 function registerListener(name, func, context) {
   app_settings.on(name, func, context);
@@ -32283,7 +32348,7 @@ function updateAppSettings(key, val) {
 function initUserSettings() {
   if (!shared_converse.bare_jid) {
     const msg = "No JID to fetch user settings for";
-    log.error(msg);
+    headless_log.error(msg);
     throw Error(msg);
   }
   if (!user_settings?.fetched) {
@@ -32349,7 +32414,7 @@ const settings_api = {
     return extendAppSettings(settings);
   },
   update(settings) {
-    log.warn('The api.settings.update method has been deprecated and will be removed. ' + 'Please use api.settings.extend instead.');
+    headless_log.warn('The api.settings.update method has been deprecated and will be removed. ' + 'Please use api.settings.extend instead.');
     return this.extend(settings);
   },
   /**
@@ -32487,14 +32552,14 @@ const user_settings_api = {
 
 const stanza_PARSE_ERROR_NS = 'http://www.w3.org/1999/xhtml';
 function stanza_toStanza(string, throwErrorIfInvalidNS) {
-  const doc = core.xmlHtmlNode(string);
+  const doc = Strophe.xmlHtmlNode(string);
   if (doc.getElementsByTagNameNS(stanza_PARSE_ERROR_NS, 'parsererror').length) {
     throw new Error(`Parser Error: ${string}`);
   }
   const node = doc.firstElementChild;
   if (['message', 'iq', 'presence'].includes(node.nodeName.toLowerCase()) && node.namespaceURI !== 'jabber:client' && node.namespaceURI !== 'jabber:server') {
     const err_msg = `Invalid namespaceURI ${node.namespaceURI}`;
-    log.error(err_msg);
+    headless_log.error(err_msg);
     if (throwErrorIfInvalidNS) throw new Error(err_msg);
   }
   return node;
@@ -32639,7 +32704,7 @@ u.isTagEqual = function (stanza, name) {
   } else if (!(stanza instanceof Element)) {
     throw Error("isTagEqual called with value which isn't " + "an element or Strophe.Builder instance");
   } else {
-    return core.isTagEqual(stanza, name);
+    return Strophe.isTagEqual(stanza, name);
   }
 };
 u.getJIDFromURI = function (jid) {
@@ -32672,20 +32737,20 @@ u.isSameBareJID = function (jid1, jid2) {
   if (typeof jid1 !== 'string' || typeof jid2 !== 'string') {
     return false;
   }
-  return core.getBareJidFromJid(jid1).toLowerCase() === core.getBareJidFromJid(jid2).toLowerCase();
+  return Strophe.getBareJidFromJid(jid1).toLowerCase() === Strophe.getBareJidFromJid(jid2).toLowerCase();
 };
 u.isSameDomain = function (jid1, jid2) {
   if (typeof jid1 !== 'string' || typeof jid2 !== 'string') {
     return false;
   }
-  return core.getDomainFromJid(jid1).toLowerCase() === core.getDomainFromJid(jid2).toLowerCase();
+  return Strophe.getDomainFromJid(jid1).toLowerCase() === Strophe.getDomainFromJid(jid2).toLowerCase();
 };
 u.isNewMessage = function (message) {
   /* Given a stanza, determine whether it's a new
    * message, i.e. not a MAM archived one.
    */
   if (message instanceof Element) {
-    return !(sizzle_default()(`result[xmlns="${core.NS.MAM}"]`, message).length && sizzle_default()(`delay[xmlns="${core.NS.DELAY}"]`, message).length);
+    return !(sizzle_default()(`result[xmlns="${Strophe.NS.MAM}"]`, message).length && sizzle_default()(`delay[xmlns="${Strophe.NS.DELAY}"]`, message).length);
   } else if (message instanceof Model) {
     message = message.attributes;
   }
@@ -32715,13 +32780,13 @@ u.isForbiddenError = function (stanza) {
   if (!isElement(stanza)) {
     return false;
   }
-  return sizzle_default()(`error[type="auth"] forbidden[xmlns="${core.NS.STANZAS}"]`, stanza).length > 0;
+  return sizzle_default()(`error[type="auth"] forbidden[xmlns="${Strophe.NS.STANZAS}"]`, stanza).length > 0;
 };
 u.isServiceUnavailableError = function (stanza) {
   if (!isElement(stanza)) {
     return false;
   }
-  return sizzle_default()(`error[type="cancel"] service-unavailable[xmlns="${core.NS.STANZAS}"]`, stanza).length > 0;
+  return sizzle_default()(`error[type="cancel"] service-unavailable[xmlns="${Strophe.NS.STANZAS}"]`, stanza).length > 0;
 };
 
 /**
@@ -33021,7 +33086,7 @@ function waitUntil(func) {
     clearTimers(max_wait_timeout, interval);
     const err_msg = `Wait until promise timed out: \n\n${timeout_err.stack}`;
     console.trace();
-    log.error(err_msg);
+    headless_log.error(err_msg);
     promise.reject(new Error(err_msg));
   }
   const max_wait_timeout = setTimeout(handler, max_wait);
@@ -33051,7 +33116,7 @@ function replacePromise(name) {
     promise.replace = existing_promise.replace;
     shared_converse.promises[name] = promise;
   } else {
-    log.debug(`Not replacing promise "${name}"`);
+    headless_log.debug(`Not replacing promise "${name}"`);
   }
 }
 const core_element = document.createElement('div');
@@ -33095,7 +33160,7 @@ function saveWindowState(ev) {
     state
   });
 }
-/* harmony default export */ const utils_core = (Object.assign({
+/* harmony default export */ const core = (Object.assign({
   shouldClearCache,
   waitUntil,
   // TODO: remove. Only the API should be used
@@ -33134,7 +33199,7 @@ const logger = Object.assign({
  * The log namespace
  * @namespace log
  */
-/* harmony default export */ const log = ({
+/* harmony default export */ const headless_log = ({
   /**
    * The the log-level, which determines how verbose the logging is.
    * @method log#setLogLevel
@@ -34032,7 +34097,7 @@ Object.assign(Router.prototype, Events, {
  * @namespace _converse
  */
 const _converse = {
-  log: log,
+  log: headless_log,
   shouldClearCache: shouldClearCache,
   // TODO: Should be moved to utils with next major release
   VERSION_NAME: VERSION_NAME,
@@ -34166,7 +34231,7 @@ var advancedFormat_default = /*#__PURE__*/__webpack_require__.n(advancedFormat);
       __,
       connection
     } = shared_converse;
-    connection.setConnectionStatus(core.Status.RECONNECTING, __('The connection has dropped, attempting to reconnect.'));
+    connection.setConnectionStatus(Strophe.Status.RECONNECTING, __('The connection has dropped, attempting to reconnect.'));
     if (connection?.reconnecting) {
       return connection.debouncedReconnect();
     } else {
@@ -34291,7 +34356,7 @@ var advancedFormat_default = /*#__PURE__*/__webpack_require__.n(advancedFormat);
      * @param { function } handler The callback method to be called when the stanza appears
      */
     stanza(name, options, handler) {
-      if (utils_core(options)) {
+      if (core(options)) {
         handler = options;
         options = {};
       } else {
@@ -34410,8 +34475,8 @@ class TimeoutError extends Error {}
       api
     } = shared_converse;
     if (!api.connection.connected()) {
-      log.warn("Not sending stanza because we're not connected!");
-      log.warn(core.serialize(stanza));
+      headless_log.warn("Not sending stanza because we're not connected!");
+      headless_log.warn(Strophe.serialize(stanza));
       return;
     }
     if (typeof stanza === 'string') {
@@ -34453,7 +34518,7 @@ class TimeoutError extends Error {}
         promise = new Promise((resolve, reject) => connection.sendIQ(stanza, resolve, reject, timeout));
         promise.catch(e => {
           if (e === null) {
-            throw new TimeoutError(`Timeout error after ${timeout}ms for the following IQ stanza: ${core.serialize(stanza)}`);
+            throw new TimeoutError(`Timeout error after ${timeout}ms for the following IQ stanza: ${Strophe.serialize(stanza)}`);
           }
         });
       } else {
@@ -34689,15 +34754,15 @@ var localforage_webextensionstorage_driver_sync = __webpack_require__(8146);
 
 
 
-const i = Object.keys(core.Status).reduce((max, k) => Math.max(max, core.Status[k]), 0);
-core.Status.RECONNECTING = i + 1;
+const i = Object.keys(Strophe.Status).reduce((max, k) => Math.max(max, Strophe.Status[k]), 0);
+Strophe.Status.RECONNECTING = i + 1;
 
 /**
  * The Connection class manages the connection to the XMPP server. It's
  * agnostic concerning the underlying protocol (i.e. websocket, long-polling
  * via BOSH or websocket inside a shared worker).
  */
-class connection_Connection extends core.Connection {
+class connection_Connection extends Strophe.Connection {
   constructor(service, options) {
     super(service, options);
     this.debouncedReconnect = lodash_es_debounce(this.reconnect, 3000);
@@ -34720,14 +34785,14 @@ class connection_Connection extends core.Connection {
     const text = await response.text();
     const xrd = new window.DOMParser().parseFromString(text, "text/xml").firstElementChild;
     if (xrd.nodeName != "XRD" || xrd.namespaceURI != "http://docs.oasis-open.org/ns/xri/xrd-1.0") {
-      return log.warn("Could not discover XEP-0156 connection methods");
+      return headless_log.warn("Could not discover XEP-0156 connection methods");
     }
     const bosh_links = sizzle_default()(`Link[rel="urn:xmpp:alt-connections:xbosh"]`, xrd);
     const ws_links = sizzle_default()(`Link[rel="urn:xmpp:alt-connections:websocket"]`, xrd);
     const bosh_methods = bosh_links.map(el => el.getAttribute('href'));
     const ws_methods = ws_links.map(el => el.getAttribute('href'));
     if (bosh_methods.length === 0 && ws_methods.length === 0) {
-      log.warn("Neither BOSH nor WebSocket connection methods have been specified with XEP-0156.");
+      headless_log.warn("Neither BOSH nor WebSocket connection methods have been specified with XEP-0156.");
     } else {
       // TODO: support multiple endpoints
       shared_api.settings.set("websocket_url", ws_methods.pop());
@@ -34757,14 +34822,14 @@ class connection_Connection extends core.Connection {
     try {
       response = await fetch(url, options);
     } catch (e) {
-      log.error(`Failed to discover alternative connection methods at ${url}`);
-      log.error(e);
+      headless_log.error(`Failed to discover alternative connection methods at ${url}`);
+      headless_log.error(e);
       return;
     }
     if (response.status >= 200 && response.status < 400) {
       await this.onDomainDiscovered(response);
     } else {
-      log.warn("Could not discover XEP-0156 connection methods");
+      headless_log.warn("Could not discover XEP-0156 connection methods");
     }
   }
 
@@ -34778,7 +34843,7 @@ class connection_Connection extends core.Connection {
    */
   async connect(jid, password, callback) {
     if (shared_api.settings.get("discover_connection_methods")) {
-      const domain = core.getDomainFromJid(jid);
+      const domain = Strophe.getDomainFromJid(jid);
       await this.discoverConnectionMethods(domain);
     }
     if (!shared_api.settings.get('bosh_service_url') && !shared_api.settings.get("websocket_url")) {
@@ -34801,7 +34866,7 @@ class connection_Connection extends core.Connection {
     if (shared_api.connection.isType('websocket') && shared_api.settings.get('bosh_service_url')) {
       await setUserJID(shared_converse.bare_jid);
       this._proto._doDisconnect();
-      this._proto = new core.Bosh(this);
+      this._proto = new Strophe.Bosh(this);
       this.service = shared_api.settings.get('bosh_service_url');
     } else if (shared_api.connection.isType('bosh') && shared_api.settings.get("websocket_url")) {
       if (shared_api.settings.get("authentication") === ANONYMOUS) {
@@ -34813,18 +34878,18 @@ class connection_Connection extends core.Connection {
         await setUserJID(shared_converse.bare_jid);
       }
       this._proto._doDisconnect();
-      this._proto = new core.Websocket(this);
+      this._proto = new Strophe.Websocket(this);
       this.service = shared_api.settings.get("websocket_url");
     }
   }
   async reconnect() {
-    log.debug('RECONNECTING: the connection has dropped, attempting to reconnect.');
+    headless_log.debug('RECONNECTING: the connection has dropped, attempting to reconnect.');
     this.reconnecting = true;
     await tearDown();
     const conn_status = shared_converse.connfeedback.get('connection_status');
-    if (conn_status === core.Status.CONNFAIL) {
+    if (conn_status === Strophe.Status.CONNFAIL) {
       this.switchTransport();
-    } else if (conn_status === core.Status.AUTHFAIL && shared_api.settings.get("authentication") === ANONYMOUS) {
+    } else if (conn_status === Strophe.Status.AUTHFAIL && shared_api.settings.get("authentication") === ANONYMOUS) {
       // When reconnecting anonymously, we need to connect with only
       // the domain, not the full JID that we had in our previous
       // (now failed) session.
@@ -34915,7 +34980,7 @@ class connection_Connection extends core.Connection {
   }
   async finishDisconnection() {
     // Properly tear down the session so that it's possible to manually connect again.
-    log.debug('DISCONNECTED');
+    headless_log.debug('DISCONNECTED');
     delete this.reconnecting;
     this.reset();
     tearDown();
@@ -34939,7 +35004,7 @@ class connection_Connection extends core.Connection {
   onDisconnected() {
     if (shared_api.settings.get("auto_reconnect")) {
       const reason = this.disconnection_reason;
-      if (this.disconnection_cause === core.Status.AUTHFAIL) {
+      if (this.disconnection_cause === Strophe.Status.AUTHFAIL) {
         if (shared_api.settings.get("credentials_url") || shared_api.settings.get("authentication") === ANONYMOUS) {
           // If `credentials_url` is set, we reconnect, because we might
           // be receiving expirable tokens from the credentials_url.
@@ -34951,16 +35016,16 @@ class connection_Connection extends core.Connection {
         } else {
           return this.finishDisconnection();
         }
-      } else if (this.status === core.Status.CONNECTING) {
+      } else if (this.status === Strophe.Status.CONNECTING) {
         // Don't try to reconnect if we were never connected to begin
         // with, otherwise an infinite loop can occur (e.g. when the
         // BOSH service URL returns a 404).
         const {
           __
         } = shared_converse;
-        this.setConnectionStatus(core.Status.CONNFAIL, __('An error occurred while connecting to the chat server.'));
+        this.setConnectionStatus(Strophe.Status.CONNFAIL, __('An error occurred while connecting to the chat server.'));
         return this.finishDisconnection();
-      } else if (this.disconnection_cause === LOGOUT || reason === core.ErrorCondition.NO_AUTH_MECH || reason === "host-unknown" || reason === "remote-connection-failed") {
+      } else if (this.disconnection_cause === LOGOUT || reason === Strophe.ErrorCondition.NO_AUTH_MECH || reason === "host-unknown" || reason === "remote-connection-failed") {
         return this.finishDisconnection();
       }
       shared_api.connection.reconnect();
@@ -34980,12 +35045,12 @@ class connection_Connection extends core.Connection {
     const {
       __
     } = shared_converse;
-    log.debug(`Status changed to: ${CONNECTION_STATUS[status]}`);
-    if (status === core.Status.ATTACHFAIL) {
+    headless_log.debug(`Status changed to: ${CONNECTION_STATUS[status]}`);
+    if (status === Strophe.Status.ATTACHFAIL) {
       this.setConnectionStatus(status);
       this.worker_attach_promise?.resolve(false);
-    } else if (status === core.Status.CONNECTED || status === core.Status.ATTACHED) {
-      if (this.worker_attach_promise?.isResolved && this.status === core.Status.ATTACHED) {
+    } else if (status === Strophe.Status.CONNECTED || status === Strophe.Status.ATTACHED) {
+      if (this.worker_attach_promise?.isResolved && this.status === Strophe.Status.ATTACHED) {
         // A different tab must have attached, so nothing to do for us here.
         return;
       }
@@ -34996,10 +35061,10 @@ class connection_Connection extends core.Connection {
       shared_converse.send_initial_presence = true;
       this.setDisconnectionCause();
       if (this.reconnecting) {
-        log.debug(status === core.Status.CONNECTED ? 'Reconnected' : 'Reattached');
+        headless_log.debug(status === Strophe.Status.CONNECTED ? 'Reconnected' : 'Reattached');
         this.onConnected(true);
       } else {
-        log.debug(status === core.Status.CONNECTED ? 'Connected' : 'Attached');
+        headless_log.debug(status === Strophe.Status.CONNECTED ? 'Connected' : 'Attached');
         if (this.restored) {
           // No need to send an initial presence stanza when
           // we're restoring an existing session.
@@ -35007,47 +35072,47 @@ class connection_Connection extends core.Connection {
         }
         this.onConnected();
       }
-    } else if (status === core.Status.DISCONNECTED) {
+    } else if (status === Strophe.Status.DISCONNECTED) {
       this.setDisconnectionCause(status, message);
       this.onDisconnected();
-    } else if (status === core.Status.BINDREQUIRED) {
+    } else if (status === Strophe.Status.BINDREQUIRED) {
       this.bind();
-    } else if (status === core.Status.ERROR) {
+    } else if (status === Strophe.Status.ERROR) {
       this.setConnectionStatus(status, __('An error occurred while connecting to the chat server.'));
-    } else if (status === core.Status.CONNECTING) {
+    } else if (status === Strophe.Status.CONNECTING) {
       this.setConnectionStatus(status);
-    } else if (status === core.Status.AUTHENTICATING) {
+    } else if (status === Strophe.Status.AUTHENTICATING) {
       this.setConnectionStatus(status);
-    } else if (status === core.Status.AUTHFAIL) {
+    } else if (status === Strophe.Status.AUTHFAIL) {
       if (!message) {
         message = __('Your XMPP address and/or password is incorrect. Please try again.');
       }
       this.setConnectionStatus(status, message);
       this.setDisconnectionCause(status, message, true);
       this.onDisconnected();
-    } else if (status === core.Status.CONNFAIL) {
+    } else if (status === Strophe.Status.CONNFAIL) {
       let feedback = message;
       if (message === "host-unknown" || message == "remote-connection-failed") {
-        feedback = __("Sorry, we could not connect to the XMPP host with domain: %1$s", `\"${core.getDomainFromJid(this.jid)}\"`);
-      } else if (message !== undefined && message === core?.ErrorCondition?.NO_AUTH_MECH) {
+        feedback = __("Sorry, we could not connect to the XMPP host with domain: %1$s", `\"${Strophe.getDomainFromJid(this.jid)}\"`);
+      } else if (message !== undefined && message === Strophe?.ErrorCondition?.NO_AUTH_MECH) {
         feedback = __("The XMPP server did not offer a supported authentication mechanism");
       }
       this.setConnectionStatus(status, feedback);
       this.setDisconnectionCause(status, message);
-    } else if (status === core.Status.DISCONNECTING) {
+    } else if (status === Strophe.Status.DISCONNECTING) {
       this.setDisconnectionCause(status, message);
     }
   }
   isType(type) {
     if (type.toLowerCase() === 'websocket') {
-      return this._proto instanceof core.Websocket;
+      return this._proto instanceof Strophe.Websocket;
     } else if (type.toLowerCase() === 'bosh') {
-      return core.Bosh && this._proto instanceof core.Bosh;
+      return Strophe.Bosh && this._proto instanceof Strophe.Bosh;
     }
   }
   hasResumed() {
     if (shared_api.settings.get("connection_options")?.worker || this.isType('bosh')) {
-      return shared_converse.connfeedback.get('connection_status') === core.Status.ATTACHED;
+      return shared_converse.connfeedback.get('connection_status') === Strophe.Status.ATTACHED;
     } else {
       // Not binding means that the session was resumed.
       return !this.do_bind;
@@ -35070,7 +35135,7 @@ class MockConnection extends connection_Connection {
     this.sent_stanzas = [];
     this.IQ_stanzas = [];
     this.IQ_ids = [];
-    this.features = core.xmlHtmlNode('<stream:features xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">' + '<ver xmlns="urn:xmpp:features:rosterver"/>' + '<csi xmlns="urn:xmpp:csi:0"/>' + '<this xmlns="http://jabber.org/protocol/caps" ver="UwBpfJpEt3IoLYfWma/o/p3FFRo=" hash="sha-1" node="http://prosody.im"/>' + '<bind xmlns="urn:ietf:params:xml:ns:xmpp-bind">' + '<required/>' + '</bind>' + `<sm xmlns='urn:xmpp:sm:3'/>` + '<session xmlns="urn:ietf:params:xml:ns:xmpp-session">' + '<optional/>' + '</session>' + '</stream:features>').firstChild;
+    this.features = Strophe.xmlHtmlNode('<stream:features xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">' + '<ver xmlns="urn:xmpp:features:rosterver"/>' + '<csi xmlns="urn:xmpp:csi:0"/>' + '<this xmlns="http://jabber.org/protocol/caps" ver="UwBpfJpEt3IoLYfWma/o/p3FFRo=" hash="sha-1" node="http://prosody.im"/>' + '<bind xmlns="urn:ietf:params:xml:ns:xmpp-bind">' + '<required/>' + '</bind>' + `<sm xmlns='urn:xmpp:sm:3'/>` + '<session xmlns="urn:ietf:params:xml:ns:xmpp-session">' + '<optional/>' + '</session>' + '</stream:features>').firstChild;
     this._proto._processRequest = () => {};
     this._proto._disconnect = () => this._onDisconnectTimeout();
     this._proto._onDisconnectTimeout = () => {};
@@ -35078,7 +35143,7 @@ class MockConnection extends connection_Connection {
       this.connected = true;
       this.mock = true;
       this.jid = 'romeo@montague.lit/orchard';
-      this._changeConnectStatus(core.Status.BINDREQUIRED);
+      this._changeConnectStatus(Strophe.Status.BINDREQUIRED);
     };
   }
   _processRequest() {// eslint-disable-line class-methods-use-this
@@ -35102,7 +35167,7 @@ class MockConnection extends connection_Connection {
     });
     this.authenticated = true;
     if (!shared_converse.no_connection_on_bind) {
-      this._changeConnectStatus(core.Status.CONNECTED);
+      this._changeConnectStatus(Strophe.Status.CONNECTED);
     }
   }
 }
@@ -35121,15 +35186,15 @@ class MockConnection extends connection_Connection {
 
 function setUpXMLLogging() {
   const lmap = {};
-  lmap[core.LogLevel.DEBUG] = 'debug';
-  lmap[core.LogLevel.INFO] = 'info';
-  lmap[core.LogLevel.WARN] = 'warn';
-  lmap[core.LogLevel.ERROR] = 'error';
-  lmap[core.LogLevel.FATAL] = 'fatal';
-  core.log = (level, msg) => log.log(msg, lmap[level]);
-  core.error = msg => log.error(msg);
-  shared_converse.connection.xmlInput = body => log.debug(body.outerHTML, 'color: darkgoldenrod');
-  shared_converse.connection.xmlOutput = body => log.debug(body.outerHTML, 'color: darkcyan');
+  lmap[Strophe.LogLevel.DEBUG] = 'debug';
+  lmap[Strophe.LogLevel.INFO] = 'info';
+  lmap[Strophe.LogLevel.WARN] = 'warn';
+  lmap[Strophe.LogLevel.ERROR] = 'error';
+  lmap[Strophe.LogLevel.FATAL] = 'fatal';
+  Strophe.log = (level, msg) => headless_log.log(msg, lmap[level]);
+  Strophe.error = msg => headless_log.error(msg);
+  shared_converse.connection.xmlInput = body => headless_log.debug(body.outerHTML, 'color: darkgoldenrod');
+  shared_converse.connection.xmlOutput = body => headless_log.debug(body.outerHTML, 'color: darkcyan');
 }
 function getConnectionServiceURL() {
   const {
@@ -35258,13 +35323,13 @@ function initPersistentStorage(_converse, store_name) {
 }
 function saveJIDtoSession(_converse, jid) {
   jid = _converse.session.get('jid') || jid;
-  if (_converse.api.settings.get("authentication") !== ANONYMOUS && !core.getResourceFromJid(jid)) {
+  if (_converse.api.settings.get("authentication") !== ANONYMOUS && !Strophe.getResourceFromJid(jid)) {
     jid = jid.toLowerCase() + connection_Connection.generateResource();
   }
   _converse.jid = jid;
-  _converse.bare_jid = core.getBareJidFromJid(jid);
-  _converse.resource = core.getResourceFromJid(jid);
-  _converse.domain = core.getDomainFromJid(jid);
+  _converse.bare_jid = Strophe.getBareJidFromJid(jid);
+  _converse.resource = Strophe.getResourceFromJid(jid);
+  _converse.domain = Strophe.getDomainFromJid(jid);
   _converse.session.save({
     'jid': jid,
     'bare_jid': _converse.bare_jid,
@@ -35305,7 +35370,7 @@ async function setUserJID(jid) {
 }
 async function initSession(_converse, jid) {
   const is_shared_session = _converse.api.settings.get('connection_options').worker;
-  const bare_jid = core.getBareJidFromJid(jid).toLowerCase();
+  const bare_jid = Strophe.getBareJidFromJid(jid).toLowerCase();
   const id = `converse.session-${bare_jid}`;
   if (_converse.session?.get('id') !== id) {
     initPersistentStorage(_converse, bare_jid);
@@ -35417,8 +35482,8 @@ async function getLoginCredentialsFromURL() {
     try {
       credentials = await fetchLoginCredentials(wait); // eslint-disable-line no-await-in-loop
     } catch (e) {
-      log.error('Could not fetch login credentials');
-      log.error(e);
+      headless_log.error('Could not fetch login credentials');
+      headless_log.error(e);
     }
     // If unsuccessful, we wait 2 seconds between subsequent attempts to
     // fetch the credentials.
@@ -35444,7 +35509,7 @@ async function getLoginCredentialsFromBrowser() {
       };
     }
   } catch (e) {
-    log.error(e);
+    headless_log.error(e);
     return null;
   }
 }
@@ -35487,7 +35552,7 @@ async function attemptNonPreboundSession(credentials, automatic) {
       const credentials = await getLoginCredentialsFromBrowser();
       if (credentials) return connect(credentials);
     }
-    if (!shared_converse.isTestEnv()) log.warn("attemptNonPreboundSession: Couldn't find credentials to log in with");
+    if (!shared_converse.isTestEnv()) headless_log.warn("attemptNonPreboundSession: Couldn't find credentials to log in with");
   } else if ([ANONYMOUS, EXTERNAL].includes(api.settings.get("authentication")) && (!automatic || api.settings.get("auto_login"))) {
     connect();
   }
@@ -35504,7 +35569,7 @@ async function attemptNonPreboundSession(credentials, automatic) {
  *  used login keys.
  */
 async function savedLoginInfo(jid) {
-  const id = `converse.scram-keys-${core.getBareJidFromJid(jid)}`;
+  const id = `converse.scram-keys-${Strophe.getBareJidFromJid(jid)}`;
   const login_info = new Model({
     id
   });
@@ -35541,7 +35606,7 @@ async function connect(credentials) {
       if (api.settings.get("auto_login")) {
         throw new Error("autoLogin: If you use auto_login and " + "authentication='login' then you also need to provide a password.");
       }
-      shared_converse.connection.setDisconnectionCause(core.Status.AUTHFAIL, undefined, true);
+      shared_converse.connection.setDisconnectionCause(Strophe.Status.AUTHFAIL, undefined, true);
       api.connection.disconnect();
       return;
     }
@@ -35617,7 +35682,7 @@ async function connect(credentials) {
         api
       } = shared_converse;
       jid = jid || api.settings.get('jid');
-      if (!shared_converse.connection?.jid || jid && !utils_core.isSameDomain(shared_converse.connection.jid, jid)) {
+      if (!shared_converse.connection?.jid || jid && !core.isSameDomain(shared_converse.connection.jid, jid)) {
         initConnection();
       }
       if (api.settings.get("connection_options")?.worker && (await shared_converse.connection.restoreWorkerSession())) {
@@ -35727,7 +35792,7 @@ var dayjs_min_default = /*#__PURE__*/__webpack_require__.n(dayjs_min);
 
 /* harmony default export */ const feedback = (Model.extend({
   defaults: {
-    'connection_status': core.Status.DISCONNECTED,
+    'connection_status': Strophe.Status.DISCONNECTED,
     'message': ''
   },
   initialize() {
@@ -37550,13 +37615,13 @@ function partial() {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const css_tag_t = window,
-  e = css_tag_t.ShadowRoot && (void 0 === css_tag_t.ShadyCSS || css_tag_t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype,
+const t = globalThis,
+  e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype,
   s = Symbol(),
-  n = new WeakMap();
-class o {
-  constructor(t, e, n) {
-    if (this._$cssResult$ = !0, n !== s) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+  o = new WeakMap();
+class n {
+  constructor(t, e, o) {
+    if (this._$cssResult$ = !0, o !== s) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = t, this.t = e;
   }
   get styleSheet() {
@@ -37564,7 +37629,7 @@ class o {
     const s = this.t;
     if (e && void 0 === t) {
       const e = void 0 !== s && 1 === s.length;
-      e && (t = n.get(s)), void 0 === t && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), e && n.set(s, t));
+      e && (t = o.get(s)), void 0 === t && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), e && o.set(s, t));
     }
     return t;
   }
@@ -37572,24 +37637,24 @@ class o {
     return this.cssText;
   }
 }
-const r = t => new o("string" == typeof t ? t : t + "", void 0, s),
+const r = t => new n("string" == typeof t ? t : t + "", void 0, s),
   css_tag_i = function (t) {
     for (var _len = arguments.length, e = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
       e[_key - 1] = arguments[_key];
     }
-    const n = 1 === t.length ? t[0] : e.reduce((e, s, n) => e + (t => {
+    const o = 1 === t.length ? t[0] : e.reduce((e, s, o) => e + (t => {
       if (!0 === t._$cssResult$) return t.cssText;
       if ("number" == typeof t) return t;
       throw Error("Value passed to 'css' function must be a 'css' function result: " + t + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-    })(s) + t[n + 1], t[0]);
-    return new o(n, t, s);
+    })(s) + t[o + 1], t[0]);
+    return new n(o, t, s);
   },
-  css_tag_S = (s, n) => {
-    e ? s.adoptedStyleSheets = n.map(t => t instanceof CSSStyleSheet ? t : t.styleSheet) : n.forEach(e => {
-      const n = document.createElement("style"),
-        o = css_tag_t.litNonce;
-      void 0 !== o && n.setAttribute("nonce", o), n.textContent = e.cssText, s.appendChild(n);
-    });
+  css_tag_S = (s, o) => {
+    if (e) s.adoptedStyleSheets = o.map(t => t instanceof CSSStyleSheet ? t : t.styleSheet);else for (const e of o) {
+      const o = document.createElement("style"),
+        n = t.litNonce;
+      void 0 !== n && o.setAttribute("nonce", n), o.textContent = e.cssText, s.appendChild(o);
+    }
   },
   c = e ? t => t : t => t instanceof CSSStyleSheet ? (t => {
     let e = "";
@@ -37605,16 +37670,24 @@ const r = t => new o("string" == typeof t ? t : t + "", void 0, s),
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-var reactive_element_s;
-const reactive_element_e = window,
-  reactive_element_r = reactive_element_e.trustedTypes,
-  h = reactive_element_r ? reactive_element_r.emptyScript : "",
-  reactive_element_o = reactive_element_e.reactiveElementPolyfillSupport,
-  reactive_element_n = {
-    toAttribute(t, i) {
-      switch (i) {
+const {
+    is: reactive_element_i,
+    defineProperty: reactive_element_e,
+    getOwnPropertyDescriptor: reactive_element_r,
+    getOwnPropertyNames: h,
+    getOwnPropertySymbols: reactive_element_o,
+    getPrototypeOf: reactive_element_n
+  } = Object,
+  a = globalThis,
+  reactive_element_c = a.trustedTypes,
+  l = reactive_element_c ? reactive_element_c.emptyScript : "",
+  p = a.reactiveElementPolyfillSupport,
+  d = (t, s) => t,
+  reactive_element_u = {
+    toAttribute(t, s) {
+      switch (s) {
         case Boolean:
-          t = t ? h : null;
+          t = t ? l : null;
           break;
         case Object:
         case Array:
@@ -37622,167 +37695,178 @@ const reactive_element_e = window,
       }
       return t;
     },
-    fromAttribute(t, i) {
-      let s = t;
-      switch (i) {
+    fromAttribute(t, s) {
+      let i = t;
+      switch (s) {
         case Boolean:
-          s = null !== t;
+          i = null !== t;
           break;
         case Number:
-          s = null === t ? null : Number(t);
+          i = null === t ? null : Number(t);
           break;
         case Object:
         case Array:
           try {
-            s = JSON.parse(t);
+            i = JSON.parse(t);
           } catch (t) {
-            s = null;
+            i = null;
           }
       }
-      return s;
+      return i;
     }
   },
-  a = (t, i) => i !== t && (i == i || t == t),
-  l = {
+  f = (t, s) => !reactive_element_i(t, s),
+  y = {
     attribute: !0,
     type: String,
-    converter: reactive_element_n,
+    converter: reactive_element_u,
     reflect: !1,
-    hasChanged: a
-  },
-  d = "finalized";
-class reactive_element_u extends HTMLElement {
-  constructor() {
-    super(), this._$Ei = new Map(), this.isUpdatePending = !1, this.hasUpdated = !1, this._$El = null, this.u();
-  }
+    hasChanged: f
+  };
+Symbol.metadata ??= Symbol("metadata"), a.litPropertyMetadata ??= new WeakMap();
+class b extends HTMLElement {
   static addInitializer(t) {
-    var i;
-    this.finalize(), (null !== (i = this.h) && void 0 !== i ? i : this.h = []).push(t);
+    this._$Ei(), (this.l ??= []).push(t);
   }
   static get observedAttributes() {
-    this.finalize();
-    const t = [];
-    return this.elementProperties.forEach((i, s) => {
-      const e = this._$Ep(s, i);
-      void 0 !== e && (this._$Ev.set(e, s), t.push(e));
-    }), t;
+    return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
   static createProperty(t) {
-    let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : l;
-    if (i.state && (i.attribute = !1), this.finalize(), this.elementProperties.set(t, i), !i.noAccessor && !this.prototype.hasOwnProperty(t)) {
-      const s = "symbol" == typeof t ? Symbol() : "__" + t,
-        e = this.getPropertyDescriptor(t, s, i);
-      void 0 !== e && Object.defineProperty(this.prototype, t, e);
+    let s = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : y;
+    if (s.state && (s.attribute = !1), this._$Ei(), this.elementProperties.set(t, s), !s.noAccessor) {
+      const i = Symbol(),
+        r = this.getPropertyDescriptor(t, i, s);
+      void 0 !== r && reactive_element_e(this.prototype, t, r);
     }
   }
-  static getPropertyDescriptor(t, i, s) {
+  static getPropertyDescriptor(t, s, i) {
+    const {
+      get: e,
+      set: h
+    } = reactive_element_r(this.prototype, t) ?? {
+      get() {
+        return this[s];
+      },
+      set(t) {
+        this[s] = t;
+      }
+    };
     return {
       get() {
-        return this[i];
+        return e?.call(this);
       },
-      set(e) {
-        const r = this[t];
-        this[i] = e, this.requestUpdate(t, r, s);
+      set(s) {
+        const r = e?.call(this);
+        h.call(this, s), this.requestUpdate(t, r, i);
       },
       configurable: !0,
       enumerable: !0
     };
   }
   static getPropertyOptions(t) {
-    return this.elementProperties.get(t) || l;
+    return this.elementProperties.get(t) ?? y;
+  }
+  static _$Ei() {
+    if (this.hasOwnProperty(d("elementProperties"))) return;
+    const t = reactive_element_n(this);
+    t.finalize(), void 0 !== t.l && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(d)) return !1;
-    this[d] = !0;
-    const t = Object.getPrototypeOf(this);
-    if (t.finalize(), void 0 !== t.h && (this.h = [...t.h]), this.elementProperties = new Map(t.elementProperties), this._$Ev = new Map(), this.hasOwnProperty("properties")) {
+    if (this.hasOwnProperty(d("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(d("properties"))) {
       const t = this.properties,
-        i = [...Object.getOwnPropertyNames(t), ...Object.getOwnPropertySymbols(t)];
-      for (const s of i) this.createProperty(s, t[s]);
+        s = [...h(t), ...reactive_element_o(t)];
+      for (const i of s) this.createProperty(i, t[i]);
     }
-    return this.elementStyles = this.finalizeStyles(this.styles), !0;
+    const t = this[Symbol.metadata];
+    if (null !== t) {
+      const s = litPropertyMetadata.get(t);
+      if (void 0 !== s) for (const [t, i] of s) this.elementProperties.set(t, i);
+    }
+    this._$Eh = new Map();
+    for (const [t, s] of this.elementProperties) {
+      const i = this._$Eu(t, s);
+      void 0 !== i && this._$Eh.set(i, t);
+    }
+    this.elementStyles = this.finalizeStyles(this.styles);
   }
-  static finalizeStyles(i) {
-    const s = [];
-    if (Array.isArray(i)) {
-      const e = new Set(i.flat(1 / 0).reverse());
-      for (const i of e) s.unshift(c(i));
-    } else void 0 !== i && s.push(c(i));
-    return s;
+  static finalizeStyles(s) {
+    const i = [];
+    if (Array.isArray(s)) {
+      const e = new Set(s.flat(1 / 0).reverse());
+      for (const s of e) i.unshift(c(s));
+    } else void 0 !== s && i.push(c(s));
+    return i;
   }
-  static _$Ep(t, i) {
-    const s = i.attribute;
-    return !1 === s ? void 0 : "string" == typeof s ? s : "string" == typeof t ? t.toLowerCase() : void 0;
+  static _$Eu(t, s) {
+    const i = s.attribute;
+    return !1 === i ? void 0 : "string" == typeof i ? i : "string" == typeof t ? t.toLowerCase() : void 0;
   }
-  u() {
-    var t;
-    this._$E_ = new Promise(t => this.enableUpdating = t), this._$AL = new Map(), this._$Eg(), this.requestUpdate(), null === (t = this.constructor.h) || void 0 === t || t.forEach(t => t(this));
+  constructor() {
+    super(), this._$Ep = void 0, this.isUpdatePending = !1, this.hasUpdated = !1, this._$Em = null, this._$Ev();
+  }
+  _$Ev() {
+    this._$ES = new Promise(t => this.enableUpdating = t), this._$AL = new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach(t => t(this));
   }
   addController(t) {
-    var i, s;
-    (null !== (i = this._$ES) && void 0 !== i ? i : this._$ES = []).push(t), void 0 !== this.renderRoot && this.isConnected && (null === (s = t.hostConnected) || void 0 === s || s.call(t));
+    (this._$EO ??= new Set()).add(t), void 0 !== this.renderRoot && this.isConnected && t.hostConnected?.();
   }
   removeController(t) {
-    var i;
-    null === (i = this._$ES) || void 0 === i || i.splice(this._$ES.indexOf(t) >>> 0, 1);
+    this._$EO?.delete(t);
   }
-  _$Eg() {
-    this.constructor.elementProperties.forEach((t, i) => {
-      this.hasOwnProperty(i) && (this._$Ei.set(i, this[i]), delete this[i]);
-    });
+  _$E_() {
+    const t = new Map(),
+      s = this.constructor.elementProperties;
+    for (const i of s.keys()) this.hasOwnProperty(i) && (t.set(i, this[i]), delete this[i]);
+    t.size > 0 && (this._$Ep = t);
   }
   createRenderRoot() {
-    var t;
-    const s = null !== (t = this.shadowRoot) && void 0 !== t ? t : this.attachShadow(this.constructor.shadowRootOptions);
-    return css_tag_S(s, this.constructor.elementStyles), s;
+    const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
+    return css_tag_S(t, this.constructor.elementStyles), t;
   }
   connectedCallback() {
-    var t;
-    void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()), this.enableUpdating(!0), null === (t = this._$ES) || void 0 === t || t.forEach(t => {
-      var i;
-      return null === (i = t.hostConnected) || void 0 === i ? void 0 : i.call(t);
-    });
+    this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach(t => t.hostConnected?.());
   }
   enableUpdating(t) {}
   disconnectedCallback() {
-    var t;
-    null === (t = this._$ES) || void 0 === t || t.forEach(t => {
-      var i;
-      return null === (i = t.hostDisconnected) || void 0 === i ? void 0 : i.call(t);
-    });
+    this._$EO?.forEach(t => t.hostDisconnected?.());
   }
-  attributeChangedCallback(t, i, s) {
-    this._$AK(t, s);
+  attributeChangedCallback(t, s, i) {
+    this._$AK(t, i);
   }
-  _$EO(t, i) {
-    let s = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : l;
-    var e;
-    const r = this.constructor._$Ep(t, s);
-    if (void 0 !== r && !0 === s.reflect) {
-      const h = (void 0 !== (null === (e = s.converter) || void 0 === e ? void 0 : e.toAttribute) ? s.converter : reactive_element_n).toAttribute(i, s.type);
-      this._$El = t, null == h ? this.removeAttribute(r) : this.setAttribute(r, h), this._$El = null;
+  _$EC(t, s) {
+    const i = this.constructor.elementProperties.get(t),
+      e = this.constructor._$Eu(t, i);
+    if (void 0 !== e && !0 === i.reflect) {
+      const r = (void 0 !== i.converter?.toAttribute ? i.converter : reactive_element_u).toAttribute(s, i.type);
+      this._$Em = t, null == r ? this.removeAttribute(e) : this.setAttribute(e, r), this._$Em = null;
     }
   }
-  _$AK(t, i) {
-    var s;
-    const e = this.constructor,
-      r = e._$Ev.get(t);
-    if (void 0 !== r && this._$El !== r) {
-      const t = e.getPropertyOptions(r),
-        h = "function" == typeof t.converter ? {
+  _$AK(t, s) {
+    const i = this.constructor,
+      e = i._$Eh.get(t);
+    if (void 0 !== e && this._$Em !== e) {
+      const t = i.getPropertyOptions(e),
+        r = "function" == typeof t.converter ? {
           fromAttribute: t.converter
-        } : void 0 !== (null === (s = t.converter) || void 0 === s ? void 0 : s.fromAttribute) ? t.converter : reactive_element_n;
-      this._$El = r, this[r] = h.fromAttribute(i, t.type), this._$El = null;
+        } : void 0 !== t.converter?.fromAttribute ? t.converter : reactive_element_u;
+      this._$Em = e, this[e] = r.fromAttribute(s, t.type), this._$Em = null;
     }
   }
-  requestUpdate(t, i, s) {
-    let e = !0;
-    void 0 !== t && (((s = s || this.constructor.getPropertyOptions(t)).hasChanged || a)(this[t], i) ? (this._$AL.has(t) || this._$AL.set(t, i), !0 === s.reflect && this._$El !== t && (void 0 === this._$EC && (this._$EC = new Map()), this._$EC.set(t, s))) : e = !1), !this.isUpdatePending && e && (this._$E_ = this._$Ej());
+  requestUpdate(t, s, i) {
+    if (void 0 !== t) {
+      if (i ??= this.constructor.getPropertyOptions(t), !(i.hasChanged ?? f)(this[t], s)) return;
+      this.P(t, s, i);
+    }
+    !1 === this.isUpdatePending && (this._$ES = this._$ET());
   }
-  async _$Ej() {
+  P(t, s, i) {
+    this._$AL.has(t) || this._$AL.set(t, s), !0 === i.reflect && this._$Em !== t && (this._$Ej ??= new Set()).add(t);
+  }
+  async _$ET() {
     this.isUpdatePending = !0;
     try {
-      await this._$E_;
+      await this._$ES;
     } catch (t) {
       Promise.reject(t);
     }
@@ -37793,83 +37877,81 @@ class reactive_element_u extends HTMLElement {
     return this.performUpdate();
   }
   performUpdate() {
-    var t;
     if (!this.isUpdatePending) return;
-    this.hasUpdated, this._$Ei && (this._$Ei.forEach((t, i) => this[i] = t), this._$Ei = void 0);
-    let i = !1;
+    if (!this.hasUpdated) {
+      if (this.renderRoot ??= this.createRenderRoot(), this._$Ep) {
+        for (const [t, s] of this._$Ep) this[t] = s;
+        this._$Ep = void 0;
+      }
+      const t = this.constructor.elementProperties;
+      if (t.size > 0) for (const [s, i] of t) !0 !== i.wrapped || this._$AL.has(s) || void 0 === this[s] || this.P(s, this[s], i);
+    }
+    let t = !1;
     const s = this._$AL;
     try {
-      i = this.shouldUpdate(s), i ? (this.willUpdate(s), null === (t = this._$ES) || void 0 === t || t.forEach(t => {
-        var i;
-        return null === (i = t.hostUpdate) || void 0 === i ? void 0 : i.call(t);
-      }), this.update(s)) : this._$Ek();
-    } catch (t) {
-      throw i = !1, this._$Ek(), t;
+      t = this.shouldUpdate(s), t ? (this.willUpdate(s), this._$EO?.forEach(t => t.hostUpdate?.()), this.update(s)) : this._$EU();
+    } catch (s) {
+      throw t = !1, this._$EU(), s;
     }
-    i && this._$AE(s);
+    t && this._$AE(s);
   }
   willUpdate(t) {}
   _$AE(t) {
-    var i;
-    null === (i = this._$ES) || void 0 === i || i.forEach(t => {
-      var i;
-      return null === (i = t.hostUpdated) || void 0 === i ? void 0 : i.call(t);
-    }), this.hasUpdated || (this.hasUpdated = !0, this.firstUpdated(t)), this.updated(t);
+    this._$EO?.forEach(t => t.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = !0, this.firstUpdated(t)), this.updated(t);
   }
-  _$Ek() {
+  _$EU() {
     this._$AL = new Map(), this.isUpdatePending = !1;
   }
   get updateComplete() {
     return this.getUpdateComplete();
   }
   getUpdateComplete() {
-    return this._$E_;
+    return this._$ES;
   }
   shouldUpdate(t) {
     return !0;
   }
   update(t) {
-    void 0 !== this._$EC && (this._$EC.forEach((t, i) => this._$EO(i, this[i], t)), this._$EC = void 0), this._$Ek();
+    this._$Ej &&= this._$Ej.forEach(t => this._$EC(t, this[t])), this._$EU();
   }
   updated(t) {}
   firstUpdated(t) {}
 }
-reactive_element_u[d] = !0, reactive_element_u.elementProperties = new Map(), reactive_element_u.elementStyles = [], reactive_element_u.shadowRootOptions = {
+b.elementStyles = [], b.shadowRootOptions = {
   mode: "open"
-}, null == reactive_element_o || reactive_element_o({
-  ReactiveElement: reactive_element_u
-}), (null !== (reactive_element_s = reactive_element_e.reactiveElementVersions) && void 0 !== reactive_element_s ? reactive_element_s : reactive_element_e.reactiveElementVersions = []).push("1.6.2");
+}, b[d("elementProperties")] = new Map(), b[d("finalized")] = new Map(), p?.({
+  ReactiveElement: b
+}), (a.reactiveElementVersions ??= []).push("2.0.4");
 
-;// CONCATENATED MODULE: ./node_modules/lit-html/lit-html.js
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/lit-html.js
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-var lit_html_t;
-const lit_html_i = window,
-  lit_html_s = lit_html_i.trustedTypes,
-  lit_html_e = lit_html_s ? lit_html_s.createPolicy("lit-html", {
+const lit_html_t = globalThis,
+  lit_html_i = lit_html_t.trustedTypes,
+  lit_html_s = lit_html_i ? lit_html_i.createPolicy("lit-html", {
     createHTML: t => t
   }) : void 0,
-  lit_html_o = "$lit$",
-  lit_html_n = `lit$${(Math.random() + "").slice(9)}$`,
-  lit_html_l = "?" + lit_html_n,
-  lit_html_h = `<${lit_html_l}>`,
+  lit_html_e = "$lit$",
+  lit_html_h = `lit$${Math.random().toFixed(9).slice(2)}$`,
+  lit_html_o = "?" + lit_html_h,
+  lit_html_n = `<${lit_html_o}>`,
   lit_html_r = document,
-  lit_html_d = () => lit_html_r.createComment(""),
-  lit_html_u = t => null === t || "object" != typeof t && "function" != typeof t,
-  lit_html_c = Array.isArray,
-  v = t => lit_html_c(t) || "function" == typeof (null == t ? void 0 : t[Symbol.iterator]),
-  lit_html_a = "[ \t\n\f\r]",
-  f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,
-  _ = /-->/g,
-  m = />/g,
-  p = RegExp(`>|${lit_html_a}(?:([^\\s"'>=/]+)(${lit_html_a}*=${lit_html_a}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"),
-  g = /'/g,
-  $ = /"/g,
-  y = /^(?:script|style|textarea|title)$/i,
-  w = t => function (i) {
+  lit_html_l = () => lit_html_r.createComment(""),
+  lit_html_c = t => null === t || "object" != typeof t && "function" != typeof t,
+  lit_html_a = Array.isArray,
+  lit_html_u = t => lit_html_a(t) || "function" == typeof t?.[Symbol.iterator],
+  lit_html_d = "[ \t\n\f\r]",
+  lit_html_f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,
+  v = /-->/g,
+  _ = />/g,
+  m = RegExp(`>|${lit_html_d}(?:([^\\s"'>=/]+)(${lit_html_d}*=${lit_html_d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"),
+  lit_html_p = /'/g,
+  g = /"/g,
+  $ = /^(?:script|style|textarea|title)$/i,
+  lit_html_y = t => function (i) {
     for (var _len = arguments.length, s = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
       s[_key - 1] = arguments[_key];
     }
@@ -37879,96 +37961,92 @@ const lit_html_i = window,
       values: s
     };
   },
-  x = w(1),
-  b = w(2),
+  x = lit_html_y(1),
+  lit_html_b = lit_html_y(2),
+  w = lit_html_y(3),
   T = Symbol.for("lit-noChange"),
-  A = Symbol.for("lit-nothing"),
-  E = new WeakMap(),
-  C = lit_html_r.createTreeWalker(lit_html_r, 129, null, !1),
-  P = (t, i) => {
-    const s = t.length - 1,
-      l = [];
-    let r,
-      d = 2 === i ? "<svg>" : "",
-      u = f;
-    for (let i = 0; i < s; i++) {
-      const s = t[i];
-      let e,
-        c,
-        v = -1,
-        a = 0;
-      for (; a < s.length && (u.lastIndex = a, c = u.exec(s), null !== c);) a = u.lastIndex, u === f ? "!--" === c[1] ? u = _ : void 0 !== c[1] ? u = m : void 0 !== c[2] ? (y.test(c[2]) && (r = RegExp("</" + c[2], "g")), u = p) : void 0 !== c[3] && (u = p) : u === p ? ">" === c[0] ? (u = null != r ? r : f, v = -1) : void 0 === c[1] ? v = -2 : (v = u.lastIndex - c[2].length, e = c[1], u = void 0 === c[3] ? p : '"' === c[3] ? $ : g) : u === $ || u === g ? u = p : u === _ || u === m ? u = f : (u = p, r = void 0);
-      const w = u === p && t[i + 1].startsWith("/>") ? " " : "";
-      d += u === f ? s + lit_html_h : v >= 0 ? (l.push(e), s.slice(0, v) + lit_html_o + s.slice(v) + lit_html_n + w) : s + lit_html_n + (-2 === v ? (l.push(void 0), i) : w);
-    }
-    const c = d + (t[s] || "<?>") + (2 === i ? "</svg>" : "");
-    if (!Array.isArray(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-    return [void 0 !== lit_html_e ? lit_html_e.createHTML(c) : c, l];
-  };
-class V {
-  constructor(_ref, e) {
+  E = Symbol.for("lit-nothing"),
+  A = new WeakMap(),
+  C = lit_html_r.createTreeWalker(lit_html_r, 129);
+function P(t, i) {
+  if (!lit_html_a(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return void 0 !== lit_html_s ? lit_html_s.createHTML(i) : i;
+}
+const V = (t, i) => {
+  const s = t.length - 1,
+    o = [];
+  let r,
+    l = 2 === i ? "<svg>" : 3 === i ? "<math>" : "",
+    c = lit_html_f;
+  for (let i = 0; i < s; i++) {
+    const s = t[i];
+    let a,
+      u,
+      d = -1,
+      y = 0;
+    for (; y < s.length && (c.lastIndex = y, u = c.exec(s), null !== u);) y = c.lastIndex, c === lit_html_f ? "!--" === u[1] ? c = v : void 0 !== u[1] ? c = _ : void 0 !== u[2] ? ($.test(u[2]) && (r = RegExp("</" + u[2], "g")), c = m) : void 0 !== u[3] && (c = m) : c === m ? ">" === u[0] ? (c = r ?? lit_html_f, d = -1) : void 0 === u[1] ? d = -2 : (d = c.lastIndex - u[2].length, a = u[1], c = void 0 === u[3] ? m : '"' === u[3] ? g : lit_html_p) : c === g || c === lit_html_p ? c = m : c === v || c === _ ? c = lit_html_f : (c = m, r = void 0);
+    const x = c === m && t[i + 1].startsWith("/>") ? " " : "";
+    l += c === lit_html_f ? s + lit_html_n : d >= 0 ? (o.push(a), s.slice(0, d) + lit_html_e + s.slice(d) + lit_html_h + x) : s + lit_html_h + (-2 === d ? i : x);
+  }
+  return [P(t, l + (t[s] || "<?>") + (2 === i ? "</svg>" : 3 === i ? "</math>" : "")), o];
+};
+class N {
+  constructor(_ref, n) {
     let {
       strings: t,
-      _$litType$: i
+      _$litType$: s
     } = _ref;
-    let h;
+    let r;
     this.parts = [];
-    let r = 0,
-      u = 0;
-    const c = t.length - 1,
-      v = this.parts,
-      [a, f] = P(t, i);
-    if (this.el = V.createElement(a, e), C.currentNode = this.el.content, 2 === i) {
-      const t = this.el.content,
-        i = t.firstChild;
-      i.remove(), t.append(...i.childNodes);
+    let c = 0,
+      a = 0;
+    const u = t.length - 1,
+      d = this.parts,
+      [f, v] = V(t, s);
+    if (this.el = N.createElement(f, n), C.currentNode = this.el.content, 2 === s || 3 === s) {
+      const t = this.el.content.firstChild;
+      t.replaceWith(...t.childNodes);
     }
-    for (; null !== (h = C.nextNode()) && v.length < c;) {
-      if (1 === h.nodeType) {
-        if (h.hasAttributes()) {
-          const t = [];
-          for (const i of h.getAttributeNames()) if (i.endsWith(lit_html_o) || i.startsWith(lit_html_n)) {
-            const s = f[u++];
-            if (t.push(i), void 0 !== s) {
-              const t = h.getAttribute(s.toLowerCase() + lit_html_o).split(lit_html_n),
-                i = /([.?@])?(.*)/.exec(s);
-              v.push({
-                type: 1,
-                index: r,
-                name: i[2],
-                strings: t,
-                ctor: "." === i[1] ? k : "?" === i[1] ? I : "@" === i[1] ? L : R
-              });
-            } else v.push({
-              type: 6,
-              index: r
-            });
-          }
-          for (const i of t) h.removeAttribute(i);
-        }
-        if (y.test(h.tagName)) {
-          const t = h.textContent.split(lit_html_n),
-            i = t.length - 1;
-          if (i > 0) {
-            h.textContent = lit_html_s ? lit_html_s.emptyScript : "";
-            for (let s = 0; s < i; s++) h.append(t[s], lit_html_d()), C.nextNode(), v.push({
+    for (; null !== (r = C.nextNode()) && d.length < u;) {
+      if (1 === r.nodeType) {
+        if (r.hasAttributes()) for (const t of r.getAttributeNames()) if (t.endsWith(lit_html_e)) {
+          const i = v[a++],
+            s = r.getAttribute(t).split(lit_html_h),
+            e = /([.?@])?(.*)/.exec(i);
+          d.push({
+            type: 1,
+            index: c,
+            name: e[2],
+            strings: s,
+            ctor: "." === e[1] ? H : "?" === e[1] ? I : "@" === e[1] ? L : k
+          }), r.removeAttribute(t);
+        } else t.startsWith(lit_html_h) && (d.push({
+          type: 6,
+          index: c
+        }), r.removeAttribute(t));
+        if ($.test(r.tagName)) {
+          const t = r.textContent.split(lit_html_h),
+            s = t.length - 1;
+          if (s > 0) {
+            r.textContent = lit_html_i ? lit_html_i.emptyScript : "";
+            for (let i = 0; i < s; i++) r.append(t[i], lit_html_l()), C.nextNode(), d.push({
               type: 2,
-              index: ++r
+              index: ++c
             });
-            h.append(t[i], lit_html_d());
+            r.append(t[s], lit_html_l());
           }
         }
-      } else if (8 === h.nodeType) if (h.data === lit_html_l) v.push({
+      } else if (8 === r.nodeType) if (r.data === lit_html_o) d.push({
         type: 2,
-        index: r
+        index: c
       });else {
         let t = -1;
-        for (; -1 !== (t = h.data.indexOf(lit_html_n, t + 1));) v.push({
+        for (; -1 !== (t = r.data.indexOf(lit_html_h, t + 1));) d.push({
           type: 7,
-          index: r
-        }), t += lit_html_n.length - 1;
+          index: c
+        }), t += lit_html_h.length - 1;
       }
-      r++;
+      c++;
     }
   }
   static createElement(t, i) {
@@ -37976,16 +38054,15 @@ class V {
     return s.innerHTML = t, s;
   }
 }
-function N(t, i) {
+function lit_html_S(t, i) {
   let s = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : t;
   let e = arguments.length > 3 ? arguments[3] : undefined;
-  var o, n, l, h;
   if (i === T) return i;
-  let r = void 0 !== e ? null === (o = s._$Co) || void 0 === o ? void 0 : o[e] : s._$Cl;
-  const d = lit_html_u(i) ? void 0 : i._$litDirective$;
-  return (null == r ? void 0 : r.constructor) !== d && (null === (n = null == r ? void 0 : r._$AO) || void 0 === n || n.call(r, !1), void 0 === d ? r = void 0 : (r = new d(t), r._$AT(t, s, e)), void 0 !== e ? (null !== (l = (h = s)._$Co) && void 0 !== l ? l : h._$Co = [])[e] = r : s._$Cl = r), void 0 !== r && (i = N(t, r._$AS(t, i.values), r, e)), i;
+  let h = void 0 !== e ? s._$Co?.[e] : s._$Cl;
+  const o = lit_html_c(i) ? void 0 : i._$litDirective$;
+  return h?.constructor !== o && (h?._$AO?.(!1), void 0 === o ? h = void 0 : (h = new o(t), h._$AT(t, s, e)), void 0 !== e ? (s._$Co ??= [])[e] = h : s._$Cl = h), void 0 !== h && (i = lit_html_S(t, h._$AS(t, i.values), h, e)), i;
 }
-class lit_html_S {
+class M {
   constructor(t, i) {
     this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = i;
   }
@@ -37996,46 +38073,43 @@ class lit_html_S {
     return this._$AM._$AU;
   }
   u(t) {
-    var i;
     const {
         el: {
-          content: s
+          content: i
         },
-        parts: e
+        parts: s
       } = this._$AD,
-      o = (null !== (i = null == t ? void 0 : t.creationScope) && void 0 !== i ? i : lit_html_r).importNode(s, !0);
-    C.currentNode = o;
-    let n = C.nextNode(),
-      l = 0,
-      h = 0,
-      d = e[0];
-    for (; void 0 !== d;) {
-      if (l === d.index) {
+      e = (t?.creationScope ?? lit_html_r).importNode(i, !0);
+    C.currentNode = e;
+    let h = C.nextNode(),
+      o = 0,
+      n = 0,
+      l = s[0];
+    for (; void 0 !== l;) {
+      if (o === l.index) {
         let i;
-        2 === d.type ? i = new M(n, n.nextSibling, this, t) : 1 === d.type ? i = new d.ctor(n, d.name, d.strings, this, t) : 6 === d.type && (i = new z(n, this, t)), this._$AV.push(i), d = e[++h];
+        2 === l.type ? i = new R(h, h.nextSibling, this, t) : 1 === l.type ? i = new l.ctor(h, l.name, l.strings, this, t) : 6 === l.type && (i = new z(h, this, t)), this._$AV.push(i), l = s[++n];
       }
-      l !== (null == d ? void 0 : d.index) && (n = C.nextNode(), l++);
+      o !== l?.index && (h = C.nextNode(), o++);
     }
-    return C.currentNode = lit_html_r, o;
+    return C.currentNode = lit_html_r, e;
   }
-  v(t) {
+  p(t) {
     let i = 0;
     for (const s of this._$AV) void 0 !== s && (void 0 !== s.strings ? (s._$AI(t, s, i), i += s.strings.length - 2) : s._$AI(t[i])), i++;
   }
 }
-class M {
-  constructor(t, i, s, e) {
-    var o;
-    this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = e, this._$Cp = null === (o = null == e ? void 0 : e.isConnected) || void 0 === o || o;
-  }
+class R {
   get _$AU() {
-    var t, i;
-    return null !== (i = null === (t = this._$AM) || void 0 === t ? void 0 : t._$AU) && void 0 !== i ? i : this._$Cp;
+    return this._$AM?._$AU ?? this._$Cv;
+  }
+  constructor(t, i, s, e) {
+    this.type = 2, this._$AH = E, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = e, this._$Cv = e?.isConnected ?? !0;
   }
   get parentNode() {
     let t = this._$AA.parentNode;
     const i = this._$AM;
-    return void 0 !== i && 11 === (null == t ? void 0 : t.nodeType) && (t = i.parentNode), t;
+    return void 0 !== i && 11 === t?.nodeType && (t = i.parentNode), t;
   }
   get startNode() {
     return this._$AA;
@@ -38045,116 +38119,110 @@ class M {
   }
   _$AI(t) {
     let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
-    t = N(this, t, i), lit_html_u(t) ? t === A || null == t || "" === t ? (this._$AH !== A && this._$AR(), this._$AH = A) : t !== this._$AH && t !== T && this._(t) : void 0 !== t._$litType$ ? this.g(t) : void 0 !== t.nodeType ? this.$(t) : v(t) ? this.T(t) : this._(t);
+    t = lit_html_S(this, t, i), lit_html_c(t) ? t === E || null == t || "" === t ? (this._$AH !== E && this._$AR(), this._$AH = E) : t !== this._$AH && t !== T && this._(t) : void 0 !== t._$litType$ ? this.$(t) : void 0 !== t.nodeType ? this.T(t) : lit_html_u(t) ? this.k(t) : this._(t);
   }
-  k(t) {
+  O(t) {
     return this._$AA.parentNode.insertBefore(t, this._$AB);
   }
-  $(t) {
-    this._$AH !== t && (this._$AR(), this._$AH = this.k(t));
+  T(t) {
+    this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
   _(t) {
-    this._$AH !== A && lit_html_u(this._$AH) ? this._$AA.nextSibling.data = t : this.$(lit_html_r.createTextNode(t)), this._$AH = t;
+    this._$AH !== E && lit_html_c(this._$AH) ? this._$AA.nextSibling.data = t : this.T(lit_html_r.createTextNode(t)), this._$AH = t;
   }
-  g(t) {
-    var i;
+  $(t) {
     const {
-        values: s,
-        _$litType$: e
+        values: i,
+        _$litType$: s
       } = t,
-      o = "number" == typeof e ? this._$AC(t) : (void 0 === e.el && (e.el = V.createElement(e.h, this.options)), e);
-    if ((null === (i = this._$AH) || void 0 === i ? void 0 : i._$AD) === o) this._$AH.v(s);else {
-      const t = new lit_html_S(o, this),
-        i = t.u(this.options);
-      t.v(s), this.$(i), this._$AH = t;
+      e = "number" == typeof s ? this._$AC(t) : (void 0 === s.el && (s.el = N.createElement(P(s.h, s.h[0]), this.options)), s);
+    if (this._$AH?._$AD === e) this._$AH.p(i);else {
+      const t = new M(e, this),
+        s = t.u(this.options);
+      t.p(i), this.T(s), this._$AH = t;
     }
   }
   _$AC(t) {
-    let i = E.get(t.strings);
-    return void 0 === i && E.set(t.strings, i = new V(t)), i;
+    let i = A.get(t.strings);
+    return void 0 === i && A.set(t.strings, i = new N(t)), i;
   }
-  T(t) {
-    lit_html_c(this._$AH) || (this._$AH = [], this._$AR());
+  k(t) {
+    lit_html_a(this._$AH) || (this._$AH = [], this._$AR());
     const i = this._$AH;
     let s,
       e = 0;
-    for (const o of t) e === i.length ? i.push(s = new M(this.k(lit_html_d()), this.k(lit_html_d()), this, this.options)) : s = i[e], s._$AI(o), e++;
+    for (const h of t) e === i.length ? i.push(s = new R(this.O(lit_html_l()), this.O(lit_html_l()), this, this.options)) : s = i[e], s._$AI(h), e++;
     e < i.length && (this._$AR(s && s._$AB.nextSibling, e), i.length = e);
   }
   _$AR() {
     let t = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this._$AA.nextSibling;
     let i = arguments.length > 1 ? arguments[1] : undefined;
-    var s;
-    for (null === (s = this._$AP) || void 0 === s || s.call(this, !1, !0, i); t && t !== this._$AB;) {
+    for (this._$AP?.(!1, !0, i); t && t !== this._$AB;) {
       const i = t.nextSibling;
       t.remove(), t = i;
     }
   }
   setConnected(t) {
-    var i;
-    void 0 === this._$AM && (this._$Cp = t, null === (i = this._$AP) || void 0 === i || i.call(this, t));
+    void 0 === this._$AM && (this._$Cv = t, this._$AP?.(t));
   }
 }
-class R {
-  constructor(t, i, s, e, o) {
-    this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t, this.name = i, this._$AM = e, this.options = o, s.length > 2 || "" !== s[0] || "" !== s[1] ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = A;
-  }
+class k {
   get tagName() {
     return this.element.tagName;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
+  constructor(t, i, s, e, h) {
+    this.type = 1, this._$AH = E, this._$AN = void 0, this.element = t, this.name = i, this._$AM = e, this.options = h, s.length > 2 || "" !== s[0] || "" !== s[1] ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = E;
+  }
   _$AI(t) {
     let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
     let s = arguments.length > 2 ? arguments[2] : undefined;
     let e = arguments.length > 3 ? arguments[3] : undefined;
-    const o = this.strings;
-    let n = !1;
-    if (void 0 === o) t = N(this, t, i, 0), n = !lit_html_u(t) || t !== this._$AH && t !== T, n && (this._$AH = t);else {
+    const h = this.strings;
+    let o = !1;
+    if (void 0 === h) t = lit_html_S(this, t, i, 0), o = !lit_html_c(t) || t !== this._$AH && t !== T, o && (this._$AH = t);else {
       const e = t;
-      let l, h;
-      for (t = o[0], l = 0; l < o.length - 1; l++) h = N(this, e[s + l], i, l), h === T && (h = this._$AH[l]), n || (n = !lit_html_u(h) || h !== this._$AH[l]), h === A ? t = A : t !== A && (t += (null != h ? h : "") + o[l + 1]), this._$AH[l] = h;
+      let n, r;
+      for (t = h[0], n = 0; n < h.length - 1; n++) r = lit_html_S(this, e[s + n], i, n), r === T && (r = this._$AH[n]), o ||= !lit_html_c(r) || r !== this._$AH[n], r === E ? t = E : t !== E && (t += (r ?? "") + h[n + 1]), this._$AH[n] = r;
     }
-    n && !e && this.j(t);
+    o && !e && this.j(t);
   }
   j(t) {
-    t === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, null != t ? t : "");
+    t === E ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
   }
 }
-class k extends R {
+class H extends k {
   constructor() {
     super(...arguments), this.type = 3;
   }
   j(t) {
-    this.element[this.name] = t === A ? void 0 : t;
+    this.element[this.name] = t === E ? void 0 : t;
   }
 }
-const H = lit_html_s ? lit_html_s.emptyScript : "";
-class I extends R {
+class I extends k {
   constructor() {
     super(...arguments), this.type = 4;
   }
   j(t) {
-    t && t !== A ? this.element.setAttribute(this.name, H) : this.element.removeAttribute(this.name);
+    this.element.toggleAttribute(this.name, !!t && t !== E);
   }
 }
-class L extends R {
-  constructor(t, i, s, e, o) {
-    super(t, i, s, e, o), this.type = 5;
+class L extends k {
+  constructor(t, i, s, e, h) {
+    super(t, i, s, e, h), this.type = 5;
   }
   _$AI(t) {
     let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
-    var s;
-    if ((t = null !== (s = N(this, t, i, 0)) && void 0 !== s ? s : A) === T) return;
-    const e = this._$AH,
-      o = t === A && e !== A || t.capture !== e.capture || t.once !== e.once || t.passive !== e.passive,
-      n = t !== A && (e === A || o);
-    o && this.element.removeEventListener(this.name, this, e), n && this.element.addEventListener(this.name, this, t), this._$AH = t;
+    if ((t = lit_html_S(this, t, i, 0) ?? E) === T) return;
+    const s = this._$AH,
+      e = t === E && s !== E || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive,
+      h = t !== E && (s === E || e);
+    e && this.element.removeEventListener(this.name, this, s), h && this.element.addEventListener(this.name, this, t), this._$AH = t;
   }
   handleEvent(t) {
-    var i, s;
-    "function" == typeof this._$AH ? this._$AH.call(null !== (s = null === (i = this.options) || void 0 === i ? void 0 : i.host) && void 0 !== s ? s : this.element, t) : this._$AH.handleEvent(t);
+    "function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
   }
 }
 class z {
@@ -38165,36 +38233,376 @@ class z {
     return this._$AM._$AU;
   }
   _$AI(t) {
-    N(this, t);
+    lit_html_S(this, t);
   }
 }
 const Z = {
-    O: lit_html_o,
-    P: lit_html_n,
-    A: lit_html_l,
+    M: lit_html_e,
+    P: lit_html_h,
+    A: lit_html_o,
     C: 1,
-    M: P,
-    L: lit_html_S,
-    D: v,
-    R: N,
-    I: M,
-    V: R,
-    H: I,
-    N: L,
-    U: k,
+    L: V,
+    R: M,
+    D: lit_html_u,
+    V: lit_html_S,
+    I: R,
+    H: k,
+    N: I,
+    U: L,
+    B: H,
     F: z
   },
-  j = lit_html_i.litHtmlPolyfillSupport;
-null == j || j(V, M), (null !== (lit_html_t = lit_html_i.litHtmlVersions) && void 0 !== lit_html_t ? lit_html_t : lit_html_i.litHtmlVersions = []).push("2.7.4");
+  j = lit_html_t.litHtmlPolyfillSupport;
+j?.(N, R), (lit_html_t.litHtmlVersions ??= []).push("3.2.1");
 const B = (t, i, s) => {
-  var e, o;
-  const n = null !== (e = null == s ? void 0 : s.renderBefore) && void 0 !== e ? e : i;
-  let l = n._$litPart$;
-  if (void 0 === l) {
-    const t = null !== (o = null == s ? void 0 : s.renderBefore) && void 0 !== o ? o : null;
-    n._$litPart$ = l = new M(i.insertBefore(lit_html_d(), t), t, void 0, null != s ? s : {});
+  const e = s?.renderBefore ?? i;
+  let h = e._$litPart$;
+  if (void 0 === h) {
+    const t = s?.renderBefore ?? null;
+    e._$litPart$ = h = new R(i.insertBefore(lit_html_l(), t), t, void 0, s ?? {});
   }
-  return l._$AI(t), l;
+  return h._$AI(t), h;
+};
+
+;// CONCATENATED MODULE: ./node_modules/lit-element/node_modules/lit-html/lit-html.js
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const lit_html_lit_html_t = globalThis,
+  lit_html_lit_html_i = lit_html_lit_html_t.trustedTypes,
+  lit_html_lit_html_s = lit_html_lit_html_i ? lit_html_lit_html_i.createPolicy("lit-html", {
+    createHTML: t => t
+  }) : void 0,
+  lit_html_lit_html_e = "$lit$",
+  lit_html_lit_html_h = `lit$${Math.random().toFixed(9).slice(2)}$`,
+  lit_html_lit_html_o = "?" + lit_html_lit_html_h,
+  lit_html_lit_html_n = `<${lit_html_lit_html_o}>`,
+  lit_html_lit_html_r = document,
+  lit_html_lit_html_l = () => lit_html_lit_html_r.createComment(""),
+  lit_html_lit_html_c = t => null === t || "object" != typeof t && "function" != typeof t,
+  lit_html_lit_html_a = Array.isArray,
+  lit_html_lit_html_u = t => lit_html_lit_html_a(t) || "function" == typeof t?.[Symbol.iterator],
+  lit_html_lit_html_d = "[ \t\n\f\r]",
+  lit_html_lit_html_f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,
+  lit_html_v = /-->/g,
+  lit_html_ = />/g,
+  lit_html_m = RegExp(`>|${lit_html_lit_html_d}(?:([^\\s"'>=/]+)(${lit_html_lit_html_d}*=${lit_html_lit_html_d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"),
+  lit_html_lit_html_p = /'/g,
+  lit_html_g = /"/g,
+  lit_html_$ = /^(?:script|style|textarea|title)$/i,
+  lit_html_lit_html_y = t => function (i) {
+    for (var _len = arguments.length, s = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+      s[_key - 1] = arguments[_key];
+    }
+    return {
+      _$litType$: t,
+      strings: i,
+      values: s
+    };
+  },
+  lit_html_x = lit_html_lit_html_y(1),
+  lit_html_lit_html_b = lit_html_lit_html_y(2),
+  lit_html_w = lit_html_lit_html_y(3),
+  lit_html_T = Symbol.for("lit-noChange"),
+  lit_html_E = Symbol.for("lit-nothing"),
+  lit_html_A = new WeakMap(),
+  lit_html_C = lit_html_lit_html_r.createTreeWalker(lit_html_lit_html_r, 129);
+function lit_html_P(t, i) {
+  if (!lit_html_lit_html_a(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return void 0 !== lit_html_lit_html_s ? lit_html_lit_html_s.createHTML(i) : i;
+}
+const lit_html_V = (t, i) => {
+  const s = t.length - 1,
+    o = [];
+  let r,
+    l = 2 === i ? "<svg>" : 3 === i ? "<math>" : "",
+    c = lit_html_lit_html_f;
+  for (let i = 0; i < s; i++) {
+    const s = t[i];
+    let a,
+      u,
+      d = -1,
+      y = 0;
+    for (; y < s.length && (c.lastIndex = y, u = c.exec(s), null !== u);) y = c.lastIndex, c === lit_html_lit_html_f ? "!--" === u[1] ? c = lit_html_v : void 0 !== u[1] ? c = lit_html_ : void 0 !== u[2] ? (lit_html_$.test(u[2]) && (r = RegExp("</" + u[2], "g")), c = lit_html_m) : void 0 !== u[3] && (c = lit_html_m) : c === lit_html_m ? ">" === u[0] ? (c = r ?? lit_html_lit_html_f, d = -1) : void 0 === u[1] ? d = -2 : (d = c.lastIndex - u[2].length, a = u[1], c = void 0 === u[3] ? lit_html_m : '"' === u[3] ? lit_html_g : lit_html_lit_html_p) : c === lit_html_g || c === lit_html_lit_html_p ? c = lit_html_m : c === lit_html_v || c === lit_html_ ? c = lit_html_lit_html_f : (c = lit_html_m, r = void 0);
+    const x = c === lit_html_m && t[i + 1].startsWith("/>") ? " " : "";
+    l += c === lit_html_lit_html_f ? s + lit_html_lit_html_n : d >= 0 ? (o.push(a), s.slice(0, d) + lit_html_lit_html_e + s.slice(d) + lit_html_lit_html_h + x) : s + lit_html_lit_html_h + (-2 === d ? i : x);
+  }
+  return [lit_html_P(t, l + (t[s] || "<?>") + (2 === i ? "</svg>" : 3 === i ? "</math>" : "")), o];
+};
+class lit_html_N {
+  constructor(_ref, n) {
+    let {
+      strings: t,
+      _$litType$: s
+    } = _ref;
+    let r;
+    this.parts = [];
+    let c = 0,
+      a = 0;
+    const u = t.length - 1,
+      d = this.parts,
+      [f, v] = lit_html_V(t, s);
+    if (this.el = lit_html_N.createElement(f, n), lit_html_C.currentNode = this.el.content, 2 === s || 3 === s) {
+      const t = this.el.content.firstChild;
+      t.replaceWith(...t.childNodes);
+    }
+    for (; null !== (r = lit_html_C.nextNode()) && d.length < u;) {
+      if (1 === r.nodeType) {
+        if (r.hasAttributes()) for (const t of r.getAttributeNames()) if (t.endsWith(lit_html_lit_html_e)) {
+          const i = v[a++],
+            s = r.getAttribute(t).split(lit_html_lit_html_h),
+            e = /([.?@])?(.*)/.exec(i);
+          d.push({
+            type: 1,
+            index: c,
+            name: e[2],
+            strings: s,
+            ctor: "." === e[1] ? lit_html_H : "?" === e[1] ? lit_html_I : "@" === e[1] ? lit_html_L : lit_html_k
+          }), r.removeAttribute(t);
+        } else t.startsWith(lit_html_lit_html_h) && (d.push({
+          type: 6,
+          index: c
+        }), r.removeAttribute(t));
+        if (lit_html_$.test(r.tagName)) {
+          const t = r.textContent.split(lit_html_lit_html_h),
+            s = t.length - 1;
+          if (s > 0) {
+            r.textContent = lit_html_lit_html_i ? lit_html_lit_html_i.emptyScript : "";
+            for (let i = 0; i < s; i++) r.append(t[i], lit_html_lit_html_l()), lit_html_C.nextNode(), d.push({
+              type: 2,
+              index: ++c
+            });
+            r.append(t[s], lit_html_lit_html_l());
+          }
+        }
+      } else if (8 === r.nodeType) if (r.data === lit_html_lit_html_o) d.push({
+        type: 2,
+        index: c
+      });else {
+        let t = -1;
+        for (; -1 !== (t = r.data.indexOf(lit_html_lit_html_h, t + 1));) d.push({
+          type: 7,
+          index: c
+        }), t += lit_html_lit_html_h.length - 1;
+      }
+      c++;
+    }
+  }
+  static createElement(t, i) {
+    const s = lit_html_lit_html_r.createElement("template");
+    return s.innerHTML = t, s;
+  }
+}
+function lit_html_lit_html_S(t, i) {
+  let s = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : t;
+  let e = arguments.length > 3 ? arguments[3] : undefined;
+  if (i === lit_html_T) return i;
+  let h = void 0 !== e ? s._$Co?.[e] : s._$Cl;
+  const o = lit_html_lit_html_c(i) ? void 0 : i._$litDirective$;
+  return h?.constructor !== o && (h?._$AO?.(!1), void 0 === o ? h = void 0 : (h = new o(t), h._$AT(t, s, e)), void 0 !== e ? (s._$Co ??= [])[e] = h : s._$Cl = h), void 0 !== h && (i = lit_html_lit_html_S(t, h._$AS(t, i.values), h, e)), i;
+}
+class lit_html_M {
+  constructor(t, i) {
+    this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = i;
+  }
+  get parentNode() {
+    return this._$AM.parentNode;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  u(t) {
+    const {
+        el: {
+          content: i
+        },
+        parts: s
+      } = this._$AD,
+      e = (t?.creationScope ?? lit_html_lit_html_r).importNode(i, !0);
+    lit_html_C.currentNode = e;
+    let h = lit_html_C.nextNode(),
+      o = 0,
+      n = 0,
+      l = s[0];
+    for (; void 0 !== l;) {
+      if (o === l.index) {
+        let i;
+        2 === l.type ? i = new lit_html_R(h, h.nextSibling, this, t) : 1 === l.type ? i = new l.ctor(h, l.name, l.strings, this, t) : 6 === l.type && (i = new lit_html_z(h, this, t)), this._$AV.push(i), l = s[++n];
+      }
+      o !== l?.index && (h = lit_html_C.nextNode(), o++);
+    }
+    return lit_html_C.currentNode = lit_html_lit_html_r, e;
+  }
+  p(t) {
+    let i = 0;
+    for (const s of this._$AV) void 0 !== s && (void 0 !== s.strings ? (s._$AI(t, s, i), i += s.strings.length - 2) : s._$AI(t[i])), i++;
+  }
+}
+class lit_html_R {
+  get _$AU() {
+    return this._$AM?._$AU ?? this._$Cv;
+  }
+  constructor(t, i, s, e) {
+    this.type = 2, this._$AH = lit_html_E, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = e, this._$Cv = e?.isConnected ?? !0;
+  }
+  get parentNode() {
+    let t = this._$AA.parentNode;
+    const i = this._$AM;
+    return void 0 !== i && 11 === t?.nodeType && (t = i.parentNode), t;
+  }
+  get startNode() {
+    return this._$AA;
+  }
+  get endNode() {
+    return this._$AB;
+  }
+  _$AI(t) {
+    let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
+    t = lit_html_lit_html_S(this, t, i), lit_html_lit_html_c(t) ? t === lit_html_E || null == t || "" === t ? (this._$AH !== lit_html_E && this._$AR(), this._$AH = lit_html_E) : t !== this._$AH && t !== lit_html_T && this._(t) : void 0 !== t._$litType$ ? this.$(t) : void 0 !== t.nodeType ? this.T(t) : lit_html_lit_html_u(t) ? this.k(t) : this._(t);
+  }
+  O(t) {
+    return this._$AA.parentNode.insertBefore(t, this._$AB);
+  }
+  T(t) {
+    this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
+  }
+  _(t) {
+    this._$AH !== lit_html_E && lit_html_lit_html_c(this._$AH) ? this._$AA.nextSibling.data = t : this.T(lit_html_lit_html_r.createTextNode(t)), this._$AH = t;
+  }
+  $(t) {
+    const {
+        values: i,
+        _$litType$: s
+      } = t,
+      e = "number" == typeof s ? this._$AC(t) : (void 0 === s.el && (s.el = lit_html_N.createElement(lit_html_P(s.h, s.h[0]), this.options)), s);
+    if (this._$AH?._$AD === e) this._$AH.p(i);else {
+      const t = new lit_html_M(e, this),
+        s = t.u(this.options);
+      t.p(i), this.T(s), this._$AH = t;
+    }
+  }
+  _$AC(t) {
+    let i = lit_html_A.get(t.strings);
+    return void 0 === i && lit_html_A.set(t.strings, i = new lit_html_N(t)), i;
+  }
+  k(t) {
+    lit_html_lit_html_a(this._$AH) || (this._$AH = [], this._$AR());
+    const i = this._$AH;
+    let s,
+      e = 0;
+    for (const h of t) e === i.length ? i.push(s = new lit_html_R(this.O(lit_html_lit_html_l()), this.O(lit_html_lit_html_l()), this, this.options)) : s = i[e], s._$AI(h), e++;
+    e < i.length && (this._$AR(s && s._$AB.nextSibling, e), i.length = e);
+  }
+  _$AR() {
+    let t = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this._$AA.nextSibling;
+    let i = arguments.length > 1 ? arguments[1] : undefined;
+    for (this._$AP?.(!1, !0, i); t && t !== this._$AB;) {
+      const i = t.nextSibling;
+      t.remove(), t = i;
+    }
+  }
+  setConnected(t) {
+    void 0 === this._$AM && (this._$Cv = t, this._$AP?.(t));
+  }
+}
+class lit_html_k {
+  get tagName() {
+    return this.element.tagName;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  constructor(t, i, s, e, h) {
+    this.type = 1, this._$AH = lit_html_E, this._$AN = void 0, this.element = t, this.name = i, this._$AM = e, this.options = h, s.length > 2 || "" !== s[0] || "" !== s[1] ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = lit_html_E;
+  }
+  _$AI(t) {
+    let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
+    let s = arguments.length > 2 ? arguments[2] : undefined;
+    let e = arguments.length > 3 ? arguments[3] : undefined;
+    const h = this.strings;
+    let o = !1;
+    if (void 0 === h) t = lit_html_lit_html_S(this, t, i, 0), o = !lit_html_lit_html_c(t) || t !== this._$AH && t !== lit_html_T, o && (this._$AH = t);else {
+      const e = t;
+      let n, r;
+      for (t = h[0], n = 0; n < h.length - 1; n++) r = lit_html_lit_html_S(this, e[s + n], i, n), r === lit_html_T && (r = this._$AH[n]), o ||= !lit_html_lit_html_c(r) || r !== this._$AH[n], r === lit_html_E ? t = lit_html_E : t !== lit_html_E && (t += (r ?? "") + h[n + 1]), this._$AH[n] = r;
+    }
+    o && !e && this.j(t);
+  }
+  j(t) {
+    t === lit_html_E ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
+  }
+}
+class lit_html_H extends lit_html_k {
+  constructor() {
+    super(...arguments), this.type = 3;
+  }
+  j(t) {
+    this.element[this.name] = t === lit_html_E ? void 0 : t;
+  }
+}
+class lit_html_I extends lit_html_k {
+  constructor() {
+    super(...arguments), this.type = 4;
+  }
+  j(t) {
+    this.element.toggleAttribute(this.name, !!t && t !== lit_html_E);
+  }
+}
+class lit_html_L extends lit_html_k {
+  constructor(t, i, s, e, h) {
+    super(t, i, s, e, h), this.type = 5;
+  }
+  _$AI(t) {
+    let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
+    if ((t = lit_html_lit_html_S(this, t, i, 0) ?? lit_html_E) === lit_html_T) return;
+    const s = this._$AH,
+      e = t === lit_html_E && s !== lit_html_E || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive,
+      h = t !== lit_html_E && (s === lit_html_E || e);
+    e && this.element.removeEventListener(this.name, this, s), h && this.element.addEventListener(this.name, this, t), this._$AH = t;
+  }
+  handleEvent(t) {
+    "function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
+  }
+}
+class lit_html_z {
+  constructor(t, i, s) {
+    this.element = t, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AI(t) {
+    lit_html_lit_html_S(this, t);
+  }
+}
+const lit_html_Z = {
+    M: lit_html_lit_html_e,
+    P: lit_html_lit_html_h,
+    A: lit_html_lit_html_o,
+    C: 1,
+    L: lit_html_V,
+    R: lit_html_M,
+    D: lit_html_lit_html_u,
+    V: lit_html_lit_html_S,
+    I: lit_html_R,
+    H: lit_html_k,
+    N: lit_html_I,
+    U: lit_html_L,
+    B: lit_html_H,
+    F: lit_html_z
+  },
+  lit_html_j = lit_html_lit_html_t.litHtmlPolyfillSupport;
+lit_html_j?.(lit_html_N, lit_html_R), (lit_html_lit_html_t.litHtmlVersions ??= []).push("3.2.1");
+const lit_html_B = (t, i, s) => {
+  const e = s?.renderBefore ?? i;
+  let h = e._$litPart$;
+  if (void 0 === h) {
+    const t = s?.renderBefore ?? null;
+    e._$litPart$ = h = new lit_html_R(i.insertBefore(lit_html_lit_html_l(), t), t, void 0, s ?? {});
+  }
+  return h._$AI(t), h;
 };
 
 ;// CONCATENATED MODULE: ./node_modules/lit-element/lit-element.js
@@ -38207,49 +38615,44 @@ const B = (t, i, s) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-var lit_element_l, lit_element_o;
-const lit_element_r = (/* unused pure expression or super */ null && (t));
-class lit_element_s extends reactive_element_u {
+class lit_element_r extends b {
   constructor() {
     super(...arguments), this.renderOptions = {
       host: this
     }, this._$Do = void 0;
   }
   createRenderRoot() {
-    var t, e;
-    const i = super.createRenderRoot();
-    return null !== (t = (e = this.renderOptions).renderBefore) && void 0 !== t || (e.renderBefore = i.firstChild), i;
+    const t = super.createRenderRoot();
+    return this.renderOptions.renderBefore ??= t.firstChild, t;
   }
   update(t) {
-    const i = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = B(i, this.renderRoot, this.renderOptions);
+    const s = this.render();
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = lit_html_B(s, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
-    var t;
-    super.connectedCallback(), null === (t = this._$Do) || void 0 === t || t.setConnected(!0);
+    super.connectedCallback(), this._$Do?.setConnected(!0);
   }
   disconnectedCallback() {
-    var t;
-    super.disconnectedCallback(), null === (t = this._$Do) || void 0 === t || t.setConnected(!1);
+    super.disconnectedCallback(), this._$Do?.setConnected(!1);
   }
   render() {
-    return T;
+    return lit_html_T;
   }
 }
-lit_element_s.finalized = !0, lit_element_s._$litElement$ = !0, null === (lit_element_l = globalThis.litElementHydrateSupport) || void 0 === lit_element_l || lit_element_l.call(globalThis, {
-  LitElement: lit_element_s
+lit_element_r._$litElement$ = !0, lit_element_r["finalized"] = !0, globalThis.litElementHydrateSupport?.({
+  LitElement: lit_element_r
 });
-const lit_element_n = globalThis.litElementPolyfillSupport;
-null == lit_element_n || lit_element_n({
-  LitElement: lit_element_s
+const lit_element_i = globalThis.litElementPolyfillSupport;
+lit_element_i?.({
+  LitElement: lit_element_r
 });
-const lit_element_h = {
-  _$AK: (t, e, i) => {
-    t._$AK(e, i);
+const lit_element_o = {
+  _$AK: (t, e, s) => {
+    t._$AK(e, s);
   },
   _$AL: t => t._$AL
 };
-(null !== (lit_element_o = globalThis.litElementVersions) && void 0 !== lit_element_o ? lit_element_o : globalThis.litElementVersions = []).push("3.3.2");
+(globalThis.litElementVersions ??= []).push("4.1.1");
 
 ;// CONCATENATED MODULE: ./node_modules/lit/index.js
 
@@ -38321,13 +38724,13 @@ const public_converse = Object.assign(window.converse || {}, {
     setUnloadEvent();
     initAppSettings(settings);
     shared_converse.strict_plugin_dependencies = settings.strict_plugin_dependencies; // Needed by pluggable.js
-    log.setLogLevel(api.settings.get("loglevel"));
+    headless_log.setLogLevel(api.settings.get("loglevel"));
     if (api.settings.get("authentication") === ANONYMOUS) {
       if (api.settings.get("auto_login") && !api.settings.get('jid')) {
         throw new Error("Config Error: you need to provide the server's " + "domain via the 'jid' option when using anonymous " + "authentication with auto_login.");
       }
     }
-    shared_converse.router.route(/^converse\?loglevel=(debug|info|warn|error|fatal)$/, 'loglevel', l => log.setLogLevel(l));
+    shared_converse.router.route(/^converse\?loglevel=(debug|info|warn|error|fatal)$/, 'loglevel', l => headless_log.setLogLevel(l));
     shared_converse.connfeedback = new feedback();
 
     /* When reloading the page:
@@ -38351,7 +38754,7 @@ const public_converse = Object.assign(window.converse || {}, {
     try {
       !History.started && shared_converse.router.history.start();
     } catch (e) {
-      log.error(e);
+      headless_log.error(e);
     }
     const plugins = shared_converse.pluggable.plugins;
     if (api.settings.get("auto_login") || api.settings.get("keepalive") && plugins['converse-bosh']?.enabled()) {
@@ -38427,22 +38830,22 @@ const public_converse = Object.assign(window.converse || {}, {
     $iq: $iq,
     $msg: $msg,
     $pres: $pres,
-    'utils': utils_core,
+    'utils': core,
     Collection: Collection,
     Model: Model,
     Promise,
-    Strophe: core,
+    Strophe: Strophe,
     TimeoutError: TimeoutError,
     URI: (URI_default()),
     VERSION_NAME: VERSION_NAME,
     dayjs: (dayjs_min_default()),
     filesize: filesize,
-    html: x,
-    log: log,
+    html: lit_html_x,
+    log: headless_log,
     sizzle: (sizzle_default()),
     sprintf: sprintf.sprintf,
     stx: stanza_stx,
-    u: utils_core
+    u: core
   }
 });
 ;// CONCATENATED MODULE: ./src/headless/core.js
@@ -38654,8 +39057,8 @@ function rejectMessage(stanza, text) {
   }).up().c('text', {
     xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas'
   }).t(text));
-  log.warn(`Rejecting message stanza with the following reason: ${text}`);
-  log.warn(stanza);
+  headless_log.warn(`Rejecting message stanza with the following reason: ${text}`);
+  headless_log.warn(stanza);
 }
 
 /**
@@ -38672,7 +39075,7 @@ function sendMarker(to_jid, id, type, msg_type) {
     'to': to_jid,
     'type': msg_type ? msg_type : 'chat'
   }).c(type, {
-    'xmlns': core.NS.MARKERS,
+    'xmlns': Strophe.NS.MARKERS,
     'id': id
   });
   shared_api.send(stanza);
@@ -38705,7 +39108,7 @@ function getURI(url) {
   try {
     return url instanceof (URI_default()) ? url : new (URI_default())(url);
   } catch (error) {
-    log.debug(error);
+    headless_log.debug(error);
     return null;
   }
 }
@@ -38760,7 +39163,7 @@ function isDomainAllowed(url, setting) {
   try {
     return isDomainWhitelisted(allowed_domains, url);
   } catch (error) {
-    log.debug(error);
+    headless_log.debug(error);
     return false;
   }
 }
@@ -38817,7 +39220,7 @@ Object.assign(url_u, {
 
 const {
   NS: parsers_NS
-} = core;
+} = Strophe;
 class StanzaParseError extends Error {
   constructor(message, stanza) {
     super(message, stanza);
@@ -38836,7 +39239,7 @@ class StanzaParseError extends Error {
 function getStanzaIDs(stanza, original_stanza) {
   const attrs = {};
   // Store generic stanza ids
-  const sids = sizzle_default()(`stanza-id[xmlns="${core.NS.SID}"]`, stanza);
+  const sids = sizzle_default()(`stanza-id[xmlns="${Strophe.NS.SID}"]`, stanza);
   const sid_attrs = sids.reduce((acc, s) => {
     acc[`stanza_id ${s.getAttribute('by')}`] = s.getAttribute('id');
     return acc;
@@ -38844,29 +39247,29 @@ function getStanzaIDs(stanza, original_stanza) {
   Object.assign(attrs, sid_attrs);
 
   // Store the archive id
-  const result = sizzle_default()(`message > result[xmlns="${core.NS.MAM}"]`, original_stanza).pop();
+  const result = sizzle_default()(`message > result[xmlns="${Strophe.NS.MAM}"]`, original_stanza).pop();
   if (result) {
     const by_jid = original_stanza.getAttribute('from') || shared_converse.bare_jid;
     attrs[`stanza_id ${by_jid}`] = result.getAttribute('id');
   }
 
   // Store the origin id
-  const origin_id = sizzle_default()(`origin-id[xmlns="${core.NS.SID}"]`, stanza).pop();
+  const origin_id = sizzle_default()(`origin-id[xmlns="${Strophe.NS.SID}"]`, stanza).pop();
   if (origin_id) {
     attrs['origin_id'] = origin_id.getAttribute('id');
   }
   return attrs;
 }
 function getEncryptionAttributes(stanza) {
-  const eme_tag = sizzle_default()(`encryption[xmlns="${core.NS.EME}"]`, stanza).pop();
+  const eme_tag = sizzle_default()(`encryption[xmlns="${Strophe.NS.EME}"]`, stanza).pop();
   const namespace = eme_tag?.getAttribute('namespace');
   const attrs = {};
   if (namespace) {
     attrs.is_encrypted = true;
     attrs.encryption_namespace = namespace;
-  } else if (sizzle_default()(`encrypted[xmlns="${core.NS.OMEMO}"]`, stanza).pop()) {
+  } else if (sizzle_default()(`encrypted[xmlns="${Strophe.NS.OMEMO}"]`, stanza).pop()) {
     attrs.is_encrypted = true;
-    attrs.encryption_namespace = core.NS.OMEMO;
+    attrs.encryption_namespace = Strophe.NS.OMEMO;
   }
   return attrs;
 }
@@ -38879,12 +39282,12 @@ function getEncryptionAttributes(stanza) {
  * @returns { Object }
  */
 function getRetractionAttributes(stanza, original_stanza) {
-  const fastening = sizzle_default()(`> apply-to[xmlns="${core.NS.FASTEN}"]`, stanza).pop();
+  const fastening = sizzle_default()(`> apply-to[xmlns="${Strophe.NS.FASTEN}"]`, stanza).pop();
   if (fastening) {
     const applies_to_id = fastening.getAttribute('id');
-    const retracted = sizzle_default()(`> retract[xmlns="${core.NS.RETRACT}"]`, fastening).pop();
+    const retracted = sizzle_default()(`> retract[xmlns="${Strophe.NS.RETRACT}"]`, fastening).pop();
     if (retracted) {
-      const delay = sizzle_default()(`delay[xmlns="${core.NS.DELAY}"]`, original_stanza).pop();
+      const delay = sizzle_default()(`delay[xmlns="${Strophe.NS.DELAY}"]`, original_stanza).pop();
       const time = delay ? dayjs_min_default()(delay.getAttribute('stamp')).toISOString() : new Date().toISOString();
       return {
         'editable': false,
@@ -38893,7 +39296,7 @@ function getRetractionAttributes(stanza, original_stanza) {
       };
     }
   } else {
-    const tombstone = sizzle_default()(`> retracted[xmlns="${core.NS.RETRACT}"]`, stanza).pop();
+    const tombstone = sizzle_default()(`> retracted[xmlns="${Strophe.NS.RETRACT}"]`, stanza).pop();
     if (tombstone) {
       return {
         'editable': false,
@@ -38905,11 +39308,11 @@ function getRetractionAttributes(stanza, original_stanza) {
   return {};
 }
 function getCorrectionAttributes(stanza, original_stanza) {
-  const el = sizzle_default()(`replace[xmlns="${core.NS.MESSAGE_CORRECT}"]`, stanza).pop();
+  const el = sizzle_default()(`replace[xmlns="${Strophe.NS.MESSAGE_CORRECT}"]`, stanza).pop();
   if (el) {
     const replace_id = el.getAttribute('id');
     if (replace_id) {
-      const delay = sizzle_default()(`delay[xmlns="${core.NS.DELAY}"]`, original_stanza).pop();
+      const delay = sizzle_default()(`delay[xmlns="${Strophe.NS.DELAY}"]`, original_stanza).pop();
       const time = delay ? dayjs_min_default()(delay.getAttribute('stamp')).toISOString() : new Date().toISOString();
       return {
         replace_id,
@@ -38920,10 +39323,10 @@ function getCorrectionAttributes(stanza, original_stanza) {
   return {};
 }
 function getOpenGraphMetadata(stanza) {
-  const fastening = sizzle_default()(`> apply-to[xmlns="${core.NS.FASTEN}"]`, stanza).pop();
+  const fastening = sizzle_default()(`> apply-to[xmlns="${Strophe.NS.FASTEN}"]`, stanza).pop();
   if (fastening) {
     const applies_to_id = fastening.getAttribute('id');
-    const meta = sizzle_default()(`> meta[xmlns="${core.NS.XHTML}"]`, fastening);
+    const meta = sizzle_default()(`> meta[xmlns="${Strophe.NS.XHTML}"]`, fastening);
     if (meta.length) {
       const msg_limit = shared_api.settings.get('message_limit');
       const data = meta.reduce((acc, el) => {
@@ -38970,7 +39373,7 @@ function getMediaURLsMetadata(text) {
       return url;
     }, URL_PARSE_OPTIONS);
   } catch (error) {
-    log.debug(error);
+    headless_log.debug(error);
   }
 
   /**
@@ -38996,14 +39399,14 @@ function getMediaURLsMetadata(text) {
   } : {};
 }
 function getSpoilerAttributes(stanza) {
-  const spoiler = sizzle_default()(`spoiler[xmlns="${core.NS.SPOILER}"]`, stanza).pop();
+  const spoiler = sizzle_default()(`spoiler[xmlns="${Strophe.NS.SPOILER}"]`, stanza).pop();
   return {
     'is_spoiler': !!spoiler,
     'spoiler_hint': spoiler?.textContent
   };
 }
 function getOutOfBandAttributes(stanza) {
-  const xform = sizzle_default()(`x[xmlns="${core.NS.OUTOFBAND}"]`, stanza).pop();
+  const xform = sizzle_default()(`x[xmlns="${Strophe.NS.OUTOFBAND}"]`, stanza).pop();
   if (xform) {
     return {
       'oob_url': xform.querySelector('url')?.textContent,
@@ -39021,7 +39424,7 @@ function getOutOfBandAttributes(stanza) {
 function getErrorAttributes(stanza) {
   if (stanza.getAttribute('type') === 'error') {
     const error = stanza.querySelector('error');
-    const text = sizzle_default()(`text[xmlns="${core.NS.STANZAS}"]`, error).pop();
+    const text = sizzle_default()(`text[xmlns="${Strophe.NS.STANZAS}"]`, error).pop();
     return {
       'is_error': true,
       'error_text': text?.textContent,
@@ -39038,11 +39441,11 @@ function getErrorAttributes(stanza) {
  * @returns { Reference }
  */
 function getReferences(stanza) {
-  return sizzle_default()(`reference[xmlns="${core.NS.REFERENCE}"]`, stanza).map(ref => {
+  return sizzle_default()(`reference[xmlns="${Strophe.NS.REFERENCE}"]`, stanza).map(ref => {
     const anchor = ref.getAttribute('anchor');
     const text = stanza.querySelector(anchor ? `#${anchor}` : 'body')?.textContent;
     if (!text) {
-      log.warn(`Could not find referenced text for ${ref}`);
+      headless_log.warn(`Could not find referenced text for ${ref}`);
       return null;
     }
     const begin = ref.getAttribute('begin');
@@ -39066,7 +39469,7 @@ function getReferences(stanza) {
   }).filter(r => r);
 }
 function getReceiptId(stanza) {
-  const receipt = sizzle_default()(`received[xmlns="${core.NS.RECEIPTS}"]`, stanza).pop();
+  const receipt = sizzle_default()(`received[xmlns="${Strophe.NS.RECEIPTS}"]`, stanza).pop();
   return receipt?.getAttribute('id');
 }
 
@@ -39077,7 +39480,7 @@ function getReceiptId(stanza) {
  * @returns { Boolean }
  */
 function isCarbon(stanza) {
-  const xmlns = core.NS.CARBONS;
+  const xmlns = Strophe.NS.CARBONS;
   return sizzle_default()(`message > received[xmlns="${xmlns}"]`, stanza).length > 0 || sizzle_default()(`message > sent[xmlns="${xmlns}"]`, stanza).length > 0;
 }
 
@@ -39095,7 +39498,7 @@ function getChatState(stanza) {
         gone[xmlns="${parsers_NS.CHATSTATES}"]`, stanza).pop()?.nodeName;
 }
 function isValidReceiptRequest(stanza, attrs) {
-  return attrs.sender !== 'me' && !attrs.is_carbon && !attrs.is_archived && sizzle_default()(`request[xmlns="${core.NS.RECEIPTS}"]`, stanza).length;
+  return attrs.sender !== 'me' && !attrs.is_carbon && !attrs.is_archived && sizzle_default()(`request[xmlns="${Strophe.NS.RECEIPTS}"]`, stanza).length;
 }
 
 /**
@@ -39104,7 +39507,7 @@ function isValidReceiptRequest(stanza, attrs) {
  * @param { Element } stanza
  */
 function throwErrorIfInvalidForward(stanza) {
-  const bare_forward = sizzle_default()(`message > forwarded[xmlns="${core.NS.FORWARD}"]`, stanza).length;
+  const bare_forward = sizzle_default()(`message > forwarded[xmlns="${Strophe.NS.FORWARD}"]`, stanza).length;
   if (bare_forward) {
     rejectMessage(stanza, 'Forwarded messages not part of an encapsulating protocol are not supported');
     const from_jid = stanza.getAttribute('from');
@@ -39123,15 +39526,15 @@ function getChatMarker(stanza) {
   // If we receive more than one marker (which shouldn't happen), we take
   // the highest level of acknowledgement.
   return sizzle_default()(`
-        acknowledged[xmlns="${core.NS.MARKERS}"],
-        displayed[xmlns="${core.NS.MARKERS}"],
-        received[xmlns="${core.NS.MARKERS}"]`, stanza).pop();
+        acknowledged[xmlns="${Strophe.NS.MARKERS}"],
+        displayed[xmlns="${Strophe.NS.MARKERS}"],
+        received[xmlns="${Strophe.NS.MARKERS}"]`, stanza).pop();
 }
 function isHeadline(stanza) {
   return stanza.getAttribute('type') === 'headline';
 }
 function isServerMessage(stanza) {
-  if (sizzle_default()(`mentions[xmlns="${core.NS.MENTIONS}"]`, stanza).pop()) {
+  if (sizzle_default()(`mentions[xmlns="${Strophe.NS.MENTIONS}"]`, stanza).pop()) {
     return false;
   }
   const from_jid = stanza.getAttribute('from');
@@ -39153,7 +39556,7 @@ function isServerMessage(stanza) {
  * @returns { Boolean }
  */
 function isArchived(original_stanza) {
-  return !!sizzle_default()(`message > result[xmlns="${core.NS.MAM}"]`, original_stanza).pop();
+  return !!sizzle_default()(`message > result[xmlns="${Strophe.NS.MAM}"]`, original_stanza).pop();
 }
 
 /**
@@ -39164,7 +39567,7 @@ function isArchived(original_stanza) {
  */
 function getAttributes(stanza) {
   return stanza.getAttributeNames().reduce((acc, name) => {
-    acc[name] = core.xmlunescape(stanza.getAttribute(name));
+    acc[name] = Strophe.xmlunescape(stanza.getAttribute(name));
     return acc;
   }, {});
 }
@@ -39231,7 +39634,7 @@ async function parseMessage(stanza) {
     contact_jid = is_me ? parsers_Strophe.getBareJidFromJid(to_jid) : from_bare_jid;
     contact = await shared_api.contacts.get(contact_jid);
     if (contact === undefined && !shared_api.settings.get('allow_non_roster_messaging')) {
-      log.error(stanza);
+      headless_log.error(stanza);
       return new StanzaParseError(`Blocking messaging with a JID not in our roster because allow_non_roster_messaging is false.`, stanza);
     }
   }
@@ -39323,13 +39726,13 @@ async function parseMessage(stanza) {
   attrs = Object.assign({
     'message': attrs.body || attrs.error,
     // TODO: Remove and use body and error attributes instead
-    'is_only_emojis': attrs.body ? utils_core.isOnlyEmojis(attrs.body) : false,
+    'is_only_emojis': attrs.body ? core.isOnlyEmojis(attrs.body) : false,
     'is_valid_receipt_request': isValidReceiptRequest(stanza, attrs)
   }, attrs);
 
   // We prefer to use one of the XEP-0359 unique and stable stanza IDs
   // as the Model id, to avoid duplicates.
-  attrs['id'] = attrs['origin_id'] || attrs[`stanza_id ${attrs.from}`] || utils_core.getUniqueId();
+  attrs['id'] = attrs['origin_id'] || attrs[`stanza_id ${attrs.from}`] || core.getUniqueId();
 
   /**
    * *Hook* which allows plugins to add additional parsing
@@ -39474,7 +39877,7 @@ const ChatBox = model_with_contact.extend({
   },
   fetchMessages() {
     if (this.messages.fetched_flag) {
-      log.info(`Not re-fetching messages for ${this.get('jid')}`);
+      headless_log.info(`Not re-fetching messages for ${this.get('jid')}`);
       return;
     }
     this.messages.fetched_flag = true;
@@ -39539,7 +39942,7 @@ const ChatBox = model_with_contact.extend({
    * @param { Promise<MessageAttributes> } attrs - A promise which resolves to the message attributes
    */
   queueMessage(attrs) {
-    this.msg_chain = (this.msg_chain || this.messages.fetched).then(() => this.onMessage(attrs)).catch(e => log.error(e));
+    this.msg_chain = (this.msg_chain || this.messages.fetched).then(() => this.onMessage(attrs)).catch(e => headless_log.error(e));
     return this.msg_chain;
   },
   /**
@@ -39551,8 +39954,8 @@ const ChatBox = model_with_contact.extend({
   async onMessage(attrs) {
     attrs = await attrs;
     if (model_u.isErrorObject(attrs)) {
-      attrs.stanza && log.error(attrs.stanza);
-      return log.error(attrs.message);
+      attrs.stanza && headless_log.error(attrs.stanza);
+      return headless_log.error(attrs.message);
     }
     const message = this.getDuplicateMessage(attrs);
     if (message) {
@@ -39592,7 +39995,7 @@ const ChatBox = model_with_contact.extend({
       await this.messages.clearStore();
     } catch (e) {
       this.messages.trigger('reset');
-      log.error(e);
+      headless_log.error(e);
     } finally {
       // No point in fetching messages from the cache if it's been cleared.
       // Make sure to resolve the fetched promise to avoid freezes.
@@ -39614,7 +40017,7 @@ const ChatBox = model_with_contact.extend({
         });
       });
     } catch (e) {
-      log.error(e);
+      headless_log.error(e);
     } finally {
       if (shared_api.settings.get('clear_messages_on_reconnection')) {
         await this.clearMessages();
@@ -39683,7 +40086,7 @@ const ChatBox = model_with_contact.extend({
     const auto_join = shared_api.settings.get('auto_join_private_chats').concat(room_jids);
     if (shared_api.settings.get("singleton") && !auto_join.includes(attrs.jid) && !shared_api.settings.get('auto_join_on_invite')) {
       const msg = `${attrs.jid} is not allowed because singleton is true and it's not being auto_joined`;
-      log.warn(msg);
+      headless_log.warn(msg);
       return msg;
     }
   },
@@ -40280,7 +40683,7 @@ const ChatBox = model_with_contact.extend({
       shared_api.send(stanza);
     } catch (e) {
       message.destroy();
-      log.error(e);
+      headless_log.error(e);
       return;
     }
 
@@ -40567,7 +40970,7 @@ const MessageMixin = {
     try {
       this.destroy();
     } catch (e) {
-      log.warn(`safeDestroy: ${e}`);
+      headless_log.warn(`safeDestroy: ${e}`);
     }
   },
   /**
@@ -40670,7 +41073,7 @@ const MessageMixin = {
     try {
       stanza = await this.sendSlotRequestStanza();
     } catch (e) {
-      log.error(e);
+      headless_log.error(e);
       return this.save({
         'type': 'error',
         'message': __('Sorry, could not determine upload URL.'),
@@ -40696,7 +41099,7 @@ const MessageMixin = {
     const xhr = new XMLHttpRequest();
     xhr.onreadystatechange = async () => {
       if (xhr.readyState === XMLHttpRequest.DONE) {
-        log.info('Status: ' + xhr.status);
+        headless_log.info('Status: ' + xhr.status);
         if (xhr.status === 200 || xhr.status === 201) {
           let attrs = {
             'upload': shared_converse.SUCCESS,
@@ -40769,7 +41172,7 @@ const MessageMixin = {
         }
         const chatbox = shared_api.chats.get(jids, attrs, true);
         if (!chatbox) {
-          log.error("Could not open chatbox for JID: " + jids);
+          headless_log.error("Could not open chatbox for JID: " + jids);
           return;
         }
         return chatbox;
@@ -40781,7 +41184,7 @@ const MessageMixin = {
           return shared_api.chats.get(jid, attrs, true).maybeShow();
         }));
       }
-      log.error("chats.create: You need to provide at least one JID");
+      headless_log.error("chats.create: You need to provide at least one JID");
       return null;
     },
     /**
@@ -40835,7 +41238,7 @@ const MessageMixin = {
         return Promise.all(jids.map(j => shared_api.chats.get(j, attrs, true).then(c => c && c.maybeShow(force))).filter(c => c));
       }
       const err_msg = "chats.open: You need to provide at least one JID";
-      log.error(err_msg);
+      headless_log.error(err_msg);
       throw new Error(err_msg);
     },
     /**
@@ -40898,7 +41301,7 @@ const {
 } = public_converse.env;
 function openChat(jid) {
   if (!chat_utils_u.isValidJID(jid)) {
-    return log.warn(`Invalid JID "${jid}" provided in URL fragment`);
+    return headless_log.warn(`Invalid JID "${jid}" provided in URL fragment`);
   }
   shared_api.chats.open(jid);
 }
@@ -40935,7 +41338,7 @@ function autoJoinChats() {
     if (typeof jid === 'string') {
       shared_api.chats.open(jid);
     } else {
-      log.error('Invalid jid criteria specified for "auto_join_private_chats"');
+      headless_log.error('Invalid jid criteria specified for "auto_join_private_chats"');
     }
   });
   /**
@@ -40967,17 +41370,17 @@ async function handleMessageStanza(stanza) {
   if (isServerMessage(stanza)) {
     // Prosody sends headline messages with type `chat`, so we need to filter them out here.
     const from = stanza.getAttribute('from');
-    return log.info(`handleMessageStanza: Ignoring incoming server message from JID: ${from}`);
+    return headless_log.info(`handleMessageStanza: Ignoring incoming server message from JID: ${from}`);
   }
   let attrs;
   try {
     attrs = await parseMessage(stanza);
   } catch (e) {
-    return log.error(e);
+    return headless_log.error(e);
   }
   if (chat_utils_u.isErrorObject(attrs)) {
-    attrs.stanza && log.error(attrs.stanza);
-    return log.error(attrs.message);
+    attrs.stanza && headless_log.error(attrs.stanza);
+    return headless_log.error(attrs.message);
   }
   // XXX: Need to take XEP-428 <fallback> into consideration
   const has_body = !!(attrs.body || attrs.plaintext);
@@ -41016,7 +41419,7 @@ async function enableCarbons() {
   const domain = utils_Strophe.getDomainFromJid(shared_converse.bare_jid);
   const supported = await shared_api.disco.supports(utils_Strophe.NS.CARBONS, domain);
   if (!supported) {
-    log.warn("Not enabling carbons because it's not supported!");
+    headless_log.warn("Not enabling carbons because it's not supported!");
     return;
   }
   const iq = new utils_Strophe.Builder('iq', {
@@ -41027,12 +41430,12 @@ async function enableCarbons() {
   });
   const result = await shared_api.sendIQ(iq, null, false);
   if (result === null) {
-    log.warn(`A timeout occurred while trying to enable carbons`);
+    headless_log.warn(`A timeout occurred while trying to enable carbons`);
   } else if (chat_utils_u.isErrorStanza(result)) {
-    log.warn('An error occurred while trying to enable message carbons.');
-    log.error(result);
+    headless_log.warn('An error occurred while trying to enable message carbons.');
+    headless_log.error(result);
   } else {
-    log.debug('Message carbons have been enabled.');
+    headless_log.debug('Message carbons have been enabled.');
   }
 }
 ;// CONCATENATED MODULE: ./src/headless/plugins/chat/index.js
@@ -41202,7 +41605,7 @@ const DiscoEntity = Model.extend({
     try {
       stanza = await shared_api.disco.info(this.get('jid'), null);
     } catch (iq) {
-      iq === null ? log.error(`Timeout for disco#info query for ${this.get('jid')}`) : log.error(iq);
+      iq === null ? headless_log.error(`Timeout for disco#info query for ${this.get('jid')}`) : headless_log.error(iq);
       this.waitUntilFeaturesDiscovered.resolve(this);
       return;
     }
@@ -41294,7 +41697,7 @@ const DiscoEntities = Collection.extend({
         add: true,
         success: resolve,
         error(_m, e) {
-          log.error(e);
+          headless_log.error(e);
           reject(new Error("Could not fetch disco entities"));
         }
       });
@@ -41473,7 +41876,7 @@ const {
         if (shared_converse.stream_features === undefined && !shared_api.connection.connected()) {
           // Happens during tests when disco lookups happen asynchronously after teardown.
           const msg = `Tried to get feature ${name} ${xmlns} but _converse.stream_features has been torn down`;
-          log.warn(msg);
+          headless_log.warn(msg);
           return;
         }
         return shared_converse.stream_features.findWhere({
@@ -41637,7 +42040,7 @@ const {
         }
         if (shared_converse.disco_entities === undefined) {
           // Happens during tests when disco lookups happen asynchronously after teardown.
-          log.warn(`Tried to look up entity ${jid} but _converse.disco_entities has been torn down`);
+          headless_log.warn(`Tried to look up entity ${jid} but _converse.disco_entities has been torn down`);
           return;
         }
         const entity = shared_converse.disco_entities.get(jid);
@@ -41707,7 +42110,7 @@ const {
         const entity = await shared_api.disco.entities.get(jid, true);
         if (shared_converse.disco_entities === undefined && !shared_api.connection.connected()) {
           // Happens during tests when disco lookups happen asynchronously after teardown.
-          log.warn(`Tried to get feature ${feature} for ${jid} but _converse.disco_entities has been torn down`);
+          headless_log.warn(`Tried to get feature ${feature} for ${jid} but _converse.disco_entities has been torn down`);
           return [];
         }
         const promises = [entity.getFeature(feature), ...shared_api.disco.entities.items(jid).map(i => i.getFeature(feature))];
@@ -41734,7 +42137,7 @@ const {
         const entity = await shared_api.disco.entities.get(jid, true);
         if (shared_converse.disco_entities === undefined && !shared_api.connection.connected()) {
           // Happens during tests when disco lookups happen asynchronously after teardown.
-          log.warn(`Tried to check if ${jid} supports feature ${feature}`);
+          headless_log.warn(`Tried to check if ${jid} supports feature ${feature}`);
           return false;
         }
         if (await entity.getFeature(feature)) {
@@ -41879,7 +42282,7 @@ const {
       if (e === undefined && !shared_api.connection.connected()) {
         // Happens during tests when disco lookups happen asynchronously after teardown.
         const msg = `Tried to look up category ${category} for ${jid} but _converse.disco_entities has been torn down`;
-        log.warn(msg);
+        headless_log.warn(msg);
         return;
       }
       return e.getIdentity(category, type);
@@ -42397,7 +42800,7 @@ const ChatRoomMessageMixin = {
       if (occupant.get('occupant_id') !== this.get('occupant_id')) {
         return;
       }
-    } else if (occupant.get('nick') !== core.getResourceFromJid(this.get('from'))) {
+    } else if (occupant.get('nick') !== Strophe.getResourceFromJid(this.get('from'))) {
       return;
     }
     this.occupant = occupant;
@@ -42417,7 +42820,7 @@ const ChatRoomMessageMixin = {
     if (this.get('type') !== 'groupchat' || this.isEphemeral() || this.occupant) {
       return;
     }
-    const nick = core.getResourceFromJid(this.get('from'));
+    const nick = Strophe.getResourceFromJid(this.get('from'));
     const occupant_id = this.get('occupant_id');
     this.occupant = this.chatbox.occupants.findOccupant({
       nick,
@@ -42989,14 +43392,14 @@ async function getAffiliationList(affiliation, muc_jid) {
   if (result === null) {
     const err_msg = __('Error: timeout while fetching %1s list for MUC %2s', affiliation, muc_jid);
     const err = new Error(err_msg);
-    log.warn(err_msg);
+    headless_log.warn(err_msg);
     return err;
   }
   if (affiliations_utils_u.isErrorStanza(result)) {
     const err_msg = __('Error: not allowed to fetch %1s list for MUC %2s', affiliation, muc_jid);
     const err = new Error(err_msg);
-    log.warn(err_msg);
-    log.warn(result);
+    headless_log.warn(err_msg);
+    headless_log.warn(result);
     return err;
   }
   return parseMemberListIQ(result).filter(p => p).sort((a, b) => a.nick < b.nick ? -1 : a.nick > b.nick ? 1 : 0);
@@ -43260,7 +43663,7 @@ const ChatRoomMixin = {
    */
   async restoreFromCache() {
     if (this.isEntered()) {
-      await this.fetchOccupants().catch(e => log.error(e));
+      await this.fetchOccupants().catch(e => headless_log.error(e));
       if (this.isRAICandidate()) {
         this.session.save('connection_status', ROOMSTATUS.DISCONNECTED);
         this.enableRAI();
@@ -43274,7 +43677,7 @@ const ChatRoomMixin = {
           'success': r,
           'error': r
         }));
-        await this.fetchMessages().catch(e => log.error(e));
+        await this.fetchMessages().catch(e => headless_log.error(e));
         return true;
       }
     }
@@ -43330,13 +43733,13 @@ const ChatRoomMixin = {
       'from': shared_converse.connection.jid,
       'to': this.getRoomJIDAndNick()
     }).c('x', {
-      'xmlns': core.NS.MUC
+      'xmlns': Strophe.NS.MUC
     }).c('history', {
       'maxstanzas': this.features.get('mam_enabled') ? 0 : shared_api.settings.get('muc_history_max_stanzas')
     }).up();
     password = password || this.get('password');
     if (password) {
-      stanza.cnode(core.xmlElement('password', [], password));
+      stanza.cnode(Strophe.xmlElement('password', [], password));
     }
     stanza.up(); // Go one level up, out of the `x` element.
     /**
@@ -43374,10 +43777,10 @@ const ChatRoomMixin = {
       const key = `stanza_id ${this.get('jid')}`;
       const id = msg.get(key);
       if (!id) {
-        log.error(`Can't send marker for message without stanza ID: ${key}`);
+        headless_log.error(`Can't send marker for message without stanza ID: ${key}`);
         return;
       }
-      const from_jid = core.getBareJidFromJid(msg.get('from'));
+      const from_jid = Strophe.getBareJidFromJid(msg.get('from'));
       sendMarker(from_jid, id, type, msg.get('type'));
     }
   },
@@ -43393,9 +43796,9 @@ const ChatRoomMixin = {
    */
   enableRAI() {
     if (shared_api.settings.get('muc_subscribe_to_rai')) {
-      const muc_domain = core.getDomainFromJid(this.get('jid'));
+      const muc_domain = Strophe.getDomainFromJid(this.get('jid'));
       shared_api.user.presence.send(null, muc_domain, null, $build('rai', {
-        'xmlns': core.NS.RAI
+        'xmlns': Strophe.NS.RAI
       }));
     }
   },
@@ -43454,7 +43857,7 @@ const ChatRoomMixin = {
      * @example _converse.api.listen.on('enteredNewRoom', model => { ... });
      */
     shared_api.trigger('enteredNewRoom', this);
-    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(core.NS.MUC_REGISTER, this.get('jid')))) {
+    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(Strophe.NS.MUC_REGISTER, this.get('jid')))) {
       this.registerNickname();
     }
   },
@@ -43464,7 +43867,7 @@ const ChatRoomMixin = {
         try {
           await this.leave();
         } catch (e) {
-          log.error(e);
+          headless_log.error(e);
         }
         this.enableRAI();
       } else {
@@ -43526,7 +43929,7 @@ const ChatRoomMixin = {
     return this.occupants.fetched;
   },
   handleAffiliationChangedMessage(stanza) {
-    const item = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] item`, stanza).pop();
+    const item = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] item`, stanza).pop();
     if (item) {
       const from = stanza.getAttribute('from');
       const type = stanza.getAttribute('type');
@@ -43539,8 +43942,8 @@ const ChatRoomMixin = {
         'states': [],
         'show': type == 'unavailable' ? 'offline' : 'online',
         'role': item.getAttribute('role'),
-        'jid': core.getBareJidFromJid(jid),
-        'resource': core.getResourceFromJid(jid)
+        'jid': Strophe.getBareJidFromJid(jid),
+        'resource': Strophe.getResourceFromJid(jid)
       };
       const occupant = this.occupants.findOccupant({
         'jid': data.jid
@@ -43608,7 +44011,7 @@ const ChatRoomMixin = {
       // We're not interested in activity indicators when already joined to the room
       return;
     }
-    const rai = sizzle_default()(`rai[xmlns="${core.NS.RAI}"]`, stanza).pop();
+    const rai = sizzle_default()(`rai[xmlns="${Strophe.NS.RAI}"]`, stanza).pop();
     const active_mucs = Array.from(rai?.querySelectorAll('activity') || []).map(m => m.textContent);
     if (active_mucs.includes(this.get('jid'))) {
       this.save({
@@ -43629,9 +44032,9 @@ const ChatRoomMixin = {
       // Avoid counting mentions twice
       return;
     }
-    const msgs = sizzle_default()(`mentions[xmlns="${core.NS.MENTIONS}"] forwarded[xmlns="${core.NS.FORWARD}"] message[type="groupchat"]`, stanza);
+    const msgs = sizzle_default()(`mentions[xmlns="${Strophe.NS.MENTIONS}"] forwarded[xmlns="${Strophe.NS.FORWARD}"] message[type="groupchat"]`, stanza);
     const muc_jid = this.get('jid');
-    const mentions = msgs.filter(m => core.getBareJidFromJid(m.getAttribute('from')) === muc_jid);
+    const mentions = msgs.filter(m => Strophe.getBareJidFromJid(m.getAttribute('from')) === muc_jid);
     if (mentions.length) {
       this.save({
         'has_activity': true,
@@ -43665,7 +44068,7 @@ const ChatRoomMixin = {
         // MAM messages are handled in converse-mam.
         // We shouldn't get MAM messages here because
         // they shouldn't have a `type` attribute.
-        return log.warn(`Received a MAM message with type "groupchat"`);
+        return headless_log.warn(`Received a MAM message with type "groupchat"`);
       }
       this.createInfoMessages(stanza);
       this.fetchFeaturesIfConfigurationChanged(stanza);
@@ -43683,7 +44086,7 @@ const ChatRoomMixin = {
     try {
       attrs = await parseMUCMessage(stanza, this);
     } catch (e) {
-      return log.error(e);
+      return headless_log.error(e);
     }
     const data = {
       stanza,
@@ -43706,7 +44109,7 @@ const ChatRoomMixin = {
    */
   registerHandlers() {
     const muc_jid = this.get('jid');
-    const muc_domain = core.getDomainFromJid(muc_jid);
+    const muc_domain = Strophe.getDomainFromJid(muc_jid);
     this.removeHandlers();
     this.presence_handler = shared_converse.connection.addHandler(stanza => this.onPresence(stanza) || true, null, 'presence', null, null, muc_jid, {
       'ignoreNamespaceFragment': true,
@@ -43717,7 +44120,7 @@ const ChatRoomMixin = {
       'matchBareFromJid': true
     });
     this.domain_message_handler = shared_converse.connection.addHandler(stanza => this.handleMessageFromMUCHost(stanza) || true, null, 'message', null, null, muc_domain);
-    this.affiliation_message_handler = shared_converse.connection.addHandler(stanza => this.handleAffiliationChangedMessage(stanza) || true, core.NS.MUC_USER, 'message', null, null, muc_jid);
+    this.affiliation_message_handler = shared_converse.connection.addHandler(stanza => this.handleAffiliationChangedMessage(stanza) || true, Strophe.NS.MUC_USER, 'message', null, null, muc_jid);
   },
   removeHandlers() {
     // Remove the presence and message handlers that were
@@ -43752,7 +44155,7 @@ const ChatRoomMixin = {
     if (name) {
       return name;
     } else if (shared_api.settings.get('locked_muc_domain') === 'hidden') {
-      return core.getNodeFromJid(this.get('jid'));
+      return Strophe.getNodeFromJid(this.get('jid'));
     } else {
       return this.get('jid');
     }
@@ -43809,12 +44212,12 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'groupchat'
     }).c('store', {
-      xmlns: core.NS.HINTS
+      xmlns: Strophe.NS.HINTS
     }).up().c('apply-to', {
       'id': origin_id,
-      'xmlns': core.NS.FASTEN
+      'xmlns': Strophe.NS.FASTEN
     }).c('retract', {
-      xmlns: core.NS.RETRACT
+      xmlns: Strophe.NS.RETRACT
     });
 
     // Optimistic save
@@ -43826,9 +44229,9 @@ const ChatRoomMixin = {
     });
     const result = await this.sendTimedMessage(stanza);
     if (muc_u.isErrorStanza(result)) {
-      log.error(result);
+      headless_log.error(result);
     } else if (result instanceof TimeoutError) {
-      log.error(result);
+      headless_log.error(result);
       message.save({
         editable,
         'error_type': 'timeout',
@@ -43886,11 +44289,11 @@ const ChatRoomMixin = {
       'type': 'set'
     }).c('apply-to', {
       'id': message.get(`stanza_id ${this.get('jid')}`),
-      'xmlns': core.NS.FASTEN
+      'xmlns': Strophe.NS.FASTEN
     }).c('moderate', {
-      xmlns: core.NS.MODERATE
+      xmlns: Strophe.NS.MODERATE
     }).c('retract', {
-      xmlns: core.NS.RETRACT
+      xmlns: Strophe.NS.RETRACT
     }).up().c('reason').t(reason || '');
     return shared_api.sendIQ(iq, null, false);
   },
@@ -43914,7 +44317,7 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'set'
     }).c('query', {
-      'xmlns': core.NS.MUC_OWNER
+      'xmlns': Strophe.NS.MUC_OWNER
     }).cnode(destroy.node);
     if (reason && reason.length > 0) {
       iq.c('reason', reason);
@@ -43935,7 +44338,7 @@ const ChatRoomMixin = {
       await new Promise(resolve => this.features.destroy({
         'success': resolve,
         'error': (_, e) => {
-          log.error(e);
+          headless_log.error(e);
           resolve();
         }
       }));
@@ -43946,7 +44349,7 @@ const ChatRoomMixin = {
       await new Promise(resolve => disco_entity.destroy({
         'success': resolve,
         'error': (_, e) => {
-          log.error(e);
+          headless_log.error(e);
           resolve();
         }
       }));
@@ -43976,7 +44379,7 @@ const ChatRoomMixin = {
     await new Promise(resolve => this.session.destroy({
       'success': resolve,
       'error': (_, e) => {
-        log.error(e);
+        headless_log.error(e);
         resolve();
       }
     }));
@@ -43984,7 +44387,7 @@ const ChatRoomMixin = {
   },
   canModerateMessages() {
     const self = this.getOwnOccupant();
-    return self && self.isModerator() && shared_api.disco.supports(core.NS.MODERATE, this.get('jid'));
+    return self && self.isModerator() && shared_api.disco.supports(Strophe.NS.MODERATE, this.get('jid'));
   },
   /**
    * Return an array of unique nicknames based on all occupants and messages in this MUC.
@@ -44094,7 +44497,7 @@ const ChatRoomMixin = {
    */
   getRoomJIDAndNick() {
     const nick = this.get('nick');
-    const jid = core.getBareJidFromJid(this.get('jid'));
+    const jid = Strophe.getBareJidFromJid(this.get('jid'));
     return jid + (nick !== null ? `/${nick}` : '');
   },
   /**
@@ -44120,11 +44523,11 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'groupchat'
     }).c(chat_state, {
-      'xmlns': core.NS.CHATSTATES
+      'xmlns': Strophe.NS.CHATSTATES
     }).up().c('no-store', {
-      'xmlns': core.NS.HINTS
+      'xmlns': Strophe.NS.HINTS
     }).up().c('no-permanent-store', {
-      'xmlns': core.NS.HINTS
+      'xmlns': Strophe.NS.HINTS
     }));
   },
   /**
@@ -44185,7 +44588,7 @@ const ChatRoomMixin = {
    * @returns {Promise}
    */
   refreshDiscoInfo() {
-    return shared_api.disco.refresh(this.get('jid')).then(() => this.getDiscoInfo()).catch(e => log.error(e));
+    return shared_api.disco.refresh(this.get('jid')).then(() => this.getDiscoInfo()).catch(e => headless_log.error(e));
   },
   /**
    * Fetch the *extended* MUC info from the server and cache it locally
@@ -44197,7 +44600,7 @@ const ChatRoomMixin = {
   getDiscoInfo() {
     return shared_api.disco.getIdentity('conference', 'text', this.get('jid')).then(identity => this.save({
       'name': identity?.get('name')
-    })).then(() => this.getDiscoInfoFields()).then(() => this.getDiscoInfoFeatures()).catch(e => log.error(e));
+    })).then(() => this.getDiscoInfoFields()).then(() => this.getDiscoInfoFeatures()).catch(e => headless_log.error(e));
   },
   /**
    * Fetch the *extended* MUC info fields from the server and store them locally
@@ -44237,7 +44640,7 @@ const ChatRoomMixin = {
     features.each(feature => {
       const fieldname = feature.get('var');
       if (!fieldname.startsWith('muc_')) {
-        if (fieldname === core.NS.MAM) {
+        if (fieldname === Strophe.NS.MAM) {
           attrs.mam_enabled = true;
         } else {
           attrs[fieldname] = true;
@@ -44308,7 +44711,7 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'get'
     }).c('query', {
-      xmlns: core.NS.MUC_OWNER
+      xmlns: Strophe.NS.MUC_OWNER
     }));
   },
   /**
@@ -44325,9 +44728,9 @@ const ChatRoomMixin = {
       to: this.get('jid'),
       type: 'set'
     }).c('query', {
-      xmlns: core.NS.MUC_OWNER
+      xmlns: Strophe.NS.MUC_OWNER
     }).c('x', {
-      xmlns: core.NS.XFORM,
+      xmlns: Strophe.NS.XFORM,
       type: 'submit'
     });
     config.forEach(node => iq.cnode(node).up());
@@ -44337,7 +44740,7 @@ const ChatRoomMixin = {
     const {
       __
     } = shared_converse;
-    log.fatal(err);
+    headless_log.fatal(err);
     const message = __('Sorry, an error happened while running the command.') + ' ' + __("Check your browser's developer console for details.");
     this.createMessage({
       message,
@@ -44513,7 +44916,7 @@ const ChatRoomMixin = {
    * @param { String } nick
    */
   async setNickname(nick) {
-    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(core.NS.MUC_REGISTER, this.get('jid')))) {
+    if (shared_api.settings.get('auto_register_muc_nickname') && (await shared_api.disco.supports(Strophe.NS.MUC_REGISTER, this.get('jid')))) {
       const old_nick = this.get('nick');
       this.set({
         nick
@@ -44524,7 +44927,7 @@ const ChatRoomMixin = {
         const {
           __
         } = shared_converse;
-        log.error(e);
+        headless_log.error(e);
         const message = __("Error: couldn't register new nickname in members only room");
         this.createMessage({
           message,
@@ -44537,7 +44940,7 @@ const ChatRoomMixin = {
         return;
       }
     }
-    const jid = core.getBareJidFromJid(this.get('jid'));
+    const jid = Strophe.getBareJidFromJid(this.get('jid'));
     shared_api.send($pres({
       'from': shared_converse.connection.jid,
       'to': `${jid}/${nick}`,
@@ -44563,7 +44966,7 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'set'
     }).c('query', {
-      xmlns: core.NS.MUC_ADMIN
+      xmlns: Strophe.NS.MUC_ADMIN
     }).cnode(item.node);
     if (reason !== null) {
       iq.c('reason', reason);
@@ -44673,7 +45076,7 @@ const ChatRoomMixin = {
       'from': shared_converse.connection.jid,
       'type': 'get'
     }).c('query', {
-      'xmlns': core.NS.DISCO_INFO,
+      'xmlns': Strophe.NS.DISCO_INFO,
       'node': 'x-roomuser-item'
     });
     const result = await shared_api.sendIQ(stanza, null, false);
@@ -44705,29 +45108,29 @@ const ChatRoomMixin = {
         'to': jid,
         'type': 'get'
       }).c('query', {
-        'xmlns': core.NS.MUC_REGISTER
+        'xmlns': Strophe.NS.MUC_REGISTER
       }));
     } catch (e) {
-      if (sizzle_default()(`not-allowed[xmlns="${core.NS.STANZAS}"]`, e).length) {
+      if (sizzle_default()(`not-allowed[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
         err_msg = __("You're not allowed to register yourself in this groupchat.");
-      } else if (sizzle_default()(`registration-required[xmlns="${core.NS.STANZAS}"]`, e).length) {
+      } else if (sizzle_default()(`registration-required[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
         err_msg = __("You're not allowed to register in this groupchat because it's members-only.");
       }
-      log.error(e);
+      headless_log.error(e);
       return err_msg;
     }
     const required_fields = sizzle_default()('field required', iq).map(f => f.parentElement);
     if (required_fields.length > 1 && required_fields[0].getAttribute('var') !== 'muc#register_roomnick') {
-      return log.error(`Can't register the user register in the groupchat ${jid} due to the required fields`);
+      return headless_log.error(`Can't register the user register in the groupchat ${jid} due to the required fields`);
     }
     try {
       await shared_api.sendIQ($iq({
         'to': jid,
         'type': 'set'
       }).c('query', {
-        'xmlns': core.NS.MUC_REGISTER
+        'xmlns': Strophe.NS.MUC_REGISTER
       }).c('x', {
-        'xmlns': core.NS.XFORM,
+        'xmlns': Strophe.NS.XFORM,
         'type': 'submit'
       }).c('field', {
         'var': 'FORM_TYPE'
@@ -44735,13 +45138,13 @@ const ChatRoomMixin = {
         'var': 'muc#register_roomnick'
       }).c('value').t(nick));
     } catch (e) {
-      if (sizzle_default()(`service-unavailable[xmlns="${core.NS.STANZAS}"]`, e).length) {
+      if (sizzle_default()(`service-unavailable[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
         err_msg = __("Can't register your nickname in this groupchat, it doesn't support registration.");
-      } else if (sizzle_default()(`bad-request[xmlns="${core.NS.STANZAS}"]`, e).length) {
+      } else if (sizzle_default()(`bad-request[xmlns="${Strophe.NS.STANZAS}"]`, e).length) {
         err_msg = __("Can't register your nickname in this groupchat, invalid data form supplied.");
       }
-      log.error(err_msg);
-      log.error(e);
+      headless_log.error(err_msg);
+      headless_log.error(e);
       return err_msg;
     }
   },
@@ -44753,11 +45156,11 @@ const ChatRoomMixin = {
   async unregisterNickname() {
     if (shared_api.settings.get('auto_register_muc_nickname') === 'unregister') {
       try {
-        if (await shared_api.disco.supports(core.NS.MUC_REGISTER, this.get('jid'))) {
+        if (await shared_api.disco.supports(Strophe.NS.MUC_REGISTER, this.get('jid'))) {
           await this.sendUnregistrationIQ();
         }
       } catch (e) {
-        log.error(e);
+        headless_log.error(e);
       }
     }
   },
@@ -44773,9 +45176,9 @@ const ChatRoomMixin = {
       'to': this.get('jid'),
       'type': 'set'
     }).c('query', {
-      'xmlns': core.NS.MUC_REGISTER
+      'xmlns': Strophe.NS.MUC_REGISTER
     }).c('remove');
-    return shared_api.sendIQ(iq).catch(e => log.error(e));
+    return shared_api.sendIQ(iq).catch(e => headless_log.error(e));
   },
   /**
    * Given a presence stanza, update the occupant model based on its contents.
@@ -44799,8 +45202,8 @@ const ChatRoomMixin = {
     const jid = data.jid || '';
     const attributes = {
       ...data,
-      'jid': core.getBareJidFromJid(jid) || occupant?.attributes?.jid,
-      'resource': core.getResourceFromJid(jid) || occupant?.attributes?.resource
+      'jid': Strophe.getBareJidFromJid(jid) || occupant?.attributes?.jid,
+      'resource': Strophe.getResourceFromJid(jid) || occupant?.attributes?.resource
     };
     if (data.is_me) {
       let modified = false;
@@ -44808,7 +45211,7 @@ const ChatRoomMixin = {
         modified = true;
         this.set('nick', data.nick);
       }
-      if (this.features.get(core.NS.OCCUPANTID) && this.get('occupant-id') !== data.occupant_id) {
+      if (this.features.get(Strophe.NS.OCCUPANTID) && this.get('occupant-id') !== data.occupant_id) {
         modified = true;
         this.set('occupant_id', data.occupant_id);
       }
@@ -44842,10 +45245,10 @@ const ChatRoomMixin = {
    * @returns { Boolean }
    */
   isSameUser(jid1, jid2) {
-    const bare_jid1 = core.getBareJidFromJid(jid1);
-    const bare_jid2 = core.getBareJidFromJid(jid2);
-    const resource1 = core.getResourceFromJid(jid1);
-    const resource2 = core.getResourceFromJid(jid2);
+    const bare_jid1 = Strophe.getBareJidFromJid(jid1);
+    const bare_jid2 = Strophe.getBareJidFromJid(jid2);
+    const resource1 = Strophe.getResourceFromJid(jid1);
+    const resource2 = Strophe.getResourceFromJid(jid2);
     if (muc_u.isSameBareJID(jid1, jid2)) {
       if (bare_jid1 === this.get('jid')) {
         // MUC JIDs
@@ -44965,7 +45368,7 @@ const ChatRoomMixin = {
     } else {
       from = msg.from;
     }
-    return core.getResourceFromJid(from) == this.get('nick');
+    return Strophe.getResourceFromJid(from) == this.get('nick');
   },
   getUpdatedMessageAttributes(message, attrs) {
     const new_attrs = {
@@ -44991,7 +45394,7 @@ const ChatRoomMixin = {
    */
   async isJoined() {
     if (!this.isEntered()) {
-      log.info(`isJoined: not pinging MUC ${this.get('jid')} since we're not entered`);
+      headless_log.info(`isJoined: not pinging MUC ${this.get('jid')} since we're not entered`);
       return false;
     }
     if (!shared_api.connection.connected()) {
@@ -45020,7 +45423,7 @@ const ChatRoomMixin = {
    */
   async rejoinIfNecessary() {
     if (this.isRAICandidate()) {
-      log.debug(`rejoinIfNecessary: not rejoining hidden MUC "${this.get('jid')}" since we're using RAI`);
+      headless_log.debug(`rejoinIfNecessary: not rejoining hidden MUC "${this.get('jid')}" since we're using RAI`);
       return true;
     }
     if (!(await this.isJoined())) {
@@ -45300,8 +45703,8 @@ const ChatRoomMixin = {
   async onMessage(attrs) {
     attrs = await attrs;
     if (muc_u.isErrorObject(attrs)) {
-      attrs.stanza && log.error(attrs.stanza);
-      return log.error(attrs.message);
+      attrs.stanza && headless_log.error(attrs.stanza);
+      return headless_log.error(attrs.message);
     } else if (attrs.type === 'error' && !(await this.shouldShowErrorMessage(attrs))) {
       return;
     }
@@ -45347,7 +45750,7 @@ const ChatRoomMixin = {
    */
   handleDisconnection(stanza) {
     const is_self = stanza.querySelector("status[code='110']") !== null;
-    const x = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"]`, stanza).pop();
+    const x = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"]`, stanza).pop();
     if (!x) {
       return;
     }
@@ -45472,8 +45875,8 @@ const ChatRoomMixin = {
     } else if (code in shared_converse.muc.info_messages) {
       data.message = shared_converse.muc.info_messages[code];
     } else if (!is_self && ACTION_INFO_CODES.includes(code)) {
-      const nick = core.getResourceFromJid(stanza.getAttribute('from'));
-      const item = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] item`, stanza).pop();
+      const nick = Strophe.getResourceFromJid(stanza.getAttribute('from'));
+      const item = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] item`, stanza).pop();
       data.actor = item ? item.querySelector('actor')?.getAttribute('nick') : undefined;
       data.reason = item ? item.querySelector('reason')?.textContent : undefined;
       data.message = this.getActionInfoMessage(code, nick, data.actor);
@@ -45481,9 +45884,9 @@ const ChatRoomMixin = {
       // XXX: Side-effect of setting the nick. Should ideally be refactored out of this method
       let nick;
       if (code === '210') {
-        nick = core.getResourceFromJid(stanza.getAttribute('from'));
+        nick = Strophe.getResourceFromJid(stanza.getAttribute('from'));
       } else if (code === '303') {
-        nick = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] item`, stanza).pop().getAttribute('nick');
+        nick = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] item`, stanza).pop().getAttribute('nick');
       }
       this.save('nick', nick);
       data.message = __(shared_converse.muc.new_nickname_messages[code], nick);
@@ -45502,7 +45905,7 @@ const ChatRoomMixin = {
    * @param { Element } stanza
    */
   createInfoMessages(stanza) {
-    const codes = sizzle_default()(`x[xmlns="${core.NS.MUC_USER}"] status`, stanza).map(s => s.getAttribute('code'));
+    const codes = sizzle_default()(`x[xmlns="${Strophe.NS.MUC_USER}"] status`, stanza).map(s => s.getAttribute('code'));
     if (codes.includes('333') && codes.includes('307')) {
       // See: https://github.com/xsf/xeps/pull/969/files#diff-ac5113766e59219806793c1f7d967f1bR4966
       codes.splice(codes.indexOf('307'), 1);
@@ -45559,11 +45962,11 @@ const ChatRoomMixin = {
     const __ = shared_converse.__;
     const error = stanza.querySelector('error');
     const error_type = error.getAttribute('type');
-    const reason = sizzle_default()(`text[xmlns="${core.NS.STANZAS}"]`, error).pop()?.textContent;
+    const reason = sizzle_default()(`text[xmlns="${Strophe.NS.STANZAS}"]`, error).pop()?.textContent;
     if (error_type === 'modify') {
       this.handleModifyError(stanza);
     } else if (error_type === 'auth') {
-      if (sizzle_default()(`not-authorized[xmlns="${core.NS.STANZAS}"]`, error).length) {
+      if (sizzle_default()(`not-authorized[xmlns="${Strophe.NS.STANZAS}"]`, error).length) {
         this.save({
           'password_validation_message': reason || __('Password incorrect')
         });
@@ -45584,8 +45987,8 @@ const ChatRoomMixin = {
       } else if (error.querySelector('not-acceptable')) {
         const message = __("Your nickname doesn't conform to this groupchat's policies.");
         this.setDisconnectionState(message, reason);
-      } else if (sizzle_default()(`gone[xmlns="${core.NS.STANZAS}"]`, error).length) {
-        const moved_jid = sizzle_default()(`gone[xmlns="${core.NS.STANZAS}"]`, error).pop()?.textContent.replace(/^xmpp:/, '').replace(/\?join$/, '');
+      } else if (sizzle_default()(`gone[xmlns="${Strophe.NS.STANZAS}"]`, error).length) {
+        const moved_jid = sizzle_default()(`gone[xmlns="${Strophe.NS.STANZAS}"]`, error).pop()?.textContent.replace(/^xmpp:/, '').replace(/\?join$/, '');
         this.save({
           moved_jid,
           'destroyed_reason': reason
@@ -45842,7 +46245,7 @@ async function onWindowStateChanged(data) {
 }
 async function routeToRoom(jid) {
   if (!muc_utils_u.isValidMUCJID(jid)) {
-    return log.warn(`invalid jid "${jid}" provided in url fragment`);
+    return headless_log.warn(`invalid jid "${jid}" provided in url fragment`);
   }
   await shared_api.waitUntil('roomsAutoJoined');
   if (shared_api.settings.get('allow_bookmarks')) {
@@ -45953,7 +46356,7 @@ async function autoJoinRooms() {
         ...muc
       });
     } else {
-      log.error('Invalid muc criteria specified for "auto_join_rooms"');
+      headless_log.error('Invalid muc criteria specified for "auto_join_rooms"');
       return Promise.resolve();
     }
   }));
@@ -46113,7 +46516,7 @@ class ChatRoomOccupants extends Collection {
     if (data.occupant_id) {
       return this.get(data.occupant_id);
     }
-    const jid = data.jid && core.getBareJidFromJid(data.jid);
+    const jid = data.jid && Strophe.getBareJidFromJid(data.jid);
     return jid && this.findWhere({
       jid
     }) || data.nick && this.findWhere({
@@ -46213,7 +46616,7 @@ const {
         'nick': attrs
       } : attrs || {};
       if (!attrs.nick && shared_api.settings.get('muc_nickname_from_jid')) {
-        attrs.nick = core.getNodeFromJid(shared_converse.bare_jid);
+        attrs.nick = Strophe.getNodeFromJid(shared_converse.bare_jid);
       }
       if (jids === undefined) {
         throw new TypeError('rooms.create: You need to provide at least one JID');
@@ -46287,7 +46690,7 @@ const {
       await shared_api.waitUntil('chatBoxesFetched');
       if (jids === undefined) {
         const err_msg = 'rooms.open: You need to provide at least one JID';
-        log.error(err_msg);
+        headless_log.error(err_msg);
         throw new TypeError(err_msg);
       } else if (typeof jids === 'string') {
         const room = await shared_api.rooms.get(jids, attrs, true);
@@ -46570,7 +46973,7 @@ const Bookmarks = {
   model: bookmarks_model,
   comparator: item => item.get('name').toLowerCase(),
   async initialize() {
-    this.on('add', bm => this.openBookmarkedRoom(bm).then(bm => this.markRoomAsBookmarked(bm)).catch(e => log.fatal(e)));
+    this.on('add', bm => this.openBookmarkedRoom(bm).then(bm => this.markRoomAsBookmarked(bm)).catch(e => headless_log.fatal(e)));
     this.on('remove', this.markRoomAsUnbookmarked, this);
     this.on('remove', this.sendBookmarkStanza, this);
     const cache_key = `converse.room-bookmarks${shared_converse.bare_jid}`;
@@ -46650,8 +47053,8 @@ const Bookmarks = {
     const {
       __
     } = shared_converse;
-    log.error("Error while trying to add bookmark");
-    log.error(iq);
+    headless_log.error("Error while trying to add bookmark");
+    headless_log.error(iq);
     shared_api.alert('error', __('Error'), [__("Sorry, something went wrong while trying to save your bookmark.")]);
     this.get(options.jid)?.destroy();
   },
@@ -46701,7 +47104,7 @@ const Bookmarks = {
       __
     } = shared_converse;
     if (iq === null) {
-      log.error('Error: timeout while fetching bookmarks');
+      headless_log.error('Error: timeout while fetching bookmarks');
       shared_api.alert('error', __('Timeout Error'), [__("The server did not return your bookmarks within the allowed time. " + "You can reload the page to request them again.")]);
     } else if (deferred) {
       if (iq.querySelector('error[type="cancel"] item-not-found')) {
@@ -46709,13 +47112,13 @@ const Bookmarks = {
         window.sessionStorage.setItem(this.fetched_flag, true);
         return deferred.resolve();
       } else {
-        log.error('Error while fetching bookmarks');
-        log.error(iq);
+        headless_log.error('Error while fetching bookmarks');
+        headless_log.error(iq);
         return deferred.reject(new Error("Could not fetch bookmarks"));
       }
     } else {
-      log.error('Error while fetching bookmarks');
-      log.error(iq);
+      headless_log.error('Error while fetching bookmarks');
+      headless_log.error(iq);
     }
   },
   async getUnopenedBookmarks() {
@@ -46756,7 +47159,7 @@ function getNicknameFromBookmark(jid) {
 }
 function handleBookmarksPush(message) {
   if (bookmarks_utils_sizzle(`event[xmlns="${bookmarks_utils_Strophe.NS.PUBSUB}#event"] items[node="${bookmarks_utils_Strophe.NS.BOOKMARKS}"]`, message).length) {
-    shared_api.waitUntil('bookmarksInitialized').then(() => shared_converse.bookmarks.createBookmarksFromStanza(message)).catch(e => log.fatal(e));
+    shared_api.waitUntil('bookmarksInitialized').then(() => shared_converse.bookmarks.createBookmarksFromStanza(message)).catch(e => headless_log.fatal(e));
   }
   return true;
 }
@@ -46849,7 +47252,6 @@ public_converse.plugins.add('converse-bookmarks', {
 
 
 
-
 const {
   Strophe: bosh_Strophe
 } = public_converse.env;
@@ -46927,7 +47329,7 @@ public_converse.plugins.add('converse-bosh', {
           shared_converse.connection.restore(jid, shared_converse.connection.onConnectStatusChanged);
           return true;
         } catch (e) {
-          !shared_converse.isTestEnv() && log.warn("Could not restore session for jid: " + jid + " Error message: " + e.message);
+          !shared_converse.isTestEnv() && headless_log.warn("Could not restore session for jid: " + jid + " Error message: " + e.message);
           return false;
         }
       }
@@ -47147,7 +47549,7 @@ async function createChatBox(jid, attrs, Model) {
       'collection': shared_converse.chatboxes
     });
   } catch (e) {
-    log.error(e);
+    headless_log.error(e);
     return null;
   }
   await chatbox.initialized;
@@ -47294,10 +47696,10 @@ const {
         return parseForCommands(await shared_api.disco.items(to_jid, adhoc_api_Strophe.NS.ADHOC));
       } catch (e) {
         if (e === null) {
-          log.error(`Error: timeout while fetching ad-hoc commands for ${to_jid}`);
+          headless_log.error(`Error: timeout while fetching ad-hoc commands for ${to_jid}`);
         } else {
-          log.error(`Error while fetching ad-hoc commands for ${to_jid}`);
-          log.error(e);
+          headless_log.error(`Error while fetching ad-hoc commands for ${to_jid}`);
+          headless_log.error(e);
         }
         return [];
       }
@@ -47320,10 +47722,10 @@ const {
         return getCommandFields(await shared_api.sendIQ(stanza), jid);
       } catch (e) {
         if (e === null) {
-          log.error(`Error: timeout while trying to execute command for ${jid}`);
+          headless_log.error(`Error: timeout while trying to execute command for ${jid}`);
         } else {
-          log.error(`Error while trying to execute command for ${jid}`);
-          log.error(e);
+          headless_log.error(`Error while trying to execute command for ${jid}`);
+          headless_log.error(e);
         }
         const {
           __
@@ -47359,7 +47761,7 @@ const {
                 </iq>`;
       const result = await shared_api.sendIQ(iq, null, false);
       if (result === null) {
-        log.warn(`A timeout occurred while trying to run an ad-hoc command`);
+        headless_log.warn(`A timeout occurred while trying to run an ad-hoc command`);
         const {
           __
         } = shared_converse;
@@ -47368,8 +47770,8 @@ const {
           note: __('A timeout occurred')
         };
       } else if (adhoc_api_u.isErrorStanza(result)) {
-        log.error('Error while trying to execute an ad-hoc command');
-        log.error(result);
+        headless_log.error('Error while trying to execute an ad-hoc command');
+        headless_log.error(result);
       }
       const command = result.querySelector('command');
       const status = command?.getAttribute('status');
@@ -47890,7 +48292,7 @@ const mam_api_u = public_converse.env.utils;
       const jid = attrs.to || shared_converse.bare_jid;
       const supported = await shared_api.disco.supports(api_NS.MAM, jid);
       if (!supported) {
-        log.warn(`Did not fetch MAM archive for ${jid} because it doesn't support ${api_NS.MAM}`);
+        headless_log.warn(`Did not fetch MAM archive for ${jid} because it doesn't support ${api_NS.MAM}`);
         return {
           'messages': []
         };
@@ -47940,11 +48342,11 @@ const mam_api_u = public_converse.env.utils;
         const from = stanza.getAttribute('from') || shared_converse.bare_jid;
         if (options.groupchat) {
           if (from !== options['with']) {
-            log.warn(`Ignoring alleged groupchat MAM message from ${stanza.getAttribute('from')}`);
+            headless_log.warn(`Ignoring alleged groupchat MAM message from ${stanza.getAttribute('from')}`);
             return true;
           }
         } else if (from !== shared_converse.bare_jid) {
-          log.warn(`Ignoring alleged MAM message from ${stanza.getAttribute('from')}`);
+          headless_log.warn(`Ignoring alleged MAM message from ${stanza.getAttribute('from')}`);
           return true;
         }
         messages.push(stanza);
@@ -47958,7 +48360,7 @@ const mam_api_u = public_converse.env.utils;
           __
         } = shared_converse;
         const err_msg = __("Timeout while trying to fetch archived messages.");
-        log.error(err_msg);
+        headless_log.error(err_msg);
         error = new TimeoutError(err_msg);
         return {
           messages,
@@ -47969,8 +48371,8 @@ const mam_api_u = public_converse.env.utils;
           __
         } = shared_converse;
         const err_msg = __('An error occurred while querying for archived messages.');
-        log.error(err_msg);
-        log.error(iq_result);
+        headless_log.error(err_msg);
+        headless_log.error(iq_result);
         error = new Error(err_msg);
         return {
           messages,
@@ -48023,10 +48425,10 @@ const {
 const mam_utils_u = public_converse.env.utils;
 function onMAMError(iq) {
   if (iq?.querySelectorAll('feature-not-implemented').length) {
-    log.warn(`Message Archive Management (XEP-0313) not supported by ${iq.getAttribute('from')}`);
+    headless_log.warn(`Message Archive Management (XEP-0313) not supported by ${iq.getAttribute('from')}`);
   } else {
-    log.error(`Error while trying to set archiving preferences for ${iq.getAttribute('from')}.`);
-    log.error(iq);
+    headless_log.error(`Error while trying to set archiving preferences for ${iq.getAttribute('from')}.`);
+    headless_log.error(iq);
   }
 }
 
@@ -48406,7 +48808,7 @@ const {
    */
   async ping(jid, timeout) {
     if (!shared_api.connection.authenticated()) {
-      log.warn("Not pinging when we know we're not authenticated");
+      headless_log.warn("Not pinging when we know we're not authenticated");
       return null;
     }
 
@@ -48424,14 +48826,14 @@ const {
     });
     const result = await shared_api.sendIQ(iq, timeout || 10000, false);
     if (result === null) {
-      log.warn(`Timeout while pinging ${jid}`);
+      headless_log.warn(`Timeout while pinging ${jid}`);
       if (jid === ping_api_Strophe.getDomainFromJid(shared_converse.bare_jid)) {
         shared_api.connection.reconnect();
       }
       return false;
     } else if (ping_api_u.isErrorStanza(result)) {
-      log.error(`Error while pinging ${jid}`);
-      log.error(result);
+      headless_log.error(`Error while pinging ${jid}`);
+      headless_log.error(result);
       return false;
     }
     return true;
@@ -48531,7 +48933,7 @@ public_converse.plugins.add('converse-pubsub', {
                 'var': k
               }).c('value').t(options[k]).up().up());
             } else {
-              log.warn(`_converse.api.publish: ${jid} does not support #publish-options, ` + `so we didn't set them even though they were provided.`);
+              headless_log.warn(`_converse.api.publish: ${jid} does not support #publish-options, ` + `so we didn't set them even though they were provided.`);
             }
           }
           try {
@@ -48542,7 +48944,7 @@ public_converse.plugins.add('converse-pubsub', {
               // met. We re-publish but without publish-options.
               const el = stanza.tree();
               el.querySelector('publish-options').outerHTML = '';
-              log.warn(`PubSub: Republishing without publish options. ${el.outerHTML}`);
+              headless_log.warn(`PubSub: Republishing without publish options. ${el.outerHTML}`);
               await shared_api.sendIQ(el);
             } else {
               throw iq;
@@ -49065,7 +49467,7 @@ async function populateRoster() {
     await shared_converse.roster.fetchRosterContacts();
     shared_api.trigger('rosterContactsFetched');
   } catch (reason) {
-    log.error(reason);
+    headless_log.error(reason);
   } finally {
     shared_converse.send_initial_presence && shared_api.user.presence.send();
   }
@@ -49498,7 +49900,7 @@ const RosterContacts = Collection.extend({
       });
     });
     if (contacts_u.isErrorObject(result)) {
-      log.error(result);
+      headless_log.error(result);
       // Force a full roster refresh
       shared_converse.session.save('roster_cached', false);
       this.data.save('version', undefined);
@@ -49583,7 +49985,7 @@ const RosterContacts = Collection.extend({
       const {
         __
       } = shared_converse;
-      log.error(e);
+      headless_log.error(e);
       alert(__('Sorry, there was an error while trying to add %1$s as a contact.', name || jid));
       return e;
     }
@@ -49629,7 +50031,7 @@ const RosterContacts = Collection.extend({
       // attribute (i.e., implicitly from the bare JID of the user's
       // account) or it has a 'from' attribute whose value matches the
       // user's bare JID <user@domainpart>.
-      log.warn(`Ignoring roster illegitimate roster push message from ${iq.getAttribute('from')}`);
+      headless_log.warn(`Ignoring roster illegitimate roster push message from ${iq.getAttribute('from')}`);
       return;
     }
     shared_api.send(contacts_$iq({
@@ -49641,12 +50043,12 @@ const RosterContacts = Collection.extend({
     this.data.save('version', query.getAttribute('ver'));
     const items = contacts_sizzle(`item`, query);
     if (items.length > 1) {
-      log.error(iq);
+      headless_log.error(iq);
       throw new Error('Roster push query may not contain more than one "item" element.');
     }
     if (items.length === 0) {
-      log.warn(iq);
-      log.warn('Received a roster push stanza without an "item" element.');
+      headless_log.warn(iq);
+      headless_log.warn('Received a roster push stanza without an "item" element.');
       return;
     }
     this.updateContact(items.pop());
@@ -49695,8 +50097,8 @@ const RosterContacts = Collection.extend({
       }
     } else if (!contacts_u.isServiceUnavailableError(iq)) {
       // Some unknown error happened, so we will try to fetch again if the page reloads.
-      log.error(iq);
-      log.error("Error while trying to fetch roster from the server");
+      headless_log.error(iq);
+      headless_log.error("Error while trying to fetch roster from the server");
       return;
     }
     shared_converse.session.save('roster_cached', true);
@@ -50095,12 +50497,12 @@ function handleAck(el) {
   const delta = handled - last_known_handled;
   if (delta < 0) {
     const err_msg = `New reported stanza count lower than previous. ` + `New: ${handled} - Previous: ${last_known_handled}`;
-    log.error(err_msg);
+    headless_log.error(err_msg);
   }
   const unacked_stanzas = shared_converse.session.get('unacked_stanzas');
   if (delta > unacked_stanzas.length) {
     const err_msg = `Higher reported acknowledge count than unacknowledged stanzas. ` + `Reported Acknowledged Count: ${delta} -` + `Unacknowledged Stanza Count: ${unacked_stanzas.length} -` + `New: ${handled} - Previous: ${last_known_handled}`;
-    log.error(err_msg);
+    headless_log.error(err_msg);
   }
   shared_converse.session.save({
     'num_stanzas_handled_by_server': handled,
@@ -50162,10 +50564,10 @@ function onFailedStanza(el) {
     //
     // After resource binding, sendEnableStanza will be called
     // based on the afterResourceBinding event.
-    log.warn('Could not resume previous SMACKS session, session id not found. ' + 'A new session will be established.');
+    headless_log.warn('Could not resume previous SMACKS session, session id not found. ' + 'A new session will be established.');
   } else {
-    log.error('Failed to enable stream management');
-    log.error(el.outerHTML);
+    headless_log.error('Failed to enable stream management');
+    headless_log.error(el.outerHTML);
   }
   resetSessionData();
   /**
@@ -50257,7 +50659,7 @@ async function enableStreamManagement() {
 }
 function onStanzaSent(stanza) {
   if (!shared_converse.session) {
-    log.warn('No _converse.session!');
+    headless_log.warn('No _converse.session!');
     return;
   }
   if (!shared_converse.session.get('smacks_enabled')) {
@@ -50416,7 +50818,7 @@ async function setVCardOnModel(model) {
     jid = model.get('jid');
   }
   if (!jid) {
-    log.warn(`Could not set VCard on model because no JID found!`);
+    headless_log.warn(`Could not set VCard on model because no JID found!`);
     return;
   }
   await shared_api.waitUntil('VCardsInitialized');
@@ -50438,7 +50840,7 @@ function getVCardForOccupant(occupant) {
         jid
       });
     } else {
-      log.warn(`Could not get VCard for occupant because no JID found!`);
+      headless_log.warn(`Could not get VCard for occupant because no JID found!`);
       return;
     }
   }
@@ -50463,7 +50865,7 @@ function getVCardForMUCMessage(message) {
         jid
       });
     } else {
-      log.warn(`Could not get VCard for message because no JID found! msgid: ${message.get('msgid')}`);
+      headless_log.warn(`Could not get VCard for message because no JID found! msgid: ${message.get('msgid')}`);
       return;
     }
   }
@@ -50628,7 +51030,7 @@ const {
       if (force || !model.get('vcard_updated') && !already_tried_today) {
         const jid = model.get('jid');
         if (!jid) {
-          log.error("No JID to get vcard for");
+          headless_log.error("No JID to get vcard for");
         }
         return getVCard(jid);
       } else {
@@ -50656,7 +51058,7 @@ const {
       const data = await this.get(model, force);
       model = typeof model === 'string' ? shared_converse.vcards.get(model) : model;
       if (!model) {
-        log.error(`Could not find a VCard model for ${model}`);
+        headless_log.error(`Could not find a VCard model for ${model}`);
         return;
       }
       if (Object.keys(data).length) {
@@ -50911,7 +51313,7 @@ Object.assign(i18n, {
         shared_converse.locale = i18n.getLocale(preferred_locale, shared_api.settings.get('locales'));
         jed_instance = await fetchTranslations();
       } catch (e) {
-        log.fatal(e.message);
+        headless_log.fatal(e.message);
         shared_converse.locale = 'en';
       }
     }
@@ -50965,7 +51367,7 @@ shared_api.elements = {
 ;// CONCATENATED MODULE: ./src/shared/components/element.js
 
 
-class CustomElement extends lit_element_s {
+class CustomElement extends lit_element_r {
   createRenderRoot() {
     // Render without the shadow DOM
     return this;
@@ -51041,7 +51443,364 @@ var bootstrap_native = __webpack_require__(8577);
 var bootstrap_native_default = /*#__PURE__*/__webpack_require__.n(bootstrap_native);
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/modal-alert.js
 
-/* harmony default export */ const modal_alert = (o => x`<div class="alert ${o.type}" role="alert"><p>${o.message}</p></div>`);
+/* harmony default export */ const modal_alert = (o => lit_html_x`<div class="alert ${o.type}" role="alert"><p>${o.message}</p></div>`);
+;// CONCATENATED MODULE: ./node_modules/lit-html/lit-html.js
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+var node_modules_lit_html_lit_html_t;
+const node_modules_lit_html_lit_html_i = window,
+  node_modules_lit_html_lit_html_s = node_modules_lit_html_lit_html_i.trustedTypes,
+  node_modules_lit_html_lit_html_e = node_modules_lit_html_lit_html_s ? node_modules_lit_html_lit_html_s.createPolicy("lit-html", {
+    createHTML: t => t
+  }) : void 0,
+  node_modules_lit_html_lit_html_o = "$lit$",
+  node_modules_lit_html_lit_html_n = `lit$${(Math.random() + "").slice(9)}$`,
+  node_modules_lit_html_lit_html_l = "?" + node_modules_lit_html_lit_html_n,
+  node_modules_lit_html_lit_html_h = `<${node_modules_lit_html_lit_html_l}>`,
+  node_modules_lit_html_lit_html_r = document,
+  node_modules_lit_html_lit_html_d = () => node_modules_lit_html_lit_html_r.createComment(""),
+  node_modules_lit_html_lit_html_u = t => null === t || "object" != typeof t && "function" != typeof t,
+  node_modules_lit_html_lit_html_c = Array.isArray,
+  lit_html_lit_html_v = t => node_modules_lit_html_lit_html_c(t) || "function" == typeof (null == t ? void 0 : t[Symbol.iterator]),
+  node_modules_lit_html_lit_html_a = "[ \t\n\f\r]",
+  node_modules_lit_html_lit_html_f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,
+  lit_html_lit_html_ = /-->/g,
+  lit_html_lit_html_m = />/g,
+  node_modules_lit_html_lit_html_p = RegExp(`>|${node_modules_lit_html_lit_html_a}(?:([^\\s"'>=/]+)(${node_modules_lit_html_lit_html_a}*=${node_modules_lit_html_lit_html_a}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"),
+  lit_html_lit_html_g = /'/g,
+  lit_html_lit_html_$ = /"/g,
+  node_modules_lit_html_lit_html_y = /^(?:script|style|textarea|title)$/i,
+  lit_html_lit_html_w = t => function (i) {
+    for (var _len = arguments.length, s = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+      s[_key - 1] = arguments[_key];
+    }
+    return {
+      _$litType$: t,
+      strings: i,
+      values: s
+    };
+  },
+  lit_html_lit_html_x = lit_html_lit_html_w(1),
+  node_modules_lit_html_lit_html_b = lit_html_lit_html_w(2),
+  lit_html_lit_html_T = Symbol.for("lit-noChange"),
+  lit_html_lit_html_A = Symbol.for("lit-nothing"),
+  lit_html_lit_html_E = new WeakMap(),
+  lit_html_lit_html_C = node_modules_lit_html_lit_html_r.createTreeWalker(node_modules_lit_html_lit_html_r, 129, null, !1),
+  lit_html_lit_html_P = (t, i) => {
+    const s = t.length - 1,
+      l = [];
+    let r,
+      d = 2 === i ? "<svg>" : "",
+      u = node_modules_lit_html_lit_html_f;
+    for (let i = 0; i < s; i++) {
+      const s = t[i];
+      let e,
+        c,
+        v = -1,
+        a = 0;
+      for (; a < s.length && (u.lastIndex = a, c = u.exec(s), null !== c);) a = u.lastIndex, u === node_modules_lit_html_lit_html_f ? "!--" === c[1] ? u = lit_html_lit_html_ : void 0 !== c[1] ? u = lit_html_lit_html_m : void 0 !== c[2] ? (node_modules_lit_html_lit_html_y.test(c[2]) && (r = RegExp("</" + c[2], "g")), u = node_modules_lit_html_lit_html_p) : void 0 !== c[3] && (u = node_modules_lit_html_lit_html_p) : u === node_modules_lit_html_lit_html_p ? ">" === c[0] ? (u = null != r ? r : node_modules_lit_html_lit_html_f, v = -1) : void 0 === c[1] ? v = -2 : (v = u.lastIndex - c[2].length, e = c[1], u = void 0 === c[3] ? node_modules_lit_html_lit_html_p : '"' === c[3] ? lit_html_lit_html_$ : lit_html_lit_html_g) : u === lit_html_lit_html_$ || u === lit_html_lit_html_g ? u = node_modules_lit_html_lit_html_p : u === lit_html_lit_html_ || u === lit_html_lit_html_m ? u = node_modules_lit_html_lit_html_f : (u = node_modules_lit_html_lit_html_p, r = void 0);
+      const w = u === node_modules_lit_html_lit_html_p && t[i + 1].startsWith("/>") ? " " : "";
+      d += u === node_modules_lit_html_lit_html_f ? s + node_modules_lit_html_lit_html_h : v >= 0 ? (l.push(e), s.slice(0, v) + node_modules_lit_html_lit_html_o + s.slice(v) + node_modules_lit_html_lit_html_n + w) : s + node_modules_lit_html_lit_html_n + (-2 === v ? (l.push(void 0), i) : w);
+    }
+    const c = d + (t[s] || "<?>") + (2 === i ? "</svg>" : "");
+    if (!Array.isArray(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
+    return [void 0 !== node_modules_lit_html_lit_html_e ? node_modules_lit_html_lit_html_e.createHTML(c) : c, l];
+  };
+class lit_html_lit_html_V {
+  constructor(_ref, e) {
+    let {
+      strings: t,
+      _$litType$: i
+    } = _ref;
+    let h;
+    this.parts = [];
+    let r = 0,
+      u = 0;
+    const c = t.length - 1,
+      v = this.parts,
+      [a, f] = lit_html_lit_html_P(t, i);
+    if (this.el = lit_html_lit_html_V.createElement(a, e), lit_html_lit_html_C.currentNode = this.el.content, 2 === i) {
+      const t = this.el.content,
+        i = t.firstChild;
+      i.remove(), t.append(...i.childNodes);
+    }
+    for (; null !== (h = lit_html_lit_html_C.nextNode()) && v.length < c;) {
+      if (1 === h.nodeType) {
+        if (h.hasAttributes()) {
+          const t = [];
+          for (const i of h.getAttributeNames()) if (i.endsWith(node_modules_lit_html_lit_html_o) || i.startsWith(node_modules_lit_html_lit_html_n)) {
+            const s = f[u++];
+            if (t.push(i), void 0 !== s) {
+              const t = h.getAttribute(s.toLowerCase() + node_modules_lit_html_lit_html_o).split(node_modules_lit_html_lit_html_n),
+                i = /([.?@])?(.*)/.exec(s);
+              v.push({
+                type: 1,
+                index: r,
+                name: i[2],
+                strings: t,
+                ctor: "." === i[1] ? lit_html_lit_html_k : "?" === i[1] ? lit_html_lit_html_I : "@" === i[1] ? lit_html_lit_html_L : lit_html_lit_html_R
+              });
+            } else v.push({
+              type: 6,
+              index: r
+            });
+          }
+          for (const i of t) h.removeAttribute(i);
+        }
+        if (node_modules_lit_html_lit_html_y.test(h.tagName)) {
+          const t = h.textContent.split(node_modules_lit_html_lit_html_n),
+            i = t.length - 1;
+          if (i > 0) {
+            h.textContent = node_modules_lit_html_lit_html_s ? node_modules_lit_html_lit_html_s.emptyScript : "";
+            for (let s = 0; s < i; s++) h.append(t[s], node_modules_lit_html_lit_html_d()), lit_html_lit_html_C.nextNode(), v.push({
+              type: 2,
+              index: ++r
+            });
+            h.append(t[i], node_modules_lit_html_lit_html_d());
+          }
+        }
+      } else if (8 === h.nodeType) if (h.data === node_modules_lit_html_lit_html_l) v.push({
+        type: 2,
+        index: r
+      });else {
+        let t = -1;
+        for (; -1 !== (t = h.data.indexOf(node_modules_lit_html_lit_html_n, t + 1));) v.push({
+          type: 7,
+          index: r
+        }), t += node_modules_lit_html_lit_html_n.length - 1;
+      }
+      r++;
+    }
+  }
+  static createElement(t, i) {
+    const s = node_modules_lit_html_lit_html_r.createElement("template");
+    return s.innerHTML = t, s;
+  }
+}
+function lit_html_lit_html_N(t, i) {
+  let s = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : t;
+  let e = arguments.length > 3 ? arguments[3] : undefined;
+  var o, n, l, h;
+  if (i === lit_html_lit_html_T) return i;
+  let r = void 0 !== e ? null === (o = s._$Co) || void 0 === o ? void 0 : o[e] : s._$Cl;
+  const d = node_modules_lit_html_lit_html_u(i) ? void 0 : i._$litDirective$;
+  return (null == r ? void 0 : r.constructor) !== d && (null === (n = null == r ? void 0 : r._$AO) || void 0 === n || n.call(r, !1), void 0 === d ? r = void 0 : (r = new d(t), r._$AT(t, s, e)), void 0 !== e ? (null !== (l = (h = s)._$Co) && void 0 !== l ? l : h._$Co = [])[e] = r : s._$Cl = r), void 0 !== r && (i = lit_html_lit_html_N(t, r._$AS(t, i.values), r, e)), i;
+}
+class node_modules_lit_html_lit_html_S {
+  constructor(t, i) {
+    this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = i;
+  }
+  get parentNode() {
+    return this._$AM.parentNode;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  u(t) {
+    var i;
+    const {
+        el: {
+          content: s
+        },
+        parts: e
+      } = this._$AD,
+      o = (null !== (i = null == t ? void 0 : t.creationScope) && void 0 !== i ? i : node_modules_lit_html_lit_html_r).importNode(s, !0);
+    lit_html_lit_html_C.currentNode = o;
+    let n = lit_html_lit_html_C.nextNode(),
+      l = 0,
+      h = 0,
+      d = e[0];
+    for (; void 0 !== d;) {
+      if (l === d.index) {
+        let i;
+        2 === d.type ? i = new lit_html_lit_html_M(n, n.nextSibling, this, t) : 1 === d.type ? i = new d.ctor(n, d.name, d.strings, this, t) : 6 === d.type && (i = new lit_html_lit_html_z(n, this, t)), this._$AV.push(i), d = e[++h];
+      }
+      l !== (null == d ? void 0 : d.index) && (n = lit_html_lit_html_C.nextNode(), l++);
+    }
+    return lit_html_lit_html_C.currentNode = node_modules_lit_html_lit_html_r, o;
+  }
+  v(t) {
+    let i = 0;
+    for (const s of this._$AV) void 0 !== s && (void 0 !== s.strings ? (s._$AI(t, s, i), i += s.strings.length - 2) : s._$AI(t[i])), i++;
+  }
+}
+class lit_html_lit_html_M {
+  constructor(t, i, s, e) {
+    var o;
+    this.type = 2, this._$AH = lit_html_lit_html_A, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = e, this._$Cp = null === (o = null == e ? void 0 : e.isConnected) || void 0 === o || o;
+  }
+  get _$AU() {
+    var t, i;
+    return null !== (i = null === (t = this._$AM) || void 0 === t ? void 0 : t._$AU) && void 0 !== i ? i : this._$Cp;
+  }
+  get parentNode() {
+    let t = this._$AA.parentNode;
+    const i = this._$AM;
+    return void 0 !== i && 11 === (null == t ? void 0 : t.nodeType) && (t = i.parentNode), t;
+  }
+  get startNode() {
+    return this._$AA;
+  }
+  get endNode() {
+    return this._$AB;
+  }
+  _$AI(t) {
+    let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
+    t = lit_html_lit_html_N(this, t, i), node_modules_lit_html_lit_html_u(t) ? t === lit_html_lit_html_A || null == t || "" === t ? (this._$AH !== lit_html_lit_html_A && this._$AR(), this._$AH = lit_html_lit_html_A) : t !== this._$AH && t !== lit_html_lit_html_T && this._(t) : void 0 !== t._$litType$ ? this.g(t) : void 0 !== t.nodeType ? this.$(t) : lit_html_lit_html_v(t) ? this.T(t) : this._(t);
+  }
+  k(t) {
+    return this._$AA.parentNode.insertBefore(t, this._$AB);
+  }
+  $(t) {
+    this._$AH !== t && (this._$AR(), this._$AH = this.k(t));
+  }
+  _(t) {
+    this._$AH !== lit_html_lit_html_A && node_modules_lit_html_lit_html_u(this._$AH) ? this._$AA.nextSibling.data = t : this.$(node_modules_lit_html_lit_html_r.createTextNode(t)), this._$AH = t;
+  }
+  g(t) {
+    var i;
+    const {
+        values: s,
+        _$litType$: e
+      } = t,
+      o = "number" == typeof e ? this._$AC(t) : (void 0 === e.el && (e.el = lit_html_lit_html_V.createElement(e.h, this.options)), e);
+    if ((null === (i = this._$AH) || void 0 === i ? void 0 : i._$AD) === o) this._$AH.v(s);else {
+      const t = new node_modules_lit_html_lit_html_S(o, this),
+        i = t.u(this.options);
+      t.v(s), this.$(i), this._$AH = t;
+    }
+  }
+  _$AC(t) {
+    let i = lit_html_lit_html_E.get(t.strings);
+    return void 0 === i && lit_html_lit_html_E.set(t.strings, i = new lit_html_lit_html_V(t)), i;
+  }
+  T(t) {
+    node_modules_lit_html_lit_html_c(this._$AH) || (this._$AH = [], this._$AR());
+    const i = this._$AH;
+    let s,
+      e = 0;
+    for (const o of t) e === i.length ? i.push(s = new lit_html_lit_html_M(this.k(node_modules_lit_html_lit_html_d()), this.k(node_modules_lit_html_lit_html_d()), this, this.options)) : s = i[e], s._$AI(o), e++;
+    e < i.length && (this._$AR(s && s._$AB.nextSibling, e), i.length = e);
+  }
+  _$AR() {
+    let t = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this._$AA.nextSibling;
+    let i = arguments.length > 1 ? arguments[1] : undefined;
+    var s;
+    for (null === (s = this._$AP) || void 0 === s || s.call(this, !1, !0, i); t && t !== this._$AB;) {
+      const i = t.nextSibling;
+      t.remove(), t = i;
+    }
+  }
+  setConnected(t) {
+    var i;
+    void 0 === this._$AM && (this._$Cp = t, null === (i = this._$AP) || void 0 === i || i.call(this, t));
+  }
+}
+class lit_html_lit_html_R {
+  constructor(t, i, s, e, o) {
+    this.type = 1, this._$AH = lit_html_lit_html_A, this._$AN = void 0, this.element = t, this.name = i, this._$AM = e, this.options = o, s.length > 2 || "" !== s[0] || "" !== s[1] ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = lit_html_lit_html_A;
+  }
+  get tagName() {
+    return this.element.tagName;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AI(t) {
+    let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
+    let s = arguments.length > 2 ? arguments[2] : undefined;
+    let e = arguments.length > 3 ? arguments[3] : undefined;
+    const o = this.strings;
+    let n = !1;
+    if (void 0 === o) t = lit_html_lit_html_N(this, t, i, 0), n = !node_modules_lit_html_lit_html_u(t) || t !== this._$AH && t !== lit_html_lit_html_T, n && (this._$AH = t);else {
+      const e = t;
+      let l, h;
+      for (t = o[0], l = 0; l < o.length - 1; l++) h = lit_html_lit_html_N(this, e[s + l], i, l), h === lit_html_lit_html_T && (h = this._$AH[l]), n || (n = !node_modules_lit_html_lit_html_u(h) || h !== this._$AH[l]), h === lit_html_lit_html_A ? t = lit_html_lit_html_A : t !== lit_html_lit_html_A && (t += (null != h ? h : "") + o[l + 1]), this._$AH[l] = h;
+    }
+    n && !e && this.j(t);
+  }
+  j(t) {
+    t === lit_html_lit_html_A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, null != t ? t : "");
+  }
+}
+class lit_html_lit_html_k extends lit_html_lit_html_R {
+  constructor() {
+    super(...arguments), this.type = 3;
+  }
+  j(t) {
+    this.element[this.name] = t === lit_html_lit_html_A ? void 0 : t;
+  }
+}
+const lit_html_lit_html_H = node_modules_lit_html_lit_html_s ? node_modules_lit_html_lit_html_s.emptyScript : "";
+class lit_html_lit_html_I extends lit_html_lit_html_R {
+  constructor() {
+    super(...arguments), this.type = 4;
+  }
+  j(t) {
+    t && t !== lit_html_lit_html_A ? this.element.setAttribute(this.name, lit_html_lit_html_H) : this.element.removeAttribute(this.name);
+  }
+}
+class lit_html_lit_html_L extends lit_html_lit_html_R {
+  constructor(t, i, s, e, o) {
+    super(t, i, s, e, o), this.type = 5;
+  }
+  _$AI(t) {
+    let i = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this;
+    var s;
+    if ((t = null !== (s = lit_html_lit_html_N(this, t, i, 0)) && void 0 !== s ? s : lit_html_lit_html_A) === lit_html_lit_html_T) return;
+    const e = this._$AH,
+      o = t === lit_html_lit_html_A && e !== lit_html_lit_html_A || t.capture !== e.capture || t.once !== e.once || t.passive !== e.passive,
+      n = t !== lit_html_lit_html_A && (e === lit_html_lit_html_A || o);
+    o && this.element.removeEventListener(this.name, this, e), n && this.element.addEventListener(this.name, this, t), this._$AH = t;
+  }
+  handleEvent(t) {
+    var i, s;
+    "function" == typeof this._$AH ? this._$AH.call(null !== (s = null === (i = this.options) || void 0 === i ? void 0 : i.host) && void 0 !== s ? s : this.element, t) : this._$AH.handleEvent(t);
+  }
+}
+class lit_html_lit_html_z {
+  constructor(t, i, s) {
+    this.element = t, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AI(t) {
+    lit_html_lit_html_N(this, t);
+  }
+}
+const lit_html_lit_html_Z = {
+    O: node_modules_lit_html_lit_html_o,
+    P: node_modules_lit_html_lit_html_n,
+    A: node_modules_lit_html_lit_html_l,
+    C: 1,
+    M: lit_html_lit_html_P,
+    L: node_modules_lit_html_lit_html_S,
+    D: lit_html_lit_html_v,
+    R: lit_html_lit_html_N,
+    I: lit_html_lit_html_M,
+    V: lit_html_lit_html_R,
+    H: lit_html_lit_html_I,
+    N: lit_html_lit_html_L,
+    U: lit_html_lit_html_k,
+    F: lit_html_lit_html_z
+  },
+  lit_html_lit_html_j = node_modules_lit_html_lit_html_i.litHtmlPolyfillSupport;
+null == lit_html_lit_html_j || lit_html_lit_html_j(lit_html_lit_html_V, lit_html_lit_html_M), (null !== (node_modules_lit_html_lit_html_t = node_modules_lit_html_lit_html_i.litHtmlVersions) && void 0 !== node_modules_lit_html_lit_html_t ? node_modules_lit_html_lit_html_t : node_modules_lit_html_lit_html_i.litHtmlVersions = []).push("2.7.4");
+const lit_html_lit_html_B = (t, i, s) => {
+  var e, o;
+  const n = null !== (e = null == s ? void 0 : s.renderBefore) && void 0 !== e ? e : i;
+  let l = n._$litPart$;
+  if (void 0 === l) {
+    const t = null !== (o = null == s ? void 0 : s.renderBefore) && void 0 !== o ? o : null;
+    n._$litPart$ = l = new lit_html_lit_html_M(i.insertBefore(node_modules_lit_html_lit_html_d(), t), t, void 0, null != s ? s : {});
+  }
+  return l._$AI(t), l;
+};
+
 ;// CONCATENATED MODULE: ./node_modules/@converse/skeletor/src/view.js
 //     Backbone.js 1.4.0
 //     (c) 2010-2019 Jeremy Ashkenas and DocumentCloud
@@ -51112,7 +51871,7 @@ Object.assign(View.prototype, Events, {
   // convention is for **render** to always return `this`.
   render: function () {
     lodash_es_isFunction(this.beforeRender) && this.beforeRender();
-    lodash_es_isFunction(this.toHTML) && B(this.toHTML(), this.el);
+    lodash_es_isFunction(this.toHTML) && lit_html_lit_html_B(this.toHTML(), this.el);
     lodash_es_isFunction(this.afterRender) && this.afterRender();
     return this;
   },
@@ -51297,43 +52056,43 @@ Object.assign(View.prototype, Events, {
 });
 ;// CONCATENATED MODULE: ./src/templates/audio.js
 
-/* harmony default export */ const audio = ((url, hide_url) => x`<audio controls src="${url}"></audio>${hide_url ? '' : x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
+/* harmony default export */ const audio = ((url, hide_url) => lit_html_x`<audio controls src="${url}"></audio>${hide_url ? '' : lit_html_x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
 ;// CONCATENATED MODULE: ./src/templates/file.js
 
 
 /* harmony default export */ const file = ((url, name) => {
   const i18n_download = __('Download file "%1$s"', name);
-  return x`<a target="_blank" rel="noopener" href="${url}">${i18n_download}</a>`;
+  return lit_html_x`<a target="_blank" rel="noopener" href="${url}">${i18n_download}</a>`;
 });
 ;// CONCATENATED MODULE: ./src/templates/form_captcha.js
 
-/* harmony default export */ const form_captcha = (o => x`<fieldset class="form-group">${o.label ? x`<label>${o.label}</label>` : ''} <img src="data:${o.type};base64,${o.data}"> <input name="${o.name}" type="text" ?required="${o.required}"></fieldset>`);
+/* harmony default export */ const form_captcha = (o => lit_html_x`<fieldset class="form-group">${o.label ? lit_html_x`<label>${o.label}</label>` : ''} <img src="data:${o.type};base64,${o.data}"> <input name="${o.name}" type="text" ?required="${o.required}"></fieldset>`);
 ;// CONCATENATED MODULE: ./src/templates/form_checkbox.js
 
-/* harmony default export */ const form_checkbox = (o => x`<fieldset class="form-group"><input id="${o.id}" name="${o.name}" type="checkbox" ?checked="${o.checked}" ?required="${o.required}"> <label class="form-check-label" for="${o.id}">${o.label}</label></fieldset>`);
+/* harmony default export */ const form_checkbox = (o => lit_html_x`<fieldset class="form-group"><input id="${o.id}" name="${o.name}" type="checkbox" ?checked="${o.checked}" ?required="${o.required}"> <label class="form-check-label" for="${o.id}">${o.label}</label></fieldset>`);
 ;// CONCATENATED MODULE: ./src/templates/form_help.js
 
-/* harmony default export */ const form_help = (o => x`<p class="form-help">${o.text}</p>`);
+/* harmony default export */ const form_help = (o => lit_html_x`<p class="form-help">${o.text}</p>`);
 ;// CONCATENATED MODULE: ./src/templates/form_input.js
 
-/* harmony default export */ const form_input = (o => x`<div class="form-group">${o.type !== 'hidden' ? x`<label for="${o.id}">${o.label}</label>` : ''} ${o.type === 'password' && o.fixed_username ? x`<input class="hidden-username" type="text" autocomplete="username" value="${o.fixed_username}">` : ''} <input autocomplete="${o.autocomplete || ''}" class="form-control" id="${o.id}" name="${o.name}" placeholder="${o.placeholder || ''}" type="${o.type}" value="${o.value || ''}" ?required="${o.required}"></div>`);
+/* harmony default export */ const form_input = (o => lit_html_x`<div class="form-group">${o.type !== 'hidden' ? lit_html_x`<label for="${o.id}">${o.label}</label>` : ''} ${o.type === 'password' && o.fixed_username ? lit_html_x`<input class="hidden-username" type="text" autocomplete="username" value="${o.fixed_username}">` : ''} <input autocomplete="${o.autocomplete || ''}" class="form-control" id="${o.id}" name="${o.name}" placeholder="${o.placeholder || ''}" type="${o.type}" value="${o.value || ''}" ?required="${o.required}"></div>`);
 ;// CONCATENATED MODULE: ./src/templates/form_select.js
 
-const tplOption = o => x`<option value="${o.value}" ?selected="${o.selected}">${o.label}</option>`;
-/* harmony default export */ const form_select = (o => x`<div class="form-group"><label for="${o.id}">${o.label}</label> <select class="form-control" id="${o.id}" name="${o.name}" ?multiple="${o.multiple}">${o.options?.map(o => tplOption(o))}</select></div>`);
+const tplOption = o => lit_html_x`<option value="${o.value}" ?selected="${o.selected}">${o.label}</option>`;
+/* harmony default export */ const form_select = (o => lit_html_x`<div class="form-group"><label for="${o.id}">${o.label}</label> <select class="form-control" id="${o.id}" name="${o.name}" ?multiple="${o.multiple}">${o.options?.map(o => tplOption(o))}</select></div>`);
 ;// CONCATENATED MODULE: ./src/templates/form_textarea.js
 
 
 /* harmony default export */ const form_textarea = (o => {
-  const id = utils_core.getUniqueId();
-  return x`<div class="form-group"><label class="label-ta" for="${id}">${o.label}</label> <textarea name="${o.name}" id="${id}" class="form-control">${o.value}</textarea></div>`;
+  const id = core.getUniqueId();
+  return lit_html_x`<div class="form-group"><label class="label-ta" for="${id}">${o.label}</label> <textarea name="${o.name}" id="${id}" class="form-control">${o.value}</textarea></div>`;
 });
 ;// CONCATENATED MODULE: ./src/templates/form_url.js
 
-/* harmony default export */ const form_url = (o => x`<label>${o.label} <a class="form-url" target="_blank" rel="noopener" href="${o.value}">${o.value}</a></label>`);
+/* harmony default export */ const form_url = (o => lit_html_x`<label>${o.label} <a class="form-url" target="_blank" rel="noopener" href="${o.value}">${o.value}</a></label>`);
 ;// CONCATENATED MODULE: ./src/templates/form_username.js
 
-/* harmony default export */ const form_username = (o => x`<div class="form-group">${o.label ? x`<label>${o.label}</label>` : ''}<div class="input-group"><input name="${o.name}" class="form-control" type="${o.type}" value="${o.value || ''}" ?required="${o.required}"><div class="input-group-append"><div class="input-group-text" title="${o.domain}">${o.domain}</div></div></div></div>`);
+/* harmony default export */ const form_username = (o => lit_html_x`<div class="form-group">${o.label ? lit_html_x`<label>${o.label}</label>` : ''}<div class="input-group"><input name="${o.name}" class="form-control" type="${o.type}" value="${o.value || ''}" ?required="${o.required}"><div class="input-group-append"><div class="input-group-text" title="${o.domain}">${o.domain}</div></div></div></div>`);
 ;// CONCATENATED MODULE: ./src/templates/hyperlink.js
 
 
@@ -51347,13 +52106,13 @@ function onClickXMPPURI(ev) {
     href_text = 'http://' + href_text;
   }
   if (uri._parts.protocol === 'xmpp' && uri._parts.query === 'join') {
-    return x`<a target="_blank" rel="noopener" @click="${onClickXMPPURI}" href="${href_text}">${url_text}</a>`;
+    return lit_html_x`<a target="_blank" rel="noopener" @click="${onClickXMPPURI}" href="${href_text}">${url_text}</a>`;
   }
-  return x`<a target="_blank" rel="noopener" href="${href_text}">${url_text}</a>`;
+  return lit_html_x`<a target="_blank" rel="noopener" href="${href_text}">${url_text}</a>`;
 });
 ;// CONCATENATED MODULE: ./src/templates/video.js
 
-/* harmony default export */ const video = ((url, hide_url) => x`<video controls preload="metadata" src="${url}"></video>${hide_url ? '' : x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
+/* harmony default export */ const video = ((url, hide_url) => lit_html_x`<video controls preload="metadata" src="${url}"></video>${hide_url ? '' : lit_html_x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
 ;// CONCATENATED MODULE: ./src/utils/html.js
 /**
  * @copyright 2022, the Converse.js contributors
@@ -51431,7 +52190,7 @@ const html_serializer = new XMLSerializer();
  * @returns { Boolean }
  */
 function isEqualNode(actual, expected) {
-  if (!utils_core.isElement(actual)) throw new Error("Element being compared must be an Element!");
+  if (!core.isElement(actual)) throw new Error("Element being compared must be an Element!");
   actual = stripEmptyTextNodes(actual);
   expected = stripEmptyTextNodes(expected);
   let isEqual = actual.isEqualNode(expected);
@@ -51480,7 +52239,7 @@ function getNameAndValue(field) {
   } else if (field.tagName == "TEXTAREA") {
     value = field.value.split('\n').filter(s => s.trim());
   } else if (field.tagName == "SELECT") {
-    value = utils_core.getSelectValues(field);
+    value = core.getSelectValues(field);
   } else {
     value = field.value;
   }
@@ -51512,7 +52271,7 @@ function getFileName(url) {
   try {
     return decodeURI(uri.filename());
   } catch (error) {
-    log.debug(error);
+    headless_log.debug(error);
     return uri.filename();
   }
 }
@@ -51547,10 +52306,10 @@ function getOOBURLMarkup(url) {
  * @param { HTMLElement } el
  * @returns {number}
  */
-utils_core.calculateElementHeight = function (el) {
+core.calculateElementHeight = function (el) {
   return Array.from(el.children).reduce((result, child) => result + child.offsetHeight, 0);
 };
-utils_core.getNextElement = function (el) {
+core.getNextElement = function (el) {
   let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
   let next_el = el.nextElementSibling;
   while (next_el !== null && !html_sizzle.matchesSelector(next_el, selector)) {
@@ -51558,7 +52317,7 @@ utils_core.getNextElement = function (el) {
   }
   return next_el;
 };
-utils_core.getPreviousElement = function (el) {
+core.getPreviousElement = function (el) {
   let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
   let prev_el = el.previousElementSibling;
   while (prev_el !== null && !html_sizzle.matchesSelector(prev_el, selector)) {
@@ -51566,7 +52325,7 @@ utils_core.getPreviousElement = function (el) {
   }
   return prev_el;
 };
-utils_core.getFirstChildElement = function (el) {
+core.getFirstChildElement = function (el) {
   let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
   let first_el = el.firstElementChild;
   while (first_el !== null && !html_sizzle.matchesSelector(first_el, selector)) {
@@ -51574,7 +52333,7 @@ utils_core.getFirstChildElement = function (el) {
   }
   return first_el;
 };
-utils_core.getLastChildElement = function (el) {
+core.getLastChildElement = function (el) {
   let selector = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '*';
   let last_el = el.lastElementChild;
   while (last_el !== null && !html_sizzle.matchesSelector(last_el, selector)) {
@@ -51582,8 +52341,8 @@ utils_core.getLastChildElement = function (el) {
   }
   return last_el;
 };
-utils_core.toggleClass = function (className, el) {
-  utils_core.hasClass(className, el) ? removeClass(className, el) : addClass(className, el);
+core.toggleClass = function (className, el) {
+  core.hasClass(className, el) ? removeClass(className, el) : addClass(className, el);
 };
 
 /**
@@ -51627,16 +52386,16 @@ function removeElement(el) {
   el instanceof Element && el.parentNode && el.parentNode.removeChild(el);
   return el;
 }
-utils_core.getElementFromTemplateResult = function (tr) {
+core.getElementFromTemplateResult = function (tr) {
   const div = document.createElement('div');
-  B(tr, div);
+  lit_html_B(tr, div);
   return div.firstElementChild;
 };
-utils_core.showElement = el => {
+core.showElement = el => {
   removeClass('collapsed', el);
   removeClass('hidden', el);
 };
-utils_core.hideElement = function (el) {
+core.hideElement = function (el) {
   el instanceof Element && el.classList.add('hidden');
   return el;
 };
@@ -51655,7 +52414,7 @@ function ancestor(el, selector) {
  * @param { HTMLElement } el
  * @param { String } selector
  */
-utils_core.nextUntil = function (el, selector) {
+core.nextUntil = function (el, selector) {
   const matches = [];
   let sibling_el = el.nextElementSibling;
   while (sibling_el !== null && !sibling_el.matches(selector)) {
@@ -51672,12 +52431,12 @@ utils_core.nextUntil = function (el, selector) {
  * @method u#unescapeHTML
  * @param { String } string - a String containing the HTML-escaped symbols.
  */
-utils_core.unescapeHTML = function (string) {
+core.unescapeHTML = function (string) {
   var div = document.createElement('div');
   div.innerHTML = string;
   return div.innerText;
 };
-utils_core.escapeHTML = function (string) {
+core.escapeHTML = function (string) {
   return string.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 };
 function isProtocolApproved(protocol) {
@@ -51702,15 +52461,15 @@ function getHyperlinkTemplate(url) {
   }
   return url;
 }
-utils_core.slideInAllElements = function (elements) {
+core.slideInAllElements = function (elements) {
   let duration = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 300;
-  return Promise.all(Array.from(elements).map(e => utils_core.slideIn(e, duration)));
+  return Promise.all(Array.from(elements).map(e => core.slideIn(e, duration)));
 };
-utils_core.slideToggleElement = function (el, duration) {
-  if (utils_core.hasClass('collapsed', el) || utils_core.hasClass('hidden', el)) {
-    return utils_core.slideOut(el, duration);
+core.slideToggleElement = function (el, duration) {
+  if (core.hasClass('collapsed', el) || core.hasClass('hidden', el)) {
+    return core.slideOut(el, duration);
   } else {
-    return utils_core.slideIn(el, duration);
+    return core.slideIn(el, duration);
   }
 };
 
@@ -51725,7 +52484,7 @@ function slideOut(el) {
   return new Promise((resolve, reject) => {
     if (!el) {
       const err = 'An element needs to be passed in to slideOut';
-      log.warn(err);
+      headless_log.warn(err);
       reject(new Error(err));
       return;
     }
@@ -51734,7 +52493,7 @@ function slideOut(el) {
       el.removeAttribute('data-slider-marker');
       cancelAnimationFrame(marker);
     }
-    const end_height = utils_core.calculateElementHeight(el);
+    const end_height = core.calculateElementHeight(el);
     if (window.converse_disable_effects) {
       // Effects are disabled (for tests)
       el.style.height = end_height + 'px';
@@ -51742,7 +52501,7 @@ function slideOut(el) {
       resolve();
       return;
     }
-    if (!utils_core.hasClass('collapsed', el) && !utils_core.hasClass('hidden', el)) {
+    if (!core.hasClass('collapsed', el) && !core.hasClass('hidden', el)) {
       resolve();
       return;
     }
@@ -51758,7 +52517,7 @@ function slideOut(el) {
         // browser bug where browsers don't know the correct
         // offsetHeight beforehand.
         el.removeAttribute('data-slider-marker');
-        el.style.height = utils_core.calculateElementHeight(el) + 'px';
+        el.style.height = core.calculateElementHeight(el) + 'px';
         el.style.overflow = '';
         el.style.height = '';
         resolve();
@@ -51783,9 +52542,9 @@ function slideIn(el) {
   return new Promise((resolve, reject) => {
     if (!el) {
       const err = 'An element needs to be passed in to slideIn';
-      log.warn(err);
+      headless_log.warn(err);
       return reject(new Error(err));
-    } else if (utils_core.hasClass('collapsed', el)) {
+    } else if (core.hasClass('collapsed', el)) {
       return resolve(el);
     } else if (window.converse_disable_effects) {
       // Effects are disabled (for tests)
@@ -51821,28 +52580,28 @@ function afterAnimationEnds(el, callback) {
   el.classList.remove('visible');
   callback?.();
 }
-utils_core.isInDOM = function (el) {
+core.isInDOM = function (el) {
   return document.querySelector('body').contains(el);
 };
-utils_core.isVisible = function (el) {
+core.isVisible = function (el) {
   if (el === null) {
     return false;
   }
-  if (utils_core.hasClass('hidden', el)) {
+  if (core.hasClass('hidden', el)) {
     return false;
   }
   // XXX: Taken from jQuery's "visible" implementation
   return el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0;
 };
-utils_core.fadeIn = function (el, callback) {
+core.fadeIn = function (el, callback) {
   if (!el) {
-    log.warn('An element needs to be passed in to fadeIn');
+    headless_log.warn('An element needs to be passed in to fadeIn');
   }
   if (window.converse_disable_effects) {
     el.classList.remove('hidden');
     return afterAnimationEnds(el, callback);
   }
-  if (utils_core.hasClass('hidden', el)) {
+  if (core.hasClass('hidden', el)) {
     el.classList.add('visible');
     el.classList.remove('hidden');
     el.addEventListener('webkitAnimationEnd', () => afterAnimationEnds(el, callback));
@@ -51862,11 +52621,11 @@ utils_core.fadeIn = function (el, callback) {
  * @param { Object } options
  * @returns { TemplateResult }
  */
-utils_core.xForm2TemplateResult = function (field, stanza) {
+core.xForm2TemplateResult = function (field, stanza) {
   let options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
   if (field.getAttribute('type') === 'list-single' || field.getAttribute('type') === 'list-multi') {
-    const values = utils_core.queryChildren(field, 'value').map(el => el?.textContent);
-    const options = utils_core.queryChildren(field, 'option').map(option => {
+    const values = core.queryChildren(field, 'value').map(el => el?.textContent);
+    const options = core.queryChildren(field, 'option').map(option => {
       const value = option.querySelector('value')?.textContent;
       return {
         'value': value,
@@ -51877,7 +52636,7 @@ utils_core.xForm2TemplateResult = function (field, stanza) {
     });
     return form_select({
       options,
-      'id': utils_core.getUniqueId(),
+      'id': core.getUniqueId(),
       'label': field.getAttribute('label'),
       'multiple': field.getAttribute('type') === 'list-multi',
       'name': field.getAttribute('var'),
@@ -51898,7 +52657,7 @@ utils_core.xForm2TemplateResult = function (field, stanza) {
   } else if (field.getAttribute('type') === 'boolean') {
     const value = field.querySelector('value')?.textContent;
     return form_checkbox({
-      'id': utils_core.getUniqueId(),
+      'id': core.getUniqueId(),
       'name': field.getAttribute('var'),
       'label': field.getAttribute('label') || '',
       'checked': (value === '1' || value === 'true') && 'checked="1"' || ''
@@ -51939,7 +52698,7 @@ utils_core.xForm2TemplateResult = function (field, stanza) {
   } else {
     const name = field.getAttribute('var');
     return form_input({
-      'id': utils_core.getUniqueId(),
+      'id': core.getUniqueId(),
       'label': field.getAttribute('label') || '',
       'name': name,
       'fixed_username': options?.fixed_username,
@@ -51951,7 +52710,7 @@ utils_core.xForm2TemplateResult = function (field, stanza) {
     });
   }
 };
-Object.assign(utils_core, {
+Object.assign(core, {
   hasClass,
   addClass,
   ancestor,
@@ -51962,7 +52721,7 @@ Object.assign(utils_core, {
   slideIn,
   slideOut
 });
-/* harmony default export */ const html = (utils_core);
+/* harmony default export */ const html = (core);
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/modal/styles/_modal.scss
 var _modal = __webpack_require__(1064);
 ;// CONCATENATED MODULE: ./src/plugins/modal/styles/_modal.scss
@@ -52053,12 +52812,12 @@ const BaseModal = View.extend({
     let type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'primary';
     const body = this.el.querySelector('.modal-alert');
     if (body === null) {
-      log.error("Could not find a .modal-alert element in the modal to show an alert message in!");
+      headless_log.error("Could not find a .modal-alert element in the modal to show an alert message in!");
       return;
     }
     // FIXME: Instead of adding the alert imperatively, we should
     // find a way to let the modal rerender with an alert message
-    B(modal_alert({
+    lit_html_B(modal_alert({
       'type': `alert-${type}`,
       'message': message
     }), body);
@@ -52081,8 +52840,8 @@ const BaseModal = View.extend({
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/buttons.js
 
 
-const modal_close_button = x`<button type="button" class="btn btn-secondary" data-dismiss="modal">${__('Close')}</button>`;
-const modal_header_close_button = x`<button type="button" class="close" data-dismiss="modal" aria-label="${__('Close')}"><span aria-hidden="true">×</span></button>`;
+const modal_close_button = lit_html_x`<button type="button" class="btn btn-secondary" data-dismiss="modal">${__('Close')}</button>`;
+const modal_header_close_button = lit_html_x`<button type="button" class="close" data-dismiss="modal" aria-label="${__('Close')}"><span aria-hidden="true">×</span></button>`;
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/modal.js
 
 
@@ -52090,10 +52849,10 @@ const modal_header_close_button = x`<button type="button" class="close" data-dis
 /* harmony default export */ const modal = (el => {
   const alert = el.model?.get('alert');
   const level = el.model?.get('level') ?? '';
-  return x`<div class="modal-dialog" role="document" tabindex="-1" role="dialog" aria-hidden="true"><div class="modal-content"><div class="modal-header ${level}"><h5 class="modal-title">${el.getModalTitle()}</h5>${modal_header_close_button}</div><div class="modal-body"><span class="modal-alert">${alert ? modal_alert({
+  return lit_html_x`<div class="modal-dialog" role="document" tabindex="-1" role="dialog" aria-hidden="true"><div class="modal-content"><div class="modal-header ${level}"><h5 class="modal-title">${el.getModalTitle()}</h5>${modal_header_close_button}</div><div class="modal-body"><span class="modal-alert">${alert ? modal_alert({
     'type': `alert-${alert.type}`,
     'message': alert.message
-  }) : ''} </span>${el.renderModal?.() ?? ''}</div>${el.renderModalFooter?.() ?? x`<div class="modal-footer">${modal_close_button}</div>`}</div></div>`;
+  }) : ''} </span>${el.renderModal?.() ?? ''}</div>${el.renderModalFooter?.() ?? lit_html_x`<div class="modal-footer">${modal_close_button}</div>`}</div></div>`;
 });
 ;// CONCATENATED MODULE: ./node_modules/@converse/skeletor/src/element.js
 
@@ -52156,7 +52915,7 @@ class ElementView extends HTMLElement {
   // convention is for **render** to always return `this`.
   render() {
     lodash_es_isFunction(this.beforeRender) && this.beforeRender();
-    lodash_es_isFunction(this.toHTML) && B(this.toHTML(), this);
+    lodash_es_isFunction(this.toHTML) && lit_html_lit_html_B(this.toHTML(), this);
     lodash_es_isFunction(this.afterRender) && this.afterRender();
     return this;
   }
@@ -52345,7 +53104,7 @@ class modal_BaseModal extends ElementView {
 /* harmony default export */ const modal_modal = (modal_BaseModal);
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/alert.js
 
-/* harmony default export */ const templates_alert = (o => x`<div class="modal-body"><span class="modal-alert"></span> ${o.messages.map(message => x`<p>${message}</p>`)}</div>`);
+/* harmony default export */ const templates_alert = (o => lit_html_x`<div class="modal-body"><span class="modal-alert"></span> ${o.messages.map(message => lit_html_x`<p>${message}</p>`)}</div>`);
 ;// CONCATENATED MODULE: ./src/plugins/modal/alert.js
 
 
@@ -52367,9 +53126,9 @@ shared_api.elements.define('converse-alert-modal', Alert);
 ;// CONCATENATED MODULE: ./src/plugins/modal/templates/prompt.js
 
 
-const tplField = f => x`<div class="form-group"><label>${f.label || ''} <input type="text" name="${f.name}" class="${f.challenge_failed ? 'error' : ''} form-control form-control--labeled" ?required="${f.required}" placeholder="${f.placeholder}"></label></div>`;
+const tplField = f => lit_html_x`<div class="form-group"><label>${f.label || ''} <input type="text" name="${f.name}" class="${f.challenge_failed ? 'error' : ''} form-control form-control--labeled" ?required="${f.required}" placeholder="${f.placeholder}"></label></div>`;
 /* harmony default export */ const templates_prompt = (el => {
-  return x`<form class="converse-form converse-form--modal confirm" action="#" @submit="${ev => el.onConfimation(ev)}"><div class="form-group">${el.model.get('messages')?.map(message => x`<p>${message}</p>`)}</div>${el.model.get('fields')?.map(f => tplField(f))}<div class="form-group"><button type="submit" class="btn btn-primary">${__('OK')}</button> <input type="button" class="btn btn-secondary" data-dismiss="modal" value="${__('Cancel')}"></div></form>`;
+  return lit_html_x`<form class="converse-form converse-form--modal confirm" action="#" @submit="${ev => el.onConfimation(ev)}"><div class="form-group">${el.model.get('messages')?.map(message => lit_html_x`<p>${message}</p>`)}</div>${el.model.get('fields')?.map(f => tplField(f))}<div class="form-group"><button type="submit" class="btn btn-primary">${__('OK')}</button> <input type="button" class="btn btn-secondary" data-dismiss="modal" value="${__('Cancel')}"></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/modal/confirm.js
 
@@ -53136,7 +53895,7 @@ class AutoCompleteComponent extends CustomElement {
   }
   render() {
     const position_class = `suggestion-box__results--${this.position}`;
-    return x`<div class="suggestion-box suggestion-box__name"><ul class="suggestion-box__results ${position_class}" hidden=""></ul><input ?autofocus="${this.autofocus}" ?required="${this.required}" type="text" name="${this.name}" autocomplete="off" @keydown="${this.onKeyDown}" @keyup="${this.onKeyUp}" class="form-control suggestion-box__input" placeholder="${this.placeholder}"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div>`;
+    return lit_html_x`<div class="suggestion-box suggestion-box__name"><ul class="suggestion-box__results ${position_class}" hidden=""></ul><input ?autofocus="${this.autofocus}" ?required="${this.required}" type="text" name="${this.name}" autocomplete="off" @keydown="${this.onKeyDown}" @keyup="${this.onKeyUp}" class="form-control suggestion-box__input" placeholder="${this.placeholder}"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div>`;
   }
   firstUpdated() {
     this.auto_complete = new autocomplete(this.firstElementChild, {
@@ -53211,20 +53970,20 @@ const action_map = {
 };
 /* harmony default export */ const ad_hoc_command_form = ((el, command) => {
   const i18n_cancel = __('Cancel');
-  return x`<span><form>${command.alert ? x`<div class="alert alert-${command.alert_type}" role="alert">${command.alert}</div>` : ''}<fieldset class="form-group"><input type="hidden" name="command_node" value="${command.node}"> <input type="hidden" name="command_jid" value="${command.jid}"><p class="form-instructions">${command.instructions}</p>${command.fields}</fieldset><fieldset>${command.actions.map(action => x`<input data-action="${action}" @click="${ev => el.executeAction(ev)}" type="button" class="btn btn-primary" value="${action_map[action]}">`)}<input type="button" class="btn btn-secondary button-cancel" value="${i18n_cancel}" @click="${ev => el.cancel(ev)}"></fieldset></form></span>`;
+  return lit_html_x`<span><form>${command.alert ? lit_html_x`<div class="alert alert-${command.alert_type}" role="alert">${command.alert}</div>` : ''}<fieldset class="form-group"><input type="hidden" name="command_node" value="${command.node}"> <input type="hidden" name="command_jid" value="${command.jid}"><p class="form-instructions">${command.instructions}</p>${command.fields}</fieldset><fieldset>${command.actions.map(action => lit_html_x`<input data-action="${action}" @click="${ev => el.executeAction(ev)}" type="button" class="btn btn-primary" value="${action_map[action]}">`)}<input type="button" class="btn btn-secondary button-cancel" value="${i18n_cancel}" @click="${ev => el.cancel(ev)}"></fieldset></form></span>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/adhoc-views/templates/ad-hoc-command.js
 
 
-/* harmony default export */ const ad_hoc_command = ((el, command) => x`<li class="room-item list-group-item"><div class="available-chatroom d-flex flex-row"><a class="open-room available-room w-100" @click="${ev => el.toggleCommandForm(ev)}" data-command-node="${command.node}" data-command-jid="${command.jid}" data-command-name="${command.name}" title="${command.name}" href="#">${command.name || command.jid}</a></div>${command.node === el.showform ? ad_hoc_command_form(el, command) : ''}</li>`);
+/* harmony default export */ const ad_hoc_command = ((el, command) => lit_html_x`<li class="room-item list-group-item"><div class="available-chatroom d-flex flex-row"><a class="open-room available-room w-100" @click="${ev => el.toggleCommandForm(ev)}" data-command-node="${command.node}" data-command-jid="${command.jid}" data-command-name="${command.name}" title="${command.name}" href="#">${command.name || command.jid}</a></div>${command.node === el.showform ? ad_hoc_command_form(el, command) : ''}</li>`);
 ;// CONCATENATED MODULE: ./src/templates/spinner.js
 
 /* harmony default export */ const spinner = (function () {
   let o = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   if (o.classes?.includes('hor_centered')) {
-    return x`<div class="spinner__container"><converse-icon size="1em" class="fa fa-spinner spinner centered ${o.classes || ''}"></converse-icon></div>`;
+    return lit_html_x`<div class="spinner__container"><converse-icon size="1em" class="fa fa-spinner spinner centered ${o.classes || ''}"></converse-icon></div>`;
   } else {
-    return x`<converse-icon size="1em" class="fa fa-spinner spinner centered ${o.classes || ''}"></converse-icon>`;
+    return lit_html_x`<converse-icon size="1em" class="fa fa-spinner spinner centered ${o.classes || ''}"></converse-icon>`;
   }
 });
 ;// CONCATENATED MODULE: ./src/shared/avatar/templates/avatar.js
@@ -53234,7 +53993,7 @@ const getImgHref = (image, image_type) => {
 };
 /* harmony default export */ const avatar = (o => {
   if (o.image) {
-    return x`<svg xmlns="http://www.w3.org/2000/svg" class="avatar ${o.classes}" width="${o.width}" height="${o.height}"><image width="${o.width}" height="${o.height}" preserveAspectRatio="xMidYMid meet" href="${getImgHref(o.image, o.image_type)}"/></svg>`;
+    return lit_html_x`<svg xmlns="http://www.w3.org/2000/svg" class="avatar ${o.classes}" width="${o.width}" height="${o.height}"><image width="${o.width}" height="${o.height}" preserveAspectRatio="xMidYMid meet" href="${getImgHref(o.image, o.image_type)}"/></svg>`;
   } else {
     return '';
   }
@@ -53317,7 +54076,7 @@ class Avatar extends CustomElement {
   }
 }
 shared_api.elements.define('converse-avatar', Avatar);
-;// CONCATENATED MODULE: ./node_modules/lit-html/directive-helpers.js
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/directive-helpers.js
 
 /**
  * @license
@@ -53325,57 +54084,57 @@ shared_api.elements.define('converse-avatar', Avatar);
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const {
-    I: directive_helpers_l
+    I: directive_helpers_t
   } = Z,
-  directive_helpers_t = o => null === o || "object" != typeof o && "function" != typeof o,
-  directive_helpers_i = {
+  directive_helpers_i = o => null === o || "object" != typeof o && "function" != typeof o,
+  directive_helpers_n = {
     HTML: 1,
-    SVG: 2
+    SVG: 2,
+    MATHML: 3
   },
-  directive_helpers_n = (o, l) => void 0 === l ? void 0 !== (null == o ? void 0 : o._$litType$) : (null == o ? void 0 : o._$litType$) === l,
-  directive_helpers_d = o => void 0 !== (null == o ? void 0 : o._$litDirective$),
-  directive_helpers_v = o => null == o ? void 0 : o._$litDirective$,
-  directive_helpers_e = o => void 0 === o.strings,
-  directive_helpers_c = () => document.createComment(""),
-  directive_helpers_r = (o, t, i) => {
-    var n;
-    const d = o._$AA.parentNode,
-      v = void 0 === t ? o._$AB : t._$AA;
-    if (void 0 === i) {
-      const t = d.insertBefore(directive_helpers_c(), v),
-        n = d.insertBefore(directive_helpers_c(), v);
-      i = new directive_helpers_l(t, n, o, o.options);
+  directive_helpers_e = (o, t) => void 0 === t ? void 0 !== o?._$litType$ : o?._$litType$ === t,
+  directive_helpers_l = o => null != o?._$litType$?.h,
+  directive_helpers_c = o => void 0 !== o?._$litDirective$,
+  directive_helpers_d = o => o?._$litDirective$,
+  directive_helpers_f = o => void 0 === o.strings,
+  directive_helpers_s = () => document.createComment(""),
+  directive_helpers_r = (o, i, n) => {
+    const e = o._$AA.parentNode,
+      l = void 0 === i ? o._$AB : i._$AA;
+    if (void 0 === n) {
+      const i = e.insertBefore(directive_helpers_s(), l),
+        c = e.insertBefore(directive_helpers_s(), l);
+      n = new directive_helpers_t(i, c, o, o.options);
     } else {
-      const l = i._$AB.nextSibling,
-        t = i._$AM,
-        e = t !== o;
-      if (e) {
-        let l;
-        null === (n = i._$AQ) || void 0 === n || n.call(i, o), i._$AM = o, void 0 !== i._$AP && (l = o._$AU) !== t._$AU && i._$AP(l);
+      const t = n._$AB.nextSibling,
+        i = n._$AM,
+        c = i !== o;
+      if (c) {
+        let t;
+        n._$AQ?.(o), n._$AM = o, void 0 !== n._$AP && (t = o._$AU) !== i._$AU && n._$AP(t);
       }
-      if (l !== v || e) {
-        let o = i._$AA;
-        for (; o !== l;) {
-          const l = o.nextSibling;
-          d.insertBefore(o, v), o = l;
+      if (t !== l || c) {
+        let o = n._$AA;
+        for (; o !== t;) {
+          const t = o.nextSibling;
+          e.insertBefore(o, l), o = t;
         }
       }
     }
-    return i;
+    return n;
   },
-  directive_helpers_u = function (o, l) {
-    let t = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : o;
-    return o._$AI(l, t), o;
+  directive_helpers_v = function (o, t) {
+    let i = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : o;
+    return o._$AI(t, i), o;
   },
-  directive_helpers_f = {},
-  directive_helpers_s = function (o) {
-    let l = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : directive_helpers_f;
-    return o._$AH = l;
+  directive_helpers_u = {},
+  directive_helpers_m = function (o) {
+    let t = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : directive_helpers_u;
+    return o._$AH = t;
   },
-  directive_helpers_m = o => o._$AH,
-  directive_helpers_p = o => {
-    var l;
-    null === (l = o._$AP) || void 0 === l || l.call(o, !1, !0);
+  directive_helpers_p = o => o._$AH,
+  directive_helpers_M = o => {
+    o._$AP?.(!1, !0);
     let t = o._$AA;
     const i = o._$AB.nextSibling;
     for (; t !== i;) {
@@ -53383,11 +54142,11 @@ const {
       t.remove(), t = o;
     }
   },
-  directive_helpers_a = o => {
+  directive_helpers_h = o => {
     o._$AR();
   };
 
-;// CONCATENATED MODULE: ./node_modules/lit-html/directive.js
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/directive.js
 /**
  * @license
  * Copyright 2017 Google LLC
@@ -53426,7 +54185,7 @@ class directive_i {
   }
 }
 
-;// CONCATENATED MODULE: ./node_modules/lit-html/async-directive.js
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/async-directive.js
 
 
 
@@ -53436,10 +54195,9 @@ class directive_i {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const async_directive_s = (i, t) => {
-    var e, o;
-    const r = i._$AN;
-    if (void 0 === r) return !1;
-    for (const i of r) null === (o = (e = i)._$AO) || void 0 === o || o.call(e, t, !1), async_directive_s(i, t);
+    const e = i._$AN;
+    if (void 0 === e) return !1;
+    for (const i of e) i._$AO?.(t, !1), async_directive_s(i, t);
     return !0;
   },
   async_directive_o = i => {
@@ -53447,32 +54205,31 @@ const async_directive_s = (i, t) => {
     do {
       if (void 0 === (t = i._$AM)) break;
       e = t._$AN, e.delete(i), i = t;
-    } while (0 === (null == e ? void 0 : e.size));
+    } while (0 === e?.size);
   },
   async_directive_r = i => {
     for (let t; t = i._$AM; i = t) {
       let e = t._$AN;
       if (void 0 === e) t._$AN = e = new Set();else if (e.has(i)) break;
-      e.add(i), async_directive_l(t);
+      e.add(i), async_directive_c(t);
     }
   };
-function async_directive_n(i) {
+function async_directive_h(i) {
   void 0 !== this._$AN ? (async_directive_o(this), this._$AM = i, async_directive_r(this)) : this._$AM = i;
 }
-function async_directive_h(i) {
+function async_directive_n(i) {
   let t = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : !1;
   let e = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
   const r = this._$AH,
-    n = this._$AN;
-  if (void 0 !== n && 0 !== n.size) if (t) {
+    h = this._$AN;
+  if (void 0 !== h && 0 !== h.size) if (t) {
     if (Array.isArray(r)) for (let i = e; i < r.length; i++) async_directive_s(r[i], !1), async_directive_o(r[i]);else null != r && (async_directive_s(r, !1), async_directive_o(r));
   } else async_directive_s(this, i);
 }
-const async_directive_l = i => {
-  var t, s, o, r;
-  i.type == directive_t.CHILD && (null !== (t = (o = i)._$AP) && void 0 !== t || (o._$AP = async_directive_h), null !== (s = (r = i)._$AQ) && void 0 !== s || (r._$AQ = async_directive_n));
+const async_directive_c = i => {
+  i.type == directive_t.CHILD && (i._$AP ??= async_directive_n, i._$AQ ??= async_directive_h);
 };
-class async_directive_c extends directive_i {
+class async_directive_f extends directive_i {
   constructor() {
     super(...arguments), this._$AN = void 0;
   }
@@ -53481,11 +54238,10 @@ class async_directive_c extends directive_i {
   }
   _$AO(i) {
     let t = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : !0;
-    var e, r;
-    i !== this.isConnected && (this.isConnected = i, i ? null === (e = this.reconnected) || void 0 === e || e.call(this) : null === (r = this.disconnected) || void 0 === r || r.call(this)), t && (async_directive_s(this, i), async_directive_o(this));
+    i !== this.isConnected && (this.isConnected = i, i ? this.reconnected?.() : this.disconnected?.()), t && (async_directive_s(this, i), async_directive_o(this));
   }
   setValue(t) {
-    if (directive_helpers_e(this._$Ct)) this._$Ct._$AI(t, this);else {
+    if (directive_helpers_f(this._$Ct)) this._$Ct._$AI(t, this);else {
       const i = [...this._$Ct._$AH];
       i[this._$Ci] = t, this._$Ct._$AI(i, this, 0);
     }
@@ -53494,7 +54250,7 @@ class async_directive_c extends directive_i {
   reconnected() {}
 }
 
-;// CONCATENATED MODULE: ./node_modules/lit-html/directives/private-async-helpers.js
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/directives/private-async-helpers.js
 /**
  * @license
  * Copyright 2021 Google LLC
@@ -53505,36 +54261,34 @@ const private_async_helpers_t = async (t, s) => {
 };
 class private_async_helpers_s {
   constructor(t) {
-    this.G = t;
+    this.Y = t;
   }
   disconnect() {
-    this.G = void 0;
+    this.Y = void 0;
   }
   reconnect(t) {
-    this.G = t;
+    this.Y = t;
   }
   deref() {
-    return this.G;
+    return this.Y;
   }
 }
 class private_async_helpers_i {
   constructor() {
-    this.Y = void 0, this.Z = void 0;
+    this.Z = void 0, this.q = void 0;
   }
   get() {
-    return this.Y;
+    return this.Z;
   }
   pause() {
-    var t;
-    null !== (t = this.Y) && void 0 !== t || (this.Y = new Promise(t => this.Z = t));
+    this.Z ??= new Promise(t => this.q = t);
   }
   resume() {
-    var t;
-    null === (t = this.Z) || void 0 === t || t.call(this), this.Y = this.Z = void 0;
+    this.q?.(), this.Z = this.q = void 0;
   }
 }
 
-;// CONCATENATED MODULE: ./node_modules/lit-html/directives/until.js
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/directives/until.js
 
 
 
@@ -53545,45 +54299,44 @@ class private_async_helpers_i {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const until_n = t => !directive_helpers_t(t) && "function" == typeof t.then,
+const until_n = t => !directive_helpers_i(t) && "function" == typeof t.then,
   until_h = 1073741823;
-class until_c extends async_directive_c {
+class until_c extends async_directive_f {
   constructor() {
-    super(...arguments), this._$C_t = until_h, this._$Cwt = [], this._$Cq = new private_async_helpers_s(this), this._$CK = new private_async_helpers_i();
+    super(...arguments), this._$Cwt = until_h, this._$Cbt = [], this._$CK = new private_async_helpers_s(this), this._$CX = new private_async_helpers_i();
   }
   render() {
-    var i;
     for (var _len = arguments.length, s = new Array(_len), _key = 0; _key < _len; _key++) {
       s[_key] = arguments[_key];
     }
-    return null !== (i = s.find(t => !until_n(t))) && void 0 !== i ? i : T;
+    return s.find(t => !until_n(t)) ?? T;
   }
   update(s, i) {
-    const r = this._$Cwt;
-    let e = r.length;
-    this._$Cwt = i;
-    const o = this._$Cq,
-      c = this._$CK;
+    const e = this._$Cbt;
+    let r = e.length;
+    this._$Cbt = i;
+    const o = this._$CK,
+      c = this._$CX;
     this.isConnected || this.disconnected();
-    for (let t = 0; t < i.length && !(t > this._$C_t); t++) {
+    for (let t = 0; t < i.length && !(t > this._$Cwt); t++) {
       const s = i[t];
-      if (!until_n(s)) return this._$C_t = t, s;
-      t < e && s === r[t] || (this._$C_t = until_h, e = 0, Promise.resolve(s).then(async t => {
+      if (!until_n(s)) return this._$Cwt = t, s;
+      t < r && s === e[t] || (this._$Cwt = until_h, r = 0, Promise.resolve(s).then(async t => {
         for (; c.get();) await c.get();
         const i = o.deref();
         if (void 0 !== i) {
-          const r = i._$Cwt.indexOf(s);
-          r > -1 && r < i._$C_t && (i._$C_t = r, i.setValue(t));
+          const e = i._$Cbt.indexOf(s);
+          e > -1 && e < i._$Cwt && (i._$Cwt = e, i.setValue(t));
         }
       }));
     }
     return T;
   }
   disconnected() {
-    this._$Cq.disconnect(), this._$CK.pause();
+    this._$CK.disconnect(), this._$CX.pause();
   }
   reconnected() {
-    this._$Cq.reconnect(this), this._$CK.resume();
+    this._$CK.reconnect(this), this._$CX.resume();
   }
 }
 const until_m = directive_e(until_c);
@@ -53611,8 +54364,8 @@ const until_m = directive_e(until_c);
   const i18n_add_to_contacts = __('Add to Contacts');
   const can_see_real_jids = muc.features.get('nonanonymous') || muc.getOwnRole() === 'moderator';
   const not_me = jid != shared_converse.bare_jid;
-  const add_to_contacts = shared_api.contacts.get(jid).then(contact => !contact && not_me && can_see_real_jids).then(add => add ? x`<li><button class="btn btn-primary" type="button" @click="${() => el.addToContacts()}">${i18n_add_to_contacts}</button></li>` : '');
-  return x`<div class="row"><div class="col-auto"><converse-avatar class="avatar modal-avatar" .data="${vcard?.attributes}" nonce="${vcard?.get('vcard_updated')}" height="120" width="120"></converse-avatar></div><div class="col"><ul class="occupant-details"><li>${nick ? x`<div class="row"><strong>${__('Nickname')}:</strong></div><div class="row">${nick}</div>` : ''}</li><li>${jid ? x`<div class="row"><strong>${__('XMPP Address')}:</strong></div><div class="row">${jid}</div>` : ''}</li><li><div class="row"><strong>${__('Affiliation')}:</strong></div><div class="row">${affiliation}  ${may_moderate ? x`<a href="#" data-form="affiliation-form" class="toggle-form right" color="var(--subdued-color)" @click="${ev => el.toggleForm(ev)}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>${el.show_affiliation_form ? x`<converse-muc-affiliation-form jid="${jid}" .muc="${muc}" affiliation="${affiliation}"></converse-muc-affiliation-form>` : ''}` : ''}</div></li><li><div class="row"><strong>${__('Role')}:</strong></div><div class="row">${role}  ${may_moderate && role ? x`<a href="#" data-form="row-form" class="toggle-form right" color="var(--subdued-color)" @click="${ev => el.toggleForm(ev)}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>${el.show_role_form ? x`<converse-muc-role-form jid="${jid}" .muc="${muc}" role="${role}"></converse-muc-role-form>` : ''}` : ''}</div></li><li>${hats ? x`<div class="row"><strong>${__('Hats')}:</strong></div><div class="row">${hats}</div>` : ''}</li><li>${occupant_id ? x`<div class="row"><strong>${__('Occupant Id')}:</strong></div><div class="row">${occupant_id}</div>` : ''}</li>${until_m(add_to_contacts, '')}</ul></div></div>`;
+  const add_to_contacts = shared_api.contacts.get(jid).then(contact => !contact && not_me && can_see_real_jids).then(add => add ? lit_html_x`<li><button class="btn btn-primary" type="button" @click="${() => el.addToContacts()}">${i18n_add_to_contacts}</button></li>` : '');
+  return lit_html_x`<div class="row"><div class="col-auto"><converse-avatar class="avatar modal-avatar" .data="${vcard?.attributes}" nonce="${vcard?.get('vcard_updated')}" height="120" width="120"></converse-avatar></div><div class="col"><ul class="occupant-details"><li>${nick ? lit_html_x`<div class="row"><strong>${__('Nickname')}:</strong></div><div class="row">${nick}</div>` : ''}</li><li>${jid ? lit_html_x`<div class="row"><strong>${__('XMPP Address')}:</strong></div><div class="row">${jid}</div>` : ''}</li><li><div class="row"><strong>${__('Affiliation')}:</strong></div><div class="row">${affiliation}  ${may_moderate ? lit_html_x`<a href="#" data-form="affiliation-form" class="toggle-form right" color="var(--subdued-color)" @click="${ev => el.toggleForm(ev)}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>${el.show_affiliation_form ? lit_html_x`<converse-muc-affiliation-form jid="${jid}" .muc="${muc}" affiliation="${affiliation}"></converse-muc-affiliation-form>` : ''}` : ''}</div></li><li><div class="row"><strong>${__('Role')}:</strong></div><div class="row">${role}  ${may_moderate && role ? lit_html_x`<a href="#" data-form="row-form" class="toggle-form right" color="var(--subdued-color)" @click="${ev => el.toggleForm(ev)}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>${el.show_role_form ? lit_html_x`<converse-muc-role-form jid="${jid}" .muc="${muc}" role="${role}"></converse-muc-role-form>` : ''}` : ''}</div></li><li>${hats ? lit_html_x`<div class="row"><strong>${__('Hats')}:</strong></div><div class="row">${hats}</div>` : ''}</li><li>${occupant_id ? lit_html_x`<div class="row"><strong>${__('Occupant Id')}:</strong></div><div class="row">${occupant_id}</div>` : ''}</li>${until_m(add_to_contacts, '')}</ul></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/modals/occupant.js
 
@@ -53702,13 +54455,13 @@ function getAffiliationHelpText(aff) {
     return __("To ban a user, you give them the affiliation of \"outcast\".");
   }
 }
-const role_option = o => x`<option value="${o.item || ''}" ?selected="${o.item === o.role}" title="${getRoleHelpText(o.item)}">${o.item}</option>`;
-const affiliation_option = o => x`<option value="${o.item || ''}" ?selected="${o.item === o.affiliation}" title="${getAffiliationHelpText(o.item)}">${o.item}</option>`;
-const tplRoleFormToggle = o => x`<a href="#" data-form="converse-muc-role-form" class="toggle-form right" color="var(--subdued-color)" @click="${o.toggleForm}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>`;
-const tplRoleListItem = (el, o) => x`<li class="list-group-item" data-nick="${o.item.nick}"><ul class="list-group"><li class="list-group-item active"><div><strong>JID:</strong> ${o.item.jid}</div></li><li class="list-group-item"><div><strong>Nickname:</strong> ${o.item.nick}</div></li><li class="list-group-item"><div><strong>Role:</strong> ${o.item.role} ${o.assignable_roles.length ? tplRoleFormToggle(o) : ''}</div>${o.assignable_roles.length ? x`<converse-muc-role-form class="hidden" .muc="${el.muc}" jid="${o.item.jid}" role="${o.item.role}"></converse-muc-role-form>` : ''}</li></ul></li>`;
-const affiliation_form_toggle = o => x`<a href="#" data-form="converse-muc-affiliation-form" class="toggle-form right" color="var(--subdued-color)" @click="${o.toggleForm}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>`;
-const affiliation_list_item = (el, o) => x`<li class="list-group-item" data-nick="${o.item.nick}"><ul class="list-group"><li class="list-group-item active"><div><strong>JID:</strong> ${o.item.jid}</div></li><li class="list-group-item"><div><strong>Nickname:</strong> ${o.item.nick}</div></li><li class="list-group-item"><div><strong>Affiliation:</strong> ${o.item.affiliation} ${o.assignable_affiliations.length ? affiliation_form_toggle(o) : ''}</div>${o.assignable_affiliations.length ? x`<converse-muc-affiliation-form class="hidden" .muc="${el.muc}" jid="${o.item.jid}" affiliation="${o.item.affiliation}"></converse-muc-affiliation-form>` : ''}</li></ul></li>`;
-const tplNavigation = o => x`<ul class="nav nav-pills justify-content-center"><li role="presentation" class="nav-item"><a class="nav-link ${o.tab === "affiliations" ? "active" : ""}" id="affiliations-tab" href="#affiliations-tabpanel" aria-controls="affiliations-tabpanel" role="tab" data-name="affiliations" @click="${o.switchTab}">Affiliations</a></li><li role="presentation" class="nav-item"><a class="nav-link ${o.tab === "roles" ? "active" : ""}" id="roles-tab" href="#roles-tabpanel" aria-controls="roles-tabpanel" role="tab" data-name="roles" @click="${o.switchTab}">Roles</a></li></ul>`;
+const role_option = o => lit_html_x`<option value="${o.item || ''}" ?selected="${o.item === o.role}" title="${getRoleHelpText(o.item)}">${o.item}</option>`;
+const affiliation_option = o => lit_html_x`<option value="${o.item || ''}" ?selected="${o.item === o.affiliation}" title="${getAffiliationHelpText(o.item)}">${o.item}</option>`;
+const tplRoleFormToggle = o => lit_html_x`<a href="#" data-form="converse-muc-role-form" class="toggle-form right" color="var(--subdued-color)" @click="${o.toggleForm}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>`;
+const tplRoleListItem = (el, o) => lit_html_x`<li class="list-group-item" data-nick="${o.item.nick}"><ul class="list-group"><li class="list-group-item active"><div><strong>JID:</strong> ${o.item.jid}</div></li><li class="list-group-item"><div><strong>Nickname:</strong> ${o.item.nick}</div></li><li class="list-group-item"><div><strong>Role:</strong> ${o.item.role} ${o.assignable_roles.length ? tplRoleFormToggle(o) : ''}</div>${o.assignable_roles.length ? lit_html_x`<converse-muc-role-form class="hidden" .muc="${el.muc}" jid="${o.item.jid}" role="${o.item.role}"></converse-muc-role-form>` : ''}</li></ul></li>`;
+const affiliation_form_toggle = o => lit_html_x`<a href="#" data-form="converse-muc-affiliation-form" class="toggle-form right" color="var(--subdued-color)" @click="${o.toggleForm}"><converse-icon class="fa fa-wrench" size="1em"></converse-icon></a>`;
+const affiliation_list_item = (el, o) => lit_html_x`<li class="list-group-item" data-nick="${o.item.nick}"><ul class="list-group"><li class="list-group-item active"><div><strong>JID:</strong> ${o.item.jid}</div></li><li class="list-group-item"><div><strong>Nickname:</strong> ${o.item.nick}</div></li><li class="list-group-item"><div><strong>Affiliation:</strong> ${o.item.affiliation} ${o.assignable_affiliations.length ? affiliation_form_toggle(o) : ''}</div>${o.assignable_affiliations.length ? lit_html_x`<converse-muc-affiliation-form class="hidden" .muc="${el.muc}" jid="${o.item.jid}" affiliation="${o.item.affiliation}"></converse-muc-affiliation-form>` : ''}</li></ul></li>`;
+const tplNavigation = o => lit_html_x`<ul class="nav nav-pills justify-content-center"><li role="presentation" class="nav-item"><a class="nav-link ${o.tab === "affiliations" ? "active" : ""}" id="affiliations-tab" href="#affiliations-tabpanel" aria-controls="affiliations-tabpanel" role="tab" data-name="affiliations" @click="${o.switchTab}">Affiliations</a></li><li role="presentation" class="nav-item"><a class="nav-link ${o.tab === "roles" ? "active" : ""}" id="roles-tab" href="#roles-tabpanel" aria-controls="roles-tabpanel" role="tab" data-name="roles" @click="${o.switchTab}">Roles</a></li></ul>`;
 /* harmony default export */ const moderator_tools = ((el, o) => {
   const i18n_affiliation = __('Affiliation');
   const i18n_no_users_with_aff = __('No users with that affiliation found.');
@@ -53719,13 +54472,13 @@ const tplNavigation = o => x`<ul class="nav nav-pills justify-content-center"><l
   const i18n_helptext_role = __("Roles are assigned to users to grant or deny them certain abilities in a multi-user chat. " + "They're assigned either explicitly or implicitly as part of an affiliation. " + "A role that's not due to an affiliation, is only valid for the duration of the user's session.");
   const i18n_helptext_affiliation = __("An affiliation is a long-lived entitlement which typically implies a certain role and which " + "grants privileges and responsibilities. For example admins and owners automatically have the " + "moderator role.");
   const show_both_tabs = o.queryable_roles.length && o.queryable_affiliations.length;
-  return x`${o.alert_message ? x`<div class="alert alert-${o.alert_type}" role="alert">${o.alert_message}</div>` : ''} ${show_both_tabs ? tplNavigation(o) : ''}<div class="tab-content">${o.queryable_affiliations.length ? x`<div class="tab-pane tab-pane--columns ${o.tab === 'affiliations' ? 'active' : ''}" id="affiliations-tabpanel" role="tabpanel" aria-labelledby="affiliations-tab"><form class="converse-form query-affiliation" @submit="${o.queryAffiliation}"><p class="helptext pb-3">${i18n_helptext_affiliation}</p><div class="form-group"><label for="affiliation"><strong>${i18n_affiliation}:</strong></label><div class="row"><div class="col"><select class="custom-select select-affiliation" name="affiliation">${o.queryable_affiliations.map(item => affiliation_option(Object.assign({
+  return lit_html_x`${o.alert_message ? lit_html_x`<div class="alert alert-${o.alert_type}" role="alert">${o.alert_message}</div>` : ''} ${show_both_tabs ? tplNavigation(o) : ''}<div class="tab-content">${o.queryable_affiliations.length ? lit_html_x`<div class="tab-pane tab-pane--columns ${o.tab === 'affiliations' ? 'active' : ''}" id="affiliations-tabpanel" role="tabpanel" aria-labelledby="affiliations-tab"><form class="converse-form query-affiliation" @submit="${o.queryAffiliation}"><p class="helptext pb-3">${i18n_helptext_affiliation}</p><div class="form-group"><label for="affiliation"><strong>${i18n_affiliation}:</strong></label><div class="row"><div class="col"><select class="custom-select select-affiliation" name="affiliation">${o.queryable_affiliations.map(item => affiliation_option(Object.assign({
     item
-  }, o)))}</select></div><div class="col"><input type="submit" class="btn btn-primary" name="users_with_affiliation" value="${i18n_show_users}"></div></div><div class="row"><div class="col mt-3">${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length > 5 ? x`<input class="form-control" .value="${o.affiliations_filter}" @keyup="${o.filterAffiliationResults}" type="text" name="filter" placeholder="${i18n_filter}">` : ''}</div></div>${getAffiliationHelpText(o.affiliation) ? x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getAffiliationHelpText(o.affiliation)}</p></div></div>` : ''}</div></form><div class="scrollable-container"><ul class="list-group list-group--users">${o.loading_users_with_affiliation ? x`<li class="list-group-item">${spinner()}</li>` : ''} ${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length === 0 ? x`<li class="list-group-item">${i18n_no_users_with_aff}</li>` : ''} ${o.users_with_affiliation instanceof Error ? x`<li class="list-group-item">${o.users_with_affiliation.message}</li>` : (o.users_with_affiliation || []).map(item => (item.nick || item.jid).match(new RegExp(o.affiliations_filter, 'i')) ? affiliation_list_item(el, Object.assign({
+  }, o)))}</select></div><div class="col"><input type="submit" class="btn btn-primary" name="users_with_affiliation" value="${i18n_show_users}"></div></div><div class="row"><div class="col mt-3">${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length > 5 ? lit_html_x`<input class="form-control" .value="${o.affiliations_filter}" @keyup="${o.filterAffiliationResults}" type="text" name="filter" placeholder="${i18n_filter}">` : ''}</div></div>${getAffiliationHelpText(o.affiliation) ? lit_html_x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getAffiliationHelpText(o.affiliation)}</p></div></div>` : ''}</div></form><div class="scrollable-container"><ul class="list-group list-group--users">${o.loading_users_with_affiliation ? lit_html_x`<li class="list-group-item">${spinner()}</li>` : ''} ${Array.isArray(o.users_with_affiliation) && o.users_with_affiliation.length === 0 ? lit_html_x`<li class="list-group-item">${i18n_no_users_with_aff}</li>` : ''} ${o.users_with_affiliation instanceof Error ? lit_html_x`<li class="list-group-item">${o.users_with_affiliation.message}</li>` : (o.users_with_affiliation || []).map(item => (item.nick || item.jid).match(new RegExp(o.affiliations_filter, 'i')) ? affiliation_list_item(el, Object.assign({
     item
-  }, o)) : '')}</ul></div></div>` : ''} ${o.queryable_roles.length ? x`<div class="tab-pane tab-pane--columns ${o.tab === 'roles' ? 'active' : ''}" id="roles-tabpanel" role="tabpanel" aria-labelledby="roles-tab"><form class="converse-form query-role" @submit="${o.queryRole}"><p class="helptext pb-3">${i18n_helptext_role}</p><div class="form-group"><label for="role"><strong>${i18n_role}:</strong></label><div class="row"><div class="col"><select class="custom-select select-role" name="role">${o.queryable_roles.map(item => role_option(Object.assign({
+  }, o)) : '')}</ul></div></div>` : ''} ${o.queryable_roles.length ? lit_html_x`<div class="tab-pane tab-pane--columns ${o.tab === 'roles' ? 'active' : ''}" id="roles-tabpanel" role="tabpanel" aria-labelledby="roles-tab"><form class="converse-form query-role" @submit="${o.queryRole}"><p class="helptext pb-3">${i18n_helptext_role}</p><div class="form-group"><label for="role"><strong>${i18n_role}:</strong></label><div class="row"><div class="col"><select class="custom-select select-role" name="role">${o.queryable_roles.map(item => role_option(Object.assign({
     item
-  }, o)))}</select></div><div class="col"><input type="submit" class="btn btn-primary" name="users_with_role" value="${i18n_show_users}"></div></div><div class="row"><div class="col mt-3">${Array.isArray(o.users_with_role) && o.users_with_role.length > 5 ? x`<input class="form-control" .value="${o.roles_filter}" @keyup="${o.filterRoleResults}" type="text" name="filter" placeholder="${i18n_filter}">` : ''}</div></div>${getRoleHelpText(o.role) ? x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getRoleHelpText(o.role)}</p></div></div>` : ''}</div></form><div class="scrollable-container"><ul class="list-group list-group--users">${o.loading_users_with_role ? x`<li class="list-group-item">${spinner()}</li>` : ''} ${o.users_with_role && o.users_with_role.length === 0 ? x`<li class="list-group-item">${i18n_no_users_with_role}</li>` : ''} ${(o.users_with_role || []).map(item => item.nick.match(o.roles_filter) ? tplRoleListItem(el, Object.assign({
+  }, o)))}</select></div><div class="col"><input type="submit" class="btn btn-primary" name="users_with_role" value="${i18n_show_users}"></div></div><div class="row"><div class="col mt-3">${Array.isArray(o.users_with_role) && o.users_with_role.length > 5 ? lit_html_x`<input class="form-control" .value="${o.roles_filter}" @keyup="${o.filterRoleResults}" type="text" name="filter" placeholder="${i18n_filter}">` : ''}</div></div>${getRoleHelpText(o.role) ? lit_html_x`<div class="row"><div class="col pt-2"><p class="helptext pb-3">${getRoleHelpText(o.role)}</p></div></div>` : ''}</div></form><div class="scrollable-container"><ul class="list-group list-group--users">${o.loading_users_with_role ? lit_html_x`<li class="list-group-item">${spinner()}</li>` : ''} ${o.users_with_role && o.users_with_role.length === 0 ? lit_html_x`<li class="list-group-item">${i18n_no_users_with_role}</li>` : ''} ${(o.users_with_role || []).map(item => item.nick.match(o.roles_filter) ? tplRoleListItem(el, Object.assign({
     item
   }, o)) : '')}</ul></div></div>` : ''}</div>`;
 });
@@ -53979,7 +54732,7 @@ class ModeratorToolsModal extends modal_modal {
     this.id = "converse-modtools-modal";
   }
   renderModal() {
-    return x`<converse-modtools jid="${this.jid}" affiliation="${this.affiliation}"></converse-modtools>`;
+    return lit_html_x`<converse-modtools jid="${this.jid}" affiliation="${this.affiliation}"></converse-modtools>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -54060,15 +54813,15 @@ async function destroyMUC(model) {
     const newjid = fields.filter(f => f.name === 'newjid').pop()?.value;
     return model.sendDestroyIQ(reason, newjid).then(() => model.close());
   } catch (e) {
-    log.error(e);
+    headless_log.error(e);
   }
 }
 function getNicknameRequiredTemplate(model) {
   const jid = model.get('jid');
   if (shared_api.settings.get('muc_show_logs_before_join')) {
-    return x`<converse-muc-chatarea jid="${jid}"></converse-muc-chatarea>`;
+    return lit_html_x`<converse-muc-chatarea jid="${jid}"></converse-muc-chatarea>`;
   } else {
-    return x`<converse-muc-nickname-form jid="${jid}"></converse-muc-nickname-form>`;
+    return lit_html_x`<converse-muc-nickname-form jid="${jid}"></converse-muc-nickname-form>`;
   }
 }
 function getChatRoomBodyTemplate(o) {
@@ -54077,9 +54830,9 @@ function getChatRoomBodyTemplate(o) {
   const RS = public_converse.ROOMSTATUS;
   const conn_status = o.model.session.get('connection_status');
   if (view === public_converse.MUC.VIEWS.CONFIG) {
-    return x`<converse-muc-config-form class="muc-form-container" jid="${jid}"></converse-muc-config-form>`;
+    return lit_html_x`<converse-muc-config-form class="muc-form-container" jid="${jid}"></converse-muc-config-form>`;
   } else {
-    return x`${conn_status == RS.PASSWORD_REQUIRED ? x`<converse-muc-password-form class="muc-form-container" jid="${jid}"></converse-muc-password-form>` : ''} ${conn_status == RS.ENTERED ? x`<converse-muc-chatarea jid="${jid}"></converse-muc-chatarea>` : ''} ${conn_status == RS.CONNECTING ? spinner() : ''} ${conn_status == RS.NICKNAME_REQUIRED ? getNicknameRequiredTemplate(o.model) : ''} ${conn_status == RS.DISCONNECTED ? x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''} ${conn_status == RS.BANNED ? x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''} ${conn_status == RS.DESTROYED ? x`<converse-muc-destroyed jid="${jid}"></converse-muc-destroyed>` : ''}`;
+    return lit_html_x`${conn_status == RS.PASSWORD_REQUIRED ? lit_html_x`<converse-muc-password-form class="muc-form-container" jid="${jid}"></converse-muc-password-form>` : ''} ${conn_status == RS.ENTERED ? lit_html_x`<converse-muc-chatarea jid="${jid}"></converse-muc-chatarea>` : ''} ${conn_status == RS.CONNECTING ? spinner() : ''} ${conn_status == RS.NICKNAME_REQUIRED ? getNicknameRequiredTemplate(o.model) : ''} ${conn_status == RS.DISCONNECTED ? lit_html_x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''} ${conn_status == RS.BANNED ? lit_html_x`<converse-muc-disconnected jid="${jid}"></converse-muc-disconnected>` : ''} ${conn_status == RS.DESTROYED ? lit_html_x`<converse-muc-destroyed jid="${jid}"></converse-muc-destroyed>` : ''}`;
   }
 }
 function getAutoCompleteListItem(text, input) {
@@ -54320,7 +55073,7 @@ function parseMessageForMUCCommands(data, handled) {
   const i18n_fetch_commands = __('List available commands');
   const i18n_jid_placeholder = __('XMPP Address');
   const i18n_no_commands_found = __('No commands found');
-  return x`${el.alert ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert}</div>` : ''} ${el.note ? x`<p class="form-help">${el.note}</p>` : ''}<form class="converse-form" @submit="${el.fetchCommands}"><fieldset class="form-group"><label>${i18n_choose_service}<p class="form-help">${i18n_choose_service_instructions}</p><converse-autocomplete .getAutoCompleteList="${getAutoCompleteList}" required placeholder="${i18n_jid_placeholder}" name="jid"></converse-autocomplete></label></fieldset><fieldset class="form-group">${el.fetching ? spinner() : x`<input type="submit" class="btn btn-primary" value="${i18n_fetch_commands}">`}</fieldset>${el.view === 'list-commands' ? x`<fieldset class="form-group"><ul class="list-group"><li class="list-group-item active">${el.commands.length ? i18n_commands_found : i18n_no_commands_found}:</li>${el.commands.map(cmd => ad_hoc_command(el, cmd))}</ul></fieldset>` : ''}</form>`;
+  return lit_html_x`${el.alert ? lit_html_x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert}</div>` : ''} ${el.note ? lit_html_x`<p class="form-help">${el.note}</p>` : ''}<form class="converse-form" @submit="${el.fetchCommands}"><fieldset class="form-group"><label>${i18n_choose_service}<p class="form-help">${i18n_choose_service_instructions}</p><converse-autocomplete .getAutoCompleteList="${getAutoCompleteList}" required placeholder="${i18n_jid_placeholder}" name="jid"></converse-autocomplete></label></fieldset><fieldset class="form-group">${el.fetching ? spinner() : lit_html_x`<input type="submit" class="btn btn-primary" value="${i18n_fetch_commands}">`}</fieldset>${el.view === 'list-commands' ? lit_html_x`<fieldset class="form-group"><ul class="list-group"><li class="list-group-item active">${el.commands.length ? i18n_commands_found : i18n_no_commands_found}:</li>${el.commands.map(cmd => ad_hoc_command(el, cmd))}</ul></fieldset>` : ''}</form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/adhoc-views/adhoc-commands.js
 
@@ -54378,7 +55131,7 @@ class AdHocCommands extends CustomElement {
     try {
       supported = await shared_api.disco.supports(adhoc_commands_Strophe.NS.ADHOC, jid);
     } catch (e) {
-      log.error(e);
+      headless_log.error(e);
     } finally {
       this.fetching = false;
     }
@@ -54387,11 +55140,11 @@ class AdHocCommands extends CustomElement {
         this.commands = await shared_api.adhoc.getCommands(jid);
         this.view = 'list-commands';
       } catch (e) {
-        log.error(e);
+        headless_log.error(e);
         this.alert_type = 'danger';
         this.alert = __('Sorry, an error occurred while looking for commands on that entity.');
         this.commands = [];
-        log.error(e);
+        headless_log.error(e);
         return;
       }
     } else {
@@ -54421,7 +55174,7 @@ class AdHocCommands extends CustomElement {
     if (['execute', 'next', 'prev', 'complete'].includes(action)) {
       this.runCommand(ev.target.form, action);
     } else {
-      log.error(`Unknown action: ${action}`);
+      headless_log.error(`Unknown action: ${action}`);
     }
   }
   clearCommand(cmd) {
@@ -54466,7 +55219,7 @@ class AdHocCommands extends CustomElement {
       this.note = note;
       this.clearCommand(cmd);
     } else {
-      log.error(`Unexpected status for ad-hoc command: ${status}`);
+      headless_log.error(`Unexpected status for ad-hoc command: ${status}`);
       cmd.alert = __('Completed');
       cmd.alert_type = 'primary';
     }
@@ -54493,7 +55246,7 @@ class AdHocCommands extends CustomElement {
       this.alert = '';
       this.clearCommand(cmd);
     } else {
-      log.error(`Unexpected status for ad-hoc command: ${status}`);
+      headless_log.error(`Unexpected status for ad-hoc command: ${status}`);
       cmd.alert = __('Error: unexpected result');
       cmd.alert_type = 'danger';
     }
@@ -54643,7 +55396,7 @@ function openRoomViaEvent(ev) {
   const jid = bm.get('jid');
   const info_remove_bookmark = __('Unbookmark this groupchat');
   const open_title = __('Click to open this groupchat');
-  return x`<div class="list-item room-item available-chatroom d-flex flex-row" data-room-jid="${jid}"><a class="list-item-link open-room w-100" data-room-jid="${jid}" title="${open_title}" @click="${openRoomViaEvent}">${bm.getDisplayName()}</a> <a class="list-item-action remove-bookmark align-self-center ${bm.get('bookmarked') ? 'button-on' : ''}" data-room-jid="${jid}" data-bookmark-name="${bm.getDisplayName()}" title="${info_remove_bookmark}" @click="${removeBookmarkViaEvent}"><converse-icon class="fa fa-bookmark" size="1em"></converse-icon></a></div>`;
+  return lit_html_x`<div class="list-item room-item available-chatroom d-flex flex-row" data-room-jid="${jid}"><a class="list-item-link open-room w-100" data-room-jid="${jid}" title="${open_title}" @click="${openRoomViaEvent}">${bm.getDisplayName()}</a> <a class="list-item-action remove-bookmark align-self-center ${bm.get('bookmarked') ? 'button-on' : ''}" data-room-jid="${jid}" data-bookmark-name="${bm.getDisplayName()}" title="${info_remove_bookmark}" @click="${removeBookmarkViaEvent}"><converse-icon class="fa fa-bookmark" size="1em"></converse-icon></a></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/bookmark-views/components/templates/list.js
 
@@ -54658,7 +55411,7 @@ const filterBookmark = (b, text) => b.get('name')?.includes(text) || b.get('jid'
     bookmarks
   } = shared_converse;
   const shown_bookmarks = filter_text ? bookmarks.filter(b => filterBookmark(b, filter_text)) : bookmarks;
-  return x`<form class="converse-form bookmarks-filter"><div class="btn-group w-100"><input .value="${filter_text ?? ''}" @keydown="${ev => el.liveFilter(ev)}" class="form-control" placeholder="${i18n_placeholder}"><converse-icon size="1em" class="fa fa-times clear-input ${!filter_text ? 'hidden' : ''}" @click="${el.clearFilter}"></converse-icon></div></form><div class="list-container list-container--bookmarks"><div class="items-list bookmarks rooms-list">${shown_bookmarks.map(bm => item(bm))}</div></div>`;
+  return lit_html_x`<form class="converse-form bookmarks-filter"><div class="btn-group w-100"><input .value="${filter_text ?? ''}" @keydown="${ev => el.liveFilter(ev)}" class="form-control" placeholder="${i18n_placeholder}"><converse-icon size="1em" class="fa fa-times clear-input ${!filter_text ? 'hidden' : ''}" @click="${el.clearFilter}"></converse-icon></div></form><div class="list-container list-container--bookmarks"><div class="items-list bookmarks rooms-list">${shown_bookmarks.map(bm => item(bm))}</div></div>`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/bookmark-views/styles/bookmarks.scss
 var bookmarks = __webpack_require__(7690);
@@ -54743,7 +55496,7 @@ shared_api.elements.define('converse-bookmarks', BookmarksView);
 class BookmarkListModal extends modal_modal {
   renderModal() {
     // eslint-disable-line class-methods-use-this
-    return x`<converse-bookmarks></converse-bookmarks>`;
+    return lit_html_x`<converse-bookmarks></converse-bookmarks>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -54763,7 +55516,7 @@ shared_api.elements.define('converse-bookmark-list-modal', BookmarkListModal);
   const i18n_name = __('The name for this bookmark:');
   const i18n_nick = __('What should your nickname for this groupchat be?');
   const i18n_submit = el.bookmark ? __('Update') : __('Save');
-  return x`<form class="converse-form chatroom-form" @submit="${ev => el.onBookmarkFormSubmitted(ev)}"><legend>${i18n_heading}</legend><fieldset class="form-group"><label for="converse_muc_bookmark_name">${i18n_name}</label> <input class="form-control" type="text" value="${name}" name="name" required="required" id="converse_muc_bookmark_name"></fieldset><fieldset class="form-group"><label for="converse_muc_bookmark_nick">${i18n_nick}</label> <input class="form-control" type="text" name="nick" value="${nick || ''}" id="converse_muc_bookmark_nick"></fieldset><fieldset class="form-group form-check"><input class="form-check-input" id="converse_muc_bookmark_autojoin" type="checkbox" ?checked="${el.bookmark?.get('autojoin')}" name="autojoin"> <label class="form-check-label" for="converse_muc_bookmark_autojoin">${i18n_autojoin}</label></fieldset><fieldset class="form-group"><input class="btn btn-primary" type="submit" value="${i18n_submit}"> ${el.bookmark ? x`<input class="btn btn-secondary button-remove" type="button" value="${i18n_remove}" @click="${ev => el.removeBookmark(ev)}">` : ''}</fieldset></form>`;
+  return lit_html_x`<form class="converse-form chatroom-form" @submit="${ev => el.onBookmarkFormSubmitted(ev)}"><legend>${i18n_heading}</legend><fieldset class="form-group"><label for="converse_muc_bookmark_name">${i18n_name}</label> <input class="form-control" type="text" value="${name}" name="name" required="required" id="converse_muc_bookmark_name"></fieldset><fieldset class="form-group"><label for="converse_muc_bookmark_nick">${i18n_nick}</label> <input class="form-control" type="text" name="nick" value="${nick || ''}" id="converse_muc_bookmark_nick"></fieldset><fieldset class="form-group form-check"><input class="form-check-input" id="converse_muc_bookmark_autojoin" type="checkbox" ?checked="${el.bookmark?.get('autojoin')}" name="autojoin"> <label class="form-check-label" for="converse_muc_bookmark_autojoin">${i18n_autojoin}</label></fieldset><fieldset class="form-group"><input class="btn btn-primary" type="submit" value="${i18n_submit}"> ${el.bookmark ? lit_html_x`<input class="btn btn-secondary button-remove" type="button" value="${i18n_remove}" @click="${ev => el.removeBookmark(ev)}">` : ''}</fieldset></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/bookmark-views/components/bookmark-form.js
 
@@ -54817,7 +55570,7 @@ shared_api.elements.define('converse-muc-bookmark-form', MUCBookmarkForm);
 
 class BookmarkFormModal extends modal_modal {
   renderModal() {
-    return x`<converse-muc-bookmark-form class="muc-form-container" jid="${this.jid}"></converse-muc-bookmark-form>`;
+    return lit_html_x`<converse-muc-bookmark-form class="muc-form-container" jid="${this.jid}"></converse-muc-bookmark-form>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -54911,8 +55664,8 @@ public_converse.plugins.add('converse-bookmark-views', {
 ;// CONCATENATED MODULE: ./src/templates/background_logo.js
 
 
-/* harmony default export */ const background_logo = (() => x`<div class="inner-content converse-brand row"><div class="converse-brand__padding"></div><div class="converse-brand__heading"><svg height="200px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 364 364" version="1.1"><title>Logo Converse</title><defs><linearGradient id="gradient" x1="92.14" y1="27.64" x2="267.65" y2="331.62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff1d1"/><stop offset="0.05" stop-color="#fae8c1"/><stop offset="0.15" stop-color="#f0d5a1"/><stop offset="0.27" stop-color="#e7c687"/><stop offset="0.4" stop-color="#e1bb72"/><stop offset="0.54" stop-color="#dcb264"/><stop offset="0.71" stop-color="#daad5c"/><stop offset="1" stop-color="#d9ac59"/></linearGradient><filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="2.3" result="blur1"/><feOffset in="blur1" dx="3" dy="3" result="blur2"/><feColorMatrix in="blur2" type="matrix" result="blur3" values="1 0 0 0 0.1                                    0 1 0 0 0.1                                    0 0 1 0 0.1                                    0 0 0 1 0"/><feMerge><feMergeNode in="blur3"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#shadow)"><path d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z" fill="#d9ac59"/><path d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z" fill="url(#gradient)"/></g></svg> <span class="converse-brand__text"><span>converse<span class="subdued">.js</span></span><p class="byline">messaging freedom</p></span></div>${shared_api.settings.get('view_mode') === 'overlayed' ? x`<div class="converse-brand__padding"></div>` : ''}</div>`);
-;// CONCATENATED MODULE: ./node_modules/lit-html/directives/repeat.js
+/* harmony default export */ const background_logo = (() => lit_html_x`<div class="inner-content converse-brand row"><div class="converse-brand__padding"></div><div class="converse-brand__heading"><svg height="200px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 364 364" version="1.1"><title>Logo Converse</title><defs><linearGradient id="gradient" x1="92.14" y1="27.64" x2="267.65" y2="331.62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff1d1"/><stop offset="0.05" stop-color="#fae8c1"/><stop offset="0.15" stop-color="#f0d5a1"/><stop offset="0.27" stop-color="#e7c687"/><stop offset="0.4" stop-color="#e1bb72"/><stop offset="0.54" stop-color="#dcb264"/><stop offset="0.71" stop-color="#daad5c"/><stop offset="1" stop-color="#d9ac59"/></linearGradient><filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="2.3" result="blur1"/><feOffset in="blur1" dx="3" dy="3" result="blur2"/><feColorMatrix in="blur2" type="matrix" result="blur3" values="1 0 0 0 0.1                                    0 1 0 0 0.1                                    0 0 1 0 0.1                                    0 0 0 1 0"/><feMerge><feMergeNode in="blur3"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#shadow)"><path d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z" fill="#d9ac59"/><path d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z" fill="url(#gradient)"/></g></svg> <span class="converse-brand__text"><span>converse<span class="subdued">.js</span></span><p class="byline">messaging freedom</p></span></div>${shared_api.settings.get('view_mode') === 'overlayed' ? lit_html_x`<div class="converse-brand__padding"></div>` : ''}</div>`);
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/directives/repeat.js
 
 
 
@@ -54947,41 +55700,40 @@ const repeat_u = (e, s, t) => {
     }
     update(s, _ref) {
       let [t, r, c] = _ref;
-      var d;
-      const a = directive_helpers_m(s),
+      const d = directive_helpers_p(s),
         {
           values: p,
-          keys: v
+          keys: a
         } = this.dt(t, r, c);
-      if (!Array.isArray(a)) return this.ht = v, p;
-      const h = null !== (d = this.ht) && void 0 !== d ? d : this.ht = [],
-        m = [];
-      let y,
-        x,
-        j = 0,
-        k = a.length - 1,
-        w = 0,
-        A = p.length - 1;
-      for (; j <= k && w <= A;) if (null === a[j]) j++;else if (null === a[k]) k--;else if (h[j] === v[w]) m[w] = directive_helpers_u(a[j], p[w]), j++, w++;else if (h[k] === v[A]) m[A] = directive_helpers_u(a[k], p[A]), k--, A--;else if (h[j] === v[A]) m[A] = directive_helpers_u(a[j], p[A]), directive_helpers_r(s, m[A + 1], a[j]), j++, A--;else if (h[k] === v[w]) m[w] = directive_helpers_u(a[k], p[w]), directive_helpers_r(s, a[j], a[k]), k--, w++;else if (void 0 === y && (y = repeat_u(v, w, A), x = repeat_u(h, j, k)), y.has(h[j])) {
-        if (y.has(h[k])) {
-          const e = x.get(v[w]),
-            t = void 0 !== e ? a[e] : null;
+      if (!Array.isArray(d)) return this.ut = a, p;
+      const h = this.ut ??= [],
+        v = [];
+      let m,
+        y,
+        x = 0,
+        j = d.length - 1,
+        k = 0,
+        w = p.length - 1;
+      for (; x <= j && k <= w;) if (null === d[x]) x++;else if (null === d[j]) j--;else if (h[x] === a[k]) v[k] = directive_helpers_v(d[x], p[k]), x++, k++;else if (h[j] === a[w]) v[w] = directive_helpers_v(d[j], p[w]), j--, w--;else if (h[x] === a[w]) v[w] = directive_helpers_v(d[x], p[w]), directive_helpers_r(s, v[w + 1], d[x]), x++, w--;else if (h[j] === a[k]) v[k] = directive_helpers_v(d[j], p[k]), directive_helpers_r(s, d[x], d[j]), j--, k++;else if (void 0 === m && (m = repeat_u(a, k, w), y = repeat_u(h, x, j)), m.has(h[x])) {
+        if (m.has(h[j])) {
+          const e = y.get(a[k]),
+            t = void 0 !== e ? d[e] : null;
           if (null === t) {
-            const e = directive_helpers_r(s, a[j]);
-            directive_helpers_u(e, p[w]), m[w] = e;
-          } else m[w] = directive_helpers_u(t, p[w]), directive_helpers_r(s, a[j], t), a[e] = null;
-          w++;
-        } else directive_helpers_p(a[k]), k--;
-      } else directive_helpers_p(a[j]), j++;
-      for (; w <= A;) {
-        const e = directive_helpers_r(s, m[A + 1]);
-        directive_helpers_u(e, p[w]), m[w++] = e;
+            const e = directive_helpers_r(s, d[x]);
+            directive_helpers_v(e, p[k]), v[k] = e;
+          } else v[k] = directive_helpers_v(t, p[k]), directive_helpers_r(s, d[x], t), d[e] = null;
+          k++;
+        } else directive_helpers_M(d[j]), j--;
+      } else directive_helpers_M(d[x]), x++;
+      for (; k <= w;) {
+        const e = directive_helpers_r(s, v[w + 1]);
+        directive_helpers_v(e, p[k]), v[k++] = e;
       }
-      for (; j <= k;) {
-        const e = a[j++];
-        null !== e && directive_helpers_p(e);
+      for (; x <= j;) {
+        const e = d[x++];
+        null !== e && directive_helpers_M(e);
       }
-      return this.ht = v, directive_helpers_s(s, m), T;
+      return this.ut = a, directive_helpers_m(s, v), T;
     }
   });
 
@@ -55008,15 +55760,15 @@ function shouldShowChat(c) {
   const view_mode = shared_api.settings.get('view_mode');
   const connection = shared_converse?.connection;
   const logged_out = !connection?.connected || !connection?.authenticated || connection?.disconnecting;
-  return x`${!logged_out && view_mode === 'overlayed' ? x`<converse-minimized-chats></converse-minimized-chats>` : ''} ${repeat_c(chatboxes.filter(shouldShowChat), m => m.get('jid'), m => {
+  return lit_html_x`${!logged_out && view_mode === 'overlayed' ? lit_html_x`<converse-minimized-chats></converse-minimized-chats>` : ''} ${repeat_c(chatboxes.filter(shouldShowChat), m => m.get('jid'), m => {
     if (m.get('type') === CONTROLBOX_TYPE) {
-      return x`${view_mode === 'overlayed' ? x`<converse-controlbox-toggle class="${!m.get('closed') ? 'hidden' : ''}"></converse-controlbox-toggle>` : ''}<converse-controlbox id="controlbox" class="chatbox ${view_mode === 'overlayed' && m.get('closed') ? 'hidden' : ''} ${logged_out ? 'logged-out' : ''}" style="${m.get('width') ? `width: ${m.get('width')}` : ''}"></converse-controlbox>`;
+      return lit_html_x`${view_mode === 'overlayed' ? lit_html_x`<converse-controlbox-toggle class="${!m.get('closed') ? 'hidden' : ''}"></converse-controlbox-toggle>` : ''}<converse-controlbox id="controlbox" class="chatbox ${view_mode === 'overlayed' && m.get('closed') ? 'hidden' : ''} ${logged_out ? 'logged-out' : ''}" style="${m.get('width') ? `width: ${m.get('width')}` : ''}"></converse-controlbox>`;
     } else if (m.get('type') === CHATROOMS_TYPE) {
-      return x`<converse-muc jid="${m.get('jid')}" class="chatbox chatroom"></converse-muc>`;
+      return lit_html_x`<converse-muc jid="${m.get('jid')}" class="chatbox chatroom"></converse-muc>`;
     } else if (m.get('type') === HEADLINES_TYPE) {
-      return x`<converse-headlines jid="${m.get('jid')}" class="chatbox headlines"></converse-headlines>`;
+      return lit_html_x`<converse-headlines jid="${m.get('jid')}" class="chatbox headlines"></converse-headlines>`;
     } else {
-      return x`<converse-chat jid="${m.get('jid')}" class="chatbox"></converse-chat>`;
+      return lit_html_x`<converse-chat jid="${m.get('jid')}" class="chatbox"></converse-chat>`;
     }
   })}`;
 });
@@ -55047,7 +55799,7 @@ class ConverseChats extends CustomElement {
     this.listenTo(settings, 'change:singleton', () => this.requestUpdate());
     const bg = document.getElementById('conversejs-bg');
     if (bg && !bg.innerHTML.trim()) {
-      B(background_logo(), bg);
+      lit_html_B(background_logo(), bg);
     }
     const body = document.querySelector('body');
     body.classList.add(`converse-${shared_api.settings.get('view_mode')}`);
@@ -55269,7 +56021,7 @@ class MessageActions extends CustomElement {
     this.listenTo(this.model, 'change', () => this.requestUpdate());
   }
   render() {
-    return x`${until_m(this.renderActions(), '')}`;
+    return lit_html_x`${until_m(this.renderActions(), '')}`;
   }
   async renderActions() {
     // We want to let the message actions menu drop upwards if we're at the
@@ -55280,13 +56032,13 @@ class MessageActions extends CustomElement {
     const buttons = await this.getActionButtons();
     const items = buttons.map(b => MessageActions.getActionsDropdownItem(b));
     if (items.length) {
-      return x`<converse-dropdown class="chat-msg__actions ${should_drop_up ? 'dropup dropup--left' : 'dropleft'}" .items="${items}"></converse-dropdown>`;
+      return lit_html_x`<converse-dropdown class="chat-msg__actions ${should_drop_up ? 'dropup dropup--left' : 'dropleft'}" .items="${items}"></converse-dropdown>`;
     } else {
       return '';
     }
   }
   static getActionsDropdownItem(o) {
-    return x`<button class="chat-msg__action ${o.button_class}" @click="${o.handler}"><converse-icon class="${o.icon_class}" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${o.i18n_text}</button>`;
+    return lit_html_x`<button class="chat-msg__action ${o.button_class}" @click="${o.handler}"><converse-icon class="${o.icon_class}" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${o.i18n_text}</button>`;
   }
   async onMessageEditButtonClicked(ev) {
     ev.preventDefault();
@@ -55307,7 +56059,7 @@ class MessageActions extends CustomElement {
   }
   async onDirectMessageRetractButtonClicked() {
     if (this.model.get('sender') !== 'me') {
-      return log.error("onMessageRetractButtonClicked called for someone else's message!");
+      return headless_log.error("onMessageRetractButtonClicked called for someone else's message!");
     }
     const retraction_warning = __('Be aware that other XMPP/Jabber clients (and servers) may ' + 'not yet support retractions and that this message may not ' + 'be removed everywhere.');
     const messages = [__('Are you sure you want to retract this message?')];
@@ -55333,12 +56085,12 @@ class MessageActions extends CustomElement {
     if (result === null) {
       const err_msg = __(`A timeout occurred while trying to retract the message`);
       shared_api.alert('error', __('Error'), err_msg);
-      log(err_msg, message_actions_Strophe.LogLevel.WARN);
+      headless_log(err_msg, message_actions_Strophe.LogLevel.WARN);
     } else if (message_actions_u.isErrorStanza(result)) {
       const err_msg = __(`Sorry, you're not allowed to retract this message.`);
       shared_api.alert('error', __('Error'), err_msg);
-      log(err_msg, message_actions_Strophe.LogLevel.WARN);
-      log(result, message_actions_Strophe.LogLevel.WARN);
+      headless_log(err_msg, message_actions_Strophe.LogLevel.WARN);
+      headless_log(result, message_actions_Strophe.LogLevel.WARN);
     }
   }
   async onMUCMessageRetractButtonClicked() {
@@ -55517,7 +56269,7 @@ class MessageActions extends CustomElement {
 shared_api.elements.define('converse-message-actions', MessageActions);
 ;// CONCATENATED MODULE: ./src/shared/modals/templates/image.js
 
-/* harmony default export */ const templates_image = (o => x`<img class="chat-image chat-image--modal" src="${o.src}">`);
+/* harmony default export */ const templates_image = (o => lit_html_x`<img class="chat-image chat-image--modal" src="${o.src}">`);
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/modals/styles/image.scss
 var styles_image = __webpack_require__(17);
 ;// CONCATENATED MODULE: ./src/shared/modals/styles/image.scss
@@ -55564,7 +56316,7 @@ class ImageModal extends modal_modal {
     });
   }
   getModalTitle() {
-    return x`${__('Image: ')}<a target="_blank" rel="noopener" href="${this.src}">${getFileName(this.src)}</a>`;
+    return lit_html_x`${__('Image: ')}<a target="_blank" rel="noopener" href="${this.src}">${getFileName(this.src)}</a>`;
   }
 }
 shared_api.elements.define('converse-image-modal', ImageModal);
@@ -55954,7 +56706,7 @@ class ConverseGif {
     };
     h.onprogress = e => e.lengthComputable && this.doShowProgress(e.loaded, e.total, true);
     h.onerror = e => {
-      log.error(e);
+      headless_log.error(e);
       this.showError();
     };
     h.send();
@@ -56061,7 +56813,7 @@ class ConverseGIFElement extends CustomElement {
     }
   }
   render() {
-    return this.supergif?.load_error && ['url', 'empty'].includes(this.fallback) ? this.renderErrorFallback() : x`<canvas class="gif-canvas" @mouseover="${() => this.setHover()}" @mouseleave="${() => this.unsetHover()}" @click="${ev => this.onControlsClicked(ev)}"><img class="gif" src="${this.src}"></canvas>`;
+    return this.supergif?.load_error && ['url', 'empty'].includes(this.fallback) ? this.renderErrorFallback() : lit_html_x`<canvas class="gif-canvas" @mouseover="${() => this.setHover()}" @mouseleave="${() => this.unsetHover()}" @click="${ev => this.onControlsClicked(ev)}"><img class="gif" src="${this.src}"></canvas>`;
   }
   renderErrorFallback() {
     if (this.fallback === 'url') {
@@ -56095,7 +56847,7 @@ shared_api.elements.define('converse-gif', ConverseGIFElement);
 ;// CONCATENATED MODULE: ./src/templates/gif.js
 
 
-/* harmony default export */ const templates_gif = ((url, hide_url) => x`<converse-gif autoplay noloop fallback="empty" src="${url}"></converse-gif>${hide_url ? '' : x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
+/* harmony default export */ const templates_gif = ((url, hide_url) => lit_html_x`<converse-gif autoplay noloop fallback="empty" src="${url}"></converse-gif>${hide_url ? '' : lit_html_x`<a target="_blank" rel="noopener" href="${url}">${url}</a>`}`);
 ;// CONCATENATED MODULE: ./node_modules/lit/async-directive.js
 
 ;// CONCATENATED MODULE: ./src/shared/directives/image.js
@@ -56108,12 +56860,12 @@ shared_api.elements.define('converse-gif', ConverseGIFElement);
 const {
   URI: image_URI
 } = public_converse.env;
-class ImageDirective extends async_directive_c {
+class ImageDirective extends async_directive_f {
   render(src, href, onLoad, onClick) {
-    return href ? x`<a href="${href}" class="chat-image__link" target="_blank" rel="noopener">${this.renderImage(src, href, onLoad, onClick)}</a>` : this.renderImage(src, href, onLoad, onClick);
+    return href ? lit_html_x`<a href="${href}" class="chat-image__link" target="_blank" rel="noopener">${this.renderImage(src, href, onLoad, onClick)}</a>` : this.renderImage(src, href, onLoad, onClick);
   }
   renderImage(src, href, onLoad, onClick) {
-    return x`<img class="chat-image img-thumbnail" loading="lazy" src="${src}" @click="${onClick}" @error="${() => this.onError(src, href, onLoad, onClick)}" @load="${onLoad}/">`;
+    return lit_html_x`<img class="chat-image img-thumbnail" loading="lazy" src="${src}" @click="${onClick}" @error="${() => this.onError(src, href, onLoad, onClick)}" @load="${onLoad}">`;
   }
   onError(src, href, onLoad, onClick) {
     if (isURLWithImageExtension(src)) {
@@ -56143,7 +56895,7 @@ const renderImage = directive_e(ImageDirective);
 ;// CONCATENATED MODULE: ./src/templates/image.js
 
 
-/* harmony default export */ const src_templates_image = (o => x`${renderImage(o.src || o.url, o.href, o.onLoad, o.onClick)}`);
+/* harmony default export */ const src_templates_image = (o => lit_html_x`${renderImage(o.src || o.url, o.href, o.onLoad, o.onClick)}`);
 ;// CONCATENATED MODULE: ./src/shared/directives/styling.js
 
 
@@ -56154,7 +56906,7 @@ async function transform(t) {
   try {
     await t.addTemplates();
   } catch (e) {
-    log.error(e);
+    headless_log.error(e);
   }
   return t.payload;
 }
@@ -56166,7 +56918,7 @@ class StylingDirective extends directive_i {
       'embed_videos': false,
       'embed_audio': false
     }));
-    return x`${until_m(transform(t), x`${t}`)}`;
+    return lit_html_x`${until_m(transform(t), lit_html_x`${t}`)}`;
   }
 }
 const renderStylingDirectiveBody = directive_e(StylingDirective);
@@ -56211,12 +56963,12 @@ const dont_escape = ['_', '>', '`', '~'];
 const styling_templates = {
   // m is the chatbox model
   // i is the offset of this directive relative to the start of the original message
-  'emphasis': (txt, i, options) => x`<span class="styling-directive">_</span><i>${renderStylingDirectiveBody(txt, i, options)}</i><span class="styling-directive">_</span>`,
-  'preformatted': txt => x`<span class="styling-directive">\`</span><code>${txt}</code><span class="styling-directive">\`</span>`,
-  'preformatted_block': txt => x`<div class="styling-directive">\`\`\`</div><code class="block">${txt}</code><div class="styling-directive">\`\`\`</div>`,
-  'quote': (txt, i, options) => x`<blockquote>${renderStylingDirectiveBody(txt, i, options)}</blockquote>`,
-  'strike': (txt, i, options) => x`<span class="styling-directive">~</span><del>${renderStylingDirectiveBody(txt, i, options)}</del><span class="styling-directive">~</span>`,
-  'strong': (txt, i, options) => x`<span class="styling-directive">*</span><b>${renderStylingDirectiveBody(txt, i, options)}</b><span class="styling-directive">*</span>`
+  'emphasis': (txt, i, options) => lit_html_x`<span class="styling-directive">_</span><i>${renderStylingDirectiveBody(txt, i, options)}</i><span class="styling-directive">_</span>`,
+  'preformatted': txt => lit_html_x`<span class="styling-directive">\`</span><code>${txt}</code><span class="styling-directive">\`</span>`,
+  'preformatted_block': txt => lit_html_x`<div class="styling-directive">\`\`\`</div><code class="block">${txt}</code><div class="styling-directive">\`\`\`</div>`,
+  'quote': (txt, i, options) => lit_html_x`<blockquote>${renderStylingDirectiveBody(txt, i, options)}</blockquote>`,
+  'strike': (txt, i, options) => lit_html_x`<span class="styling-directive">~</span><del>${renderStylingDirectiveBody(txt, i, options)}</del><span class="styling-directive">~</span>`,
+  'strong': (txt, i, options) => lit_html_x`<span class="styling-directive">*</span><b>${renderStylingDirectiveBody(txt, i, options)}</b><span class="styling-directive">*</span>`
 };
 
 /**
@@ -56344,7 +57096,7 @@ function containsDirectives(text) {
 }
 ;// CONCATENATED MODULE: ./src/shared/chat/templates/new-day.js
 
-/* harmony default export */ const new_day = (o => x`<div class="message date-separator" data-isodate="${o.time}"><hr class="separator"><time class="separator-text" datetime="${o.time}"><span>${o.datestring}</span></time></div>`);
+/* harmony default export */ const new_day = (o => lit_html_x`<div class="message date-separator" data-isodate="${o.time}"><hr class="separator"><time class="separator-text" datetime="${o.time}"><span>${o.datestring}</span></time></div>`);
 ;// CONCATENATED MODULE: ./src/shared/chat/utils.js
 
 
@@ -56358,11 +57110,11 @@ const {
 } = public_converse.env;
 async function getHeadingDropdownItem(promise_or_data) {
   const data = await promise_or_data;
-  return data ? x`<a href="#" class="dropdown-item ${data.a_class}" @click="${data.handler}" title="${data.i18n_title}"><converse-icon size="1em" class="fa ${data.icon_class}"></converse-icon>${data.i18n_text}</a>` : '';
+  return data ? lit_html_x`<a href="#" class="dropdown-item ${data.a_class}" @click="${data.handler}" title="${data.i18n_title}"><converse-icon size="1em" class="fa ${data.icon_class}"></converse-icon>${data.i18n_text}</a>` : '';
 }
 async function getHeadingStandaloneButton(promise_or_data) {
   const data = await promise_or_data;
-  return x`<a href="#" class="chatbox-btn ${data.a_class}" @click="${data.handler}" title="${data.i18n_title}"><converse-icon size="1em" class="fa ${data.icon_class}"></converse-icon></a>`;
+  return lit_html_x`<a href="#" class="chatbox-btn ${data.a_class}" @click="${data.handler}" title="${data.i18n_title}"><converse-icon size="1em" class="fa ${data.icon_class}"></converse-icon></a>`;
 }
 function getStandaloneButtons(promise) {
   return promise.then(btns => btns.filter(b => b.standalone).map(b => getHeadingStandaloneButton(b)).reverse().map(b => until_m(b, '')));
@@ -56370,7 +57122,7 @@ function getStandaloneButtons(promise) {
 function getDropdownButtons(promise) {
   return promise.then(btns => {
     const dropdown_btns = btns.filter(b => !b.standalone).map(b => getHeadingDropdownItem(b));
-    return dropdown_btns.length ? x`<converse-dropdown class="chatbox-btn dropleft" .items="${dropdown_btns}"></converse-dropdown>` : '';
+    return dropdown_btns.length ? lit_html_x`<converse-dropdown class="chatbox-btn dropleft" .items="${dropdown_btns}"></converse-dropdown>` : '';
   });
 }
 function onScrolledDown(model) {
@@ -56482,18 +57234,18 @@ function getEmojiMarkup(data) {
       return emoji;
     } else if (shared_api.settings.get('use_system_emojis')) {
       if (options.add_title_wrapper) {
-        return shortname ? x`<span title="${shortname}">${emoji}</span>` : emoji;
+        return shortname ? lit_html_x`<span title="${shortname}">${emoji}</span>` : emoji;
       } else {
         return emoji;
       }
     } else {
       const path = shared_api.settings.get('emoji_image_path');
-      return x`<img class="emoji" loading="lazy" draggable="false" title="${shortname}" alt="${emoji}" src="${path}/72x72/${data.cp}.png">`;
+      return lit_html_x`<img class="emoji" loading="lazy" draggable="false" title="${shortname}" alt="${emoji}" src="${path}/72x72/${data.cp}.png">`;
     }
   } else if (options.unicode_only) {
     return shortname;
   } else {
-    return x`<img class="emoji" loading="lazy" draggable="false" title="${shortname}" alt="${shortname}" src="${public_converse.emojis.by_sn[shortname].url}">`;
+    return lit_html_x`<img class="emoji" loading="lazy" draggable="false" title="${shortname}" alt="${shortname}" src="${public_converse.emojis.by_sn[shortname].url}">`;
   }
 }
 function utils_addEmojisMarkup(text, options) {
@@ -56567,8 +57319,8 @@ const rich_text_isString = s => typeof s === 'string';
 // We don't render more than two line-breaks, replace extra line-breaks with
 // the zero-width whitespace character
 const collapseLineBreaks = text => text.replace(/\n\n+/g, m => `\n${'\u200B'.repeat(m.length - 2)}\n`);
-const tplMentionWithNick = o => x`<span class="mention mention--self badge badge-info" data-uri="${o.uri}">${o.mention}</span>`;
-const tplMention = o => x`<span class="mention" data-uri="${o.uri}">${o.mention}</span>`;
+const tplMentionWithNick = o => lit_html_x`<span class="mention mention--self badge badge-info" data-uri="${o.uri}">${o.mention}</span>`;
+const tplMention = o => lit_html_x`<span class="mention" data-uri="${o.uri}">${o.mention}</span>`;
 
 /**
  * @class RichText
@@ -56924,12 +57676,12 @@ class RichTextRenderer {
     try {
       await text.addTemplates();
     } catch (e) {
-      log.error(e);
+      headless_log.error(e);
     }
     return text.payload;
   }
   render() {
-    return x`${until_m(this.transform(), x`${this.text}`)}`;
+    return lit_html_x`${until_m(this.transform(), lit_html_x`${this.text}`)}`;
   }
 }
 class RichTextDirective extends directive_i {
@@ -57122,7 +57874,7 @@ class ConverseIcon extends CustomElement {
         `;
   }
   render() {
-    return x`<svg .style="${this.getStyles()}"><use href="${this.getSource()}"></use></svg>`;
+    return lit_html_x`<svg .style="${this.getStyles()}"><use href="${this.getSource()}"></use></svg>`;
   }
 }
 shared_api.elements.define("converse-icon", ConverseIcon);
@@ -57634,7 +58386,7 @@ class Dropdown extends DropdownBase {
     this.icon_classes = 'fa fa-bars';
   }
   render() {
-    return x`<button type="button" class="btn btn--transparent btn--standalone" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><converse-icon size="1em" class="${this.icon_classes}"></converse-icon></button><div class="dropdown-menu">${this.items.map(b => until_m(b, ''))}</div>`;
+    return lit_html_x`<button type="button" class="btn btn--transparent btn--standalone" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><converse-icon size="1em" class="${this.icon_classes}"></converse-icon></button><div class="dropdown-menu">${this.items.map(b => until_m(b, ''))}</div>`;
   }
   firstUpdated() {
     super.firstUpdated();
@@ -57718,7 +58470,7 @@ var message_versions_update = injectStylesIntoStyleTag_default()(message_version
 const {
   dayjs: message_versions_dayjs
 } = public_converse.env;
-const tplOlderVersion = (k, older_versions) => x`<p class="older-msg"><time>${message_versions_dayjs(k).format('MMM D, YYYY, HH:mm:ss')}</time>: ${older_versions[k]}</p>`;
+const tplOlderVersion = (k, older_versions) => lit_html_x`<p class="older-msg"><time>${message_versions_dayjs(k).format('MMM D, YYYY, HH:mm:ss')}</time>: ${older_versions[k]}</p>`;
 class MessageVersions extends CustomElement {
   static get properties() {
     return {
@@ -57734,7 +58486,7 @@ class MessageVersions extends CustomElement {
   render() {
     const older_versions = this.model.get('older_versions');
     const keys = Object.keys(older_versions);
-    return x`${keys.length ? x`<h4>${__('Older versions')}</h4>${keys.map(k => tplOlderVersion(k, older_versions))}` : x`<h4>${__('No older versions found')}</h4>`}<hr><h4>${__('Current version')}</h4><p><time>${message_versions_dayjs(this.model.get('time')).format('MMM D, YYYY, HH:mm:ss')}</time>: ${this.model.getMessageText()}</p>`;
+    return lit_html_x`${keys.length ? lit_html_x`<h4>${__('Older versions')}</h4>${keys.map(k => tplOlderVersion(k, older_versions))}` : lit_html_x`<h4>${__('No older versions found')}</h4>`}<hr><h4>${__('Current version')}</h4><p><time>${message_versions_dayjs(this.model.get('time')).format('MMM D, YYYY, HH:mm:ss')}</time>: ${this.model.getMessageText()}</p>`;
   }
 }
 shared_api.elements.define('converse-message-versions', MessageVersions);
@@ -57746,7 +58498,7 @@ shared_api.elements.define('converse-message-versions', MessageVersions);
 
 class MessageVersionsModal extends modal_modal {
   renderModal() {
-    return x`<converse-message-versions .model="${this.model}"></converse-message-versions>`;
+    return lit_html_x`<converse-message-versions .model="${this.model}"></converse-message-versions>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -57762,13 +58514,13 @@ shared_api.elements.define('converse-message-versions-modal', MessageVersionsMod
 
 const remove_button = el => {
   const i18n_remove_contact = __('Remove as contact');
-  return x`<button type="button" @click="${ev => el.removeContact(ev)}" class="btn btn-danger remove-contact"><converse-icon class="fas fa-trash-alt" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${i18n_remove_contact}</button>`;
+  return lit_html_x`<button type="button" @click="${ev => el.removeContact(ev)}" class="btn btn-danger remove-contact"><converse-icon class="fas fa-trash-alt" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${i18n_remove_contact}</button>`;
 };
 const tplFooter = el => {
   const is_roster_contact = el.model.contact !== undefined;
   const i18n_refresh = __('Refresh');
   const allow_contact_removal = shared_api.settings.get('allow_contact_removal');
-  return x`<div class="modal-footer">${modal_close_button} <button type="button" class="btn btn-info refresh-contact" @click="${ev => el.refreshContact(ev)}"><converse-icon class="fa fa-refresh" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${i18n_refresh}</button> ${allow_contact_removal && is_roster_contact ? remove_button(el) : ''}</div>`;
+  return lit_html_x`<div class="modal-footer">${modal_close_button} <button type="button" class="btn btn-info refresh-contact" @click="${ev => el.refreshContact(ev)}"><converse-icon class="fa fa-refresh" color="var(--text-color-lighten-15-percent)" size="1em"></converse-icon>${i18n_refresh}</button> ${allow_contact_removal && is_roster_contact ? remove_button(el) : ''}</div>`;
 };
 const tplUserDetailsModal = el => {
   const vcard = el.model?.vcard;
@@ -57790,7 +58542,7 @@ const tplUserDetailsModal = el => {
     'height': '120',
     'width': '120'
   };
-  return x`<div class="modal-body">${o.image ? x`<div class="mb-4">${avatar(Object.assign(o, avatar_data))}</div>` : ''} ${o.fullname ? x`<p><label>${i18n_full_name}:</label> ${o.fullname}</p>` : ''}<p><label>${i18n_address}:</label> <a href="xmpp:${o.jid}">${o.jid}</a></p>${o.nickname ? x`<p><label>${i18n_nickname}:</label> ${o.nickname}</p>` : ''} ${o.url ? x`<p><label>${i18n_url}:</label> <a target="_blank" rel="noopener" href="${o.url}">${o.url}</a></p>` : ''} ${o.email ? x`<p><label>${i18n_email}:</label> <a href="mailto:${o.email}">${o.email}</a></p>` : ''} ${o.role ? x`<p><label>${i18n_role}:</label> ${o.role}</p>` : ''}<converse-omemo-fingerprints jid="${o.jid}"></converse-omemo-fingerprints></div>`;
+  return lit_html_x`<div class="modal-body">${o.image ? lit_html_x`<div class="mb-4">${avatar(Object.assign(o, avatar_data))}</div>` : ''} ${o.fullname ? lit_html_x`<p><label>${i18n_full_name}:</label> ${o.fullname}</p>` : ''}<p><label>${i18n_address}:</label> <a href="xmpp:${o.jid}">${o.jid}</a></p>${o.nickname ? lit_html_x`<p><label>${i18n_nickname}:</label> ${o.nickname}</p>` : ''} ${o.url ? lit_html_x`<p><label>${i18n_url}:</label> <a target="_blank" rel="noopener" href="${o.url}">${o.url}</a></p>` : ''} ${o.email ? lit_html_x`<p><label>${i18n_email}:</label> <a href="mailto:${o.email}">${o.email}</a></p>` : ''} ${o.role ? lit_html_x`<p><label>${i18n_role}:</label> ${o.role}</p>` : ''}<converse-omemo-fingerprints jid="${o.jid}"></converse-omemo-fingerprints></div>`;
 };
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/utils.js
 
@@ -57798,7 +58550,7 @@ const tplUserDetailsModal = el => {
 
 function removeContact(contact) {
   contact.removeFromRoster(() => contact.destroy(), e => {
-    e && log.error(e);
+    e && headless_log.error(e);
     shared_api.alert('error', __('Error'), [__('Sorry, there was an error while trying to remove %1$s as a contact.', contact.getDisplayName())]);
   });
 }
@@ -57938,7 +58690,7 @@ class UserDetailsModal extends modal_modal {
     try {
       await shared_api.vcard.update(this.model.contact.vcard, true);
     } catch (e) {
-      log.fatal(e);
+      headless_log.fatal(e);
       this.alert(__('Sorry, something went wrong while trying to refresh'), 'danger');
     }
     user_details_u.removeClass('fa-spin', refresh_icon);
@@ -57971,7 +58723,7 @@ const {
   const i18n_uploading = __('Uploading file:');
   const filename = el.model.file.name;
   const size = file_progress_filesize(el.model.file.size);
-  return x`<div class="message chat-msg">${el.shouldShowAvatar() ? x`<a class="show-msg-author-modal" @click="${el.showUserModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a>` : ''}<div class="chat-msg__content"><span class="chat-msg__text">${i18n_uploading} <strong>${filename}</strong>, ${size}</span><progress value="${el.model.get('progress')}"></div></div>`;
+  return lit_html_x`<div class="message chat-msg">${el.shouldShowAvatar() ? lit_html_x`<a class="show-msg-author-modal" @click="${el.showUserModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a>` : ''}<div class="chat-msg__content"><span class="chat-msg__text">${i18n_uploading} <strong>${filename}</strong>, ${size}</span><progress value="${el.model.get('progress')}"></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/shared/chat/templates/info-message.js
 
@@ -57983,7 +58735,7 @@ const {
 /* harmony default export */ const info_message = (el => {
   const isodate = info_message_dayjs(el.model.get('time')).toISOString();
   const i18n_retry = __('Retry');
-  return x`<div class="message chat-info chat-${el.model.get('type')}" data-isodate="${isodate}" data-type="${el.data_name}" data-value="${el.data_value}"><div class="chat-info__message"><converse-rich-text .mentions="${el.model.get('references')}" render_styling text="${el.model.getMessageText()}"></converse-rich-text></div>${el.model.get('reason') ? x`<q class="reason">${el.model.get('reason')}</q>` : ``} ${el.model.get('error_text') ? x`<q class="reason">${el.model.get('error_text')}</q>` : ``} ${el.model.get('retry_event_id') ? x`<a class="retry" @click="${el.onRetryClicked}">${i18n_retry}</a>` : ''}</div>`;
+  return lit_html_x`<div class="message chat-info chat-${el.model.get('type')}" data-isodate="${isodate}" data-type="${el.data_name}" data-value="${el.data_value}"><div class="chat-info__message"><converse-rich-text .mentions="${el.model.get('references')}" render_styling text="${el.model.getMessageText()}"></converse-rich-text></div>${el.model.get('reason') ? lit_html_x`<q class="reason">${el.model.get('reason')}</q>` : ``} ${el.model.get('error_text') ? lit_html_x`<q class="reason">${el.model.get('error_text')}</q>` : ``} ${el.model.get('retry_event_id') ? lit_html_x`<a class="retry" @click="${el.onRetryClicked}">${i18n_retry}</a>` : ''}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/mep-message.js
 
@@ -57993,7 +58745,7 @@ const {
 } = public_converse.env;
 /* harmony default export */ const mep_message = (el => {
   const isodate = mep_message_dayjs(el.model.get('time')).toISOString();
-  return x`<div class="message chat-info message--mep ${el.getExtraMessageClasses()}" data-isodate="${isodate}" data-type="${el.data_name}" data-value="${el.data_value}"><div class="chat-msg__content"><div class="chat-msg__body chat-msg__body--${el.model.get('type')} ${el.model.get('is_delayed') ? 'chat-msg__body--delayed' : ''}"><div class="chat-info__message">${el.isRetracted() ? el.renderRetraction() : x`<converse-rich-text .mentions="${el.model.get('references')}" render_styling text="${el.model.getMessageText()}"></converse-rich-text>${el.model.get('reason') ? x`<q class="reason"><converse-rich-text text="${el.model.get('reason')}"></converse-rich-text></q>` : ``}`}</div><converse-message-actions ?is_retracted="${el.isRetracted()}" .model="${el.model}"></converse-message-actions></div></div></div>`;
+  return lit_html_x`<div class="message chat-info message--mep ${el.getExtraMessageClasses()}" data-isodate="${isodate}" data-type="${el.data_name}" data-value="${el.data_value}"><div class="chat-msg__content"><div class="chat-msg__body chat-msg__body--${el.model.get('type')} ${el.model.get('is_delayed') ? 'chat-msg__body--delayed' : ''}"><div class="chat-info__message">${el.isRetracted() ? el.renderRetraction() : lit_html_x`<converse-rich-text .mentions="${el.model.get('references')}" render_styling text="${el.model.getMessageText()}"></converse-rich-text>${el.model.get('reason') ? lit_html_x`<q class="reason"><converse-rich-text text="${el.model.get('reason')}"></converse-rich-text></q>` : ``}`}</div><converse-message-actions ?is_retracted="${el.isRetracted()}" .model="${el.model}"></converse-message-actions></div></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/shared/components/image.js
 
@@ -58048,13 +58800,13 @@ function isValidURL(url) {
 function isValidImage(image) {
   return image && isDomainAllowed(image, 'allowed_image_domains') && isValidURL(image);
 }
-const tplUrlWrapper = (o, wrapped_template) => o.url && isValidURL(o.url) && !isGIFURL(o.image) ? x`<a href="${o.url}" target="_blank" rel="noopener">${wrapped_template(o)}</a>` : wrapped_template(o);
-const tplImage = o => x`<converse-image class="card-img-top hor_centered" href="${o.url}" src="${o.image}" .onImgLoad="${o.onload}"></converse-image>`;
+const tplUrlWrapper = (o, wrapped_template) => o.url && isValidURL(o.url) && !isGIFURL(o.image) ? lit_html_x`<a href="${o.url}" target="_blank" rel="noopener">${wrapped_template(o)}</a>` : wrapped_template(o);
+const tplImage = o => lit_html_x`<converse-image class="card-img-top hor_centered" href="${o.url}" src="${o.image}" .onImgLoad="${o.onload}"></converse-image>`;
 /* harmony default export */ const unfurl = (o => {
   const show_image = isValidImage(o.image);
   const has_body_info = o.title || o.description || o.url;
   if (show_image || has_body_info) {
-    return x`<div class="card card--unfurl">${show_image ? tplImage(o) : ''} ${has_body_info ? x`<div class="card-body">${o.title ? tplUrlWrapper(o, o => x`<h5 class="card-title">${o.title}</h5>`) : ''} ${o.description ? x`<p class="card-text"><converse-rich-text text="${o.description}"></converse-rich-text></p>` : ''} ${o.url ? x`<p class="card-text"><a href="${o.url}" target="_blank" rel="noopener">${getURI(o.url).domain()}</a></p>` : ''}</div>` : ''}</div>`;
+    return lit_html_x`<div class="card card--unfurl">${show_image ? tplImage(o) : ''} ${has_body_info ? lit_html_x`<div class="card-body">${o.title ? tplUrlWrapper(o, o => lit_html_x`<h5 class="card-title">${o.title}</h5>`) : ''} ${o.description ? lit_html_x`<p class="card-text"><converse-rich-text text="${o.description}"></converse-rich-text></p>` : ''} ${o.url ? lit_html_x`<p class="card-text"><a href="${o.url}" target="_blank" rel="noopener">${getURI(o.url).domain()}</a></p>` : ''}</div>` : ''}</div>`;
   } else {
     return '';
   }
@@ -58148,14 +58900,14 @@ shared_api.elements.define('converse-message-unfurl', MessageUnfurl);
 /* harmony default export */ const templates_message = ((el, o) => {
   const i18n_new_messages = __('New messages');
   const is_followup = el.model.isFollowup();
-  return x`${o.is_first_unread ? x`<div class="message separator"><hr class="separator"><span class="separator-text">${i18n_new_messages}</span></div>` : ''}<div class="message chat-msg ${el.getExtraMessageClasses()}" data-isodate="${o.time}" data-msgid="${o.msgid}" data-from="${o.from}" data-encrypted="${o.is_encrypted}"><a id="${o.msgid}"></a> ${o.should_show_avatar && !is_followup ? x`<a class="show-msg-author-modal" @click="${el.showUserModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a>` : ''}<div class="chat-msg__content chat-msg__content--${o.sender} ${o.is_me_message ? 'chat-msg__content--action' : ''}">${!o.is_me_message && !is_followup ? x`<span class="chat-msg__heading"><span class="chat-msg__author"><a class="show-msg-author-modal" @click="${el.showUserModal}">${o.username}</a></span> ${o.hats.map(h => x`<span class="badge badge-secondary">${h.title}</span>`)} <time timestamp="${el.model.get('edited') || el.model.get('time')}" class="chat-msg__time">${o.pretty_time}</time> ${o.is_encrypted ? x`<converse-icon class="fa fa-lock" size="1.1em"></converse-icon>` : ''}</span>` : ''}<div class="chat-msg__body chat-msg__body--${o.message_type} ${o.received ? 'chat-msg__body--received' : ''} ${o.is_delayed ? 'chat-msg__body--delayed' : ''}"><div class="chat-msg__message">${o.is_me_message ? x`<time timestamp="${o.edited || o.time}" class="chat-msg__time">${o.pretty_time}</time>  <span class="chat-msg__author">${o.is_me_message ? '**' : ''}${o.username}</span> ` : ''} ${o.is_retracted ? el.renderRetraction() : el.renderMessageText()}</div><converse-message-actions .model="${el.model}" ?is_retracted="${o.is_retracted}"></converse-message-actions></div>${el.model.get('ogp_metadata')?.map(m => {
+  return lit_html_x`${o.is_first_unread ? lit_html_x`<div class="message separator"><hr class="separator"><span class="separator-text">${i18n_new_messages}</span></div>` : ''}<div class="message chat-msg ${el.getExtraMessageClasses()}" data-isodate="${o.time}" data-msgid="${o.msgid}" data-from="${o.from}" data-encrypted="${o.is_encrypted}"><a id="${o.msgid}"></a> ${o.should_show_avatar && !is_followup ? lit_html_x`<a class="show-msg-author-modal" @click="${el.showUserModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a>` : ''}<div class="chat-msg__content chat-msg__content--${o.sender} ${o.is_me_message ? 'chat-msg__content--action' : ''}">${!o.is_me_message && !is_followup ? lit_html_x`<span class="chat-msg__heading"><span class="chat-msg__author"><a class="show-msg-author-modal" @click="${el.showUserModal}">${o.username}</a></span> ${o.hats.map(h => lit_html_x`<span class="badge badge-secondary">${h.title}</span>`)} <time timestamp="${el.model.get('edited') || el.model.get('time')}" class="chat-msg__time">${o.pretty_time}</time> ${o.is_encrypted ? lit_html_x`<converse-icon class="fa fa-lock" size="1.1em"></converse-icon>` : ''}</span>` : ''}<div class="chat-msg__body chat-msg__body--${o.message_type} ${o.received ? 'chat-msg__body--received' : ''} ${o.is_delayed ? 'chat-msg__body--delayed' : ''}"><div class="chat-msg__message">${o.is_me_message ? lit_html_x`<time timestamp="${o.edited || o.time}" class="chat-msg__time">${o.pretty_time}</time>  <span class="chat-msg__author">${o.is_me_message ? '**' : ''}${o.username}</span> ` : ''} ${o.is_retracted ? el.renderRetraction() : el.renderMessageText()}</div><converse-message-actions .model="${el.model}" ?is_retracted="${o.is_retracted}"></converse-message-actions></div>${el.model.get('ogp_metadata')?.map(m => {
     if (el.model.get('hide_url_previews') === true) {
       return '';
     }
     if (!shouldRenderMediaFromURL(m['og:image'], 'image')) {
       return '';
     }
-    return x`<converse-message-unfurl @animationend="${el.onUnfurlAnimationEnd}" class="${el.model.get('url_preview_transition')}" jid="${el.chatbox?.get('jid')}" description="${m['og:description'] || ''}" title="${m['og:title'] || ''}" image="${m['og:image'] || ''}" url="${m['og:url'] || ''}"></converse-message-unfurl>`;
+    return lit_html_x`<converse-message-unfurl @animationend="${el.onUnfurlAnimationEnd}" class="${el.model.get('url_preview_transition')}" jid="${el.chatbox?.get('jid')}" description="${m['og:description'] || ''}" title="${m['og:title'] || ''}" image="${m['og:image'] || ''}" url="${m['og:url'] || ''}"></converse-message-unfurl>`;
   })}</div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/shared/chat/templates/message-text.js
@@ -58164,20 +58916,20 @@ shared_api.elements.define('converse-message-unfurl', MessageUnfurl);
 
 const tplEditedIcon = el => {
   const i18n_edited = __('This message has been edited');
-  return x`<converse-icon title="${i18n_edited}" class="fa fa-edit chat-msg__edit-modal" @click="${el.showMessageVersionsModal}" size="1em"></converse-icon>`;
+  return lit_html_x`<converse-icon title="${i18n_edited}" class="fa fa-edit chat-msg__edit-modal" @click="${el.showMessageVersionsModal}" size="1em"></converse-icon>`;
 };
 const tplCheckmark = () => {
-  return x`<converse-icon size="1em" color="var(--chat-color)" class="fa fa-check chat-msg__receipt"></converse-icon>`;
+  return lit_html_x`<converse-icon size="1em" color="var(--chat-color)" class="fa fa-check chat-msg__receipt"></converse-icon>`;
 };
 /* harmony default export */ const message_text = (el => {
   const i18n_show = __('Show more');
   const is_groupchat_message = el.model.get('type') === 'groupchat';
   const i18n_show_less = __('Show less');
-  const tplSpoilerHint = x`<div class="chat-msg__spoiler-hint"><span class="spoiler-hint">${el.model.get('spoiler_hint')}</span> <a class="badge badge-info spoiler-toggle" href="#" @click="${el.toggleSpoilerMessage}"><converse-icon size="1em" color="var(--background)" class="fa ${el.model.get('is_spoiler_visible') ? 'fa-eye-slash' : 'fa-eye'}"></converse-icon>${el.model.get('is_spoiler_visible') ? i18n_show_less : i18n_show}</a></div>`;
+  const tplSpoilerHint = lit_html_x`<div class="chat-msg__spoiler-hint"><span class="spoiler-hint">${el.model.get('spoiler_hint')}</span> <a class="badge badge-info spoiler-toggle" href="#" @click="${el.toggleSpoilerMessage}"><converse-icon size="1em" color="var(--background)" class="fa ${el.model.get('is_spoiler_visible') ? 'fa-eye-slash' : 'fa-eye'}"></converse-icon>${el.model.get('is_spoiler_visible') ? i18n_show_less : i18n_show}</a></div>`;
   const spoiler_classes = el.model.get('is_spoiler') ? `spoiler ${el.model.get('is_spoiler_visible') ? '' : 'hidden'}` : '';
   const text = el.model.getMessageText();
   const show_oob = el.model.get('oob_url') && text !== el.model.get('oob_url');
-  return x`${el.model.get('is_spoiler') ? tplSpoilerHint : ''} ${el.model.get('subject') ? x`<div class="chat-msg__subject">${el.model.get('subject')}</div>` : ''} <span class="chat-msg__body--wrapper"><converse-chat-message-body class="chat-msg__text ${el.model.get('is_only_emojis') ? 'chat-msg__text--larger' : ''} ${spoiler_classes}" .model="${el.model}" hide_url_previews="${el.model.get('hide_url_previews')}" ?is_me_message="${el.model.isMeCommand()}" text="${text}"></converse-chat-message-body>${el.model.get('received') && !el.model.isMeCommand() && !is_groupchat_message ? tplCheckmark() : ''} ${el.model.get('edited') ? tplEditedIcon(el) : ''} </span>${show_oob ? x`<div class="chat-msg__media">${getOOBURLMarkup(el.model.get('oob_url'))}</div>` : ''}<div class="chat-msg__error">${el.model.get('error_text') || el.model.get('error')}</div>`;
+  return lit_html_x`${el.model.get('is_spoiler') ? tplSpoilerHint : ''} ${el.model.get('subject') ? lit_html_x`<div class="chat-msg__subject">${el.model.get('subject')}</div>` : ''} <span class="chat-msg__body--wrapper"><converse-chat-message-body class="chat-msg__text ${el.model.get('is_only_emojis') ? 'chat-msg__text--larger' : ''} ${spoiler_classes}" .model="${el.model}" hide_url_previews="${el.model.get('hide_url_previews')}" ?is_me_message="${el.model.isMeCommand()}" text="${text}"></converse-chat-message-body>${el.model.get('received') && !el.model.isMeCommand() && !is_groupchat_message ? tplCheckmark() : ''} ${el.model.get('edited') ? tplEditedIcon(el) : ''} </span>${show_oob ? lit_html_x`<div class="chat-msg__media">${getOOBURLMarkup(el.model.get('oob_url'))}</div>` : ''}<div class="chat-msg__error">${el.model.get('error_text') || el.model.get('error')}</div>`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/retraction.scss
 var retraction = __webpack_require__(7643);
@@ -58215,7 +58967,7 @@ var retraction_update = injectStylesIntoStyleTag_default()(retraction/* default 
 
 /* harmony default export */ const templates_retraction = (el => {
   const retraction_text = el.isRetracted() ? el.getRetractionText() : null;
-  return x`<div class="retraction">${retraction_text}</div>${el.model.get('moderation_reason') ? x`<q class="chat-msg--retracted__reason">${el.model.get('moderation_reason')}</q>` : ''}`;
+  return lit_html_x`<div class="retraction">${retraction_text}</div>${el.model.get('moderation_reason') ? lit_html_x`<q class="chat-msg--retracted__reason">${el.model.get('moderation_reason')}</q>` : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/shared/chat/message.js
 
@@ -58257,7 +59009,7 @@ class Message extends CustomElement {
     await this.setModels();
     if (!this.model) {
       // Happen during tests due to a race condition
-      log.error('Could not find module for converse-chat-message');
+      headless_log.error('Could not find module for converse-chat-message');
       return;
     }
     const settings = getAppSettings();
@@ -58457,7 +59209,7 @@ class MessageHistory extends CustomElement {
   render() {
     const msgs = this.messages;
     if (msgs.length) {
-      return repeat_c(msgs, m => m.get('id'), m => x`${this.renderMessage(m)}`);
+      return repeat_c(msgs, m => m.get('id'), m => lit_html_x`${this.renderMessage(m)}`);
     } else {
       return '';
     }
@@ -58471,7 +59223,7 @@ class MessageHistory extends CustomElement {
       const template_promise = shared_api.hook(template_hook, model, '');
       return until_m(template_promise, '');
     } else {
-      const template = x`<converse-chat-message jid="${this.model.get('jid')}" mid="${model.get('id')}"></converse-chat-message>`;
+      const template = lit_html_x`<converse-chat-message jid="${this.model.get('jid')}" mid="${model.get('id')}"></converse-chat-message>`;
       const day = getDayIndicator(model);
       return day ? [day, template] : template;
     }
@@ -58556,7 +59308,7 @@ class ChatContent extends CustomElement {
     }
     // This element has "flex-direction: reverse", so elements here are
     // shown in reverse order.
-    return x`<div class="chat-content__notifications">${this.model.getNotificationsText()}</div><converse-message-history .model="${this.model}" .messages="${[...this.model.messages.models]}"></converse-message-history>${this.model.ui?.get('chat-content-spinner-top') ? spinner() : ''}`;
+    return lit_html_x`<div class="chat-content__notifications">${this.model.getNotificationsText()}</div><converse-message-history .model="${this.model}" .messages="${[...this.model.messages.models]}"></converse-message-history>${this.model.ui?.get('chat-content-spinner-top') ? spinner() : ''}`;
   }
   scrollDown() {
     if (this.model.ui.get('scrolled')) {
@@ -58584,7 +59336,7 @@ class ChatContent extends CustomElement {
   }
 }
 shared_api.elements.define('converse-chat-content', ChatContent);
-;// CONCATENATED MODULE: ./node_modules/lit-html/directives/unsafe-html.js
+;// CONCATENATED MODULE: ./node_modules/lit/node_modules/lit-html/directives/unsafe-html.js
 
 
 /**
@@ -58594,16 +59346,16 @@ shared_api.elements.define('converse-chat-content', ChatContent);
  */
 class unsafe_html_e extends directive_i {
   constructor(i) {
-    if (super(i), this.et = A, i.type !== directive_t.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
+    if (super(i), this.it = E, i.type !== directive_t.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
   }
   render(r) {
-    if (r === A || null == r) return this.ft = void 0, this.et = r;
+    if (r === E || null == r) return this._t = void 0, this.it = r;
     if (r === T) return r;
     if ("string" != typeof r) throw Error(this.constructor.directiveName + "() called with a non-string value");
-    if (r === this.et) return this.ft;
-    this.et = r;
+    if (r === this.it) return this._t;
+    this.it = r;
     const s = [r];
-    return s.raw = s, this.ft = {
+    return s.raw = s, this._t = {
       _$litType$: this.constructor.resultType,
       strings: s,
       values: []
@@ -58641,7 +59393,7 @@ class ChatHelp extends CustomElement {
   }
   render() {
     const isodate = new Date().toISOString();
-    return [x`<converse-icon class="fas fa-times close-chat-help" @click="${this.close}" path-prefix="${shared_api.settings.get("assets_path")}" size="1em"></converse-icon>`, ...this.messages.map(m => this.renderHelpMessage({
+    return [lit_html_x`<converse-icon class="fas fa-times close-chat-help" @click="${this.close}" path-prefix="${shared_api.settings.get("assets_path")}" size="1em"></converse-icon>`, ...this.messages.map(m => this.renderHelpMessage({
       isodate,
       'markup': purify_default().sanitize(m, {
         'ALLOWED_TAGS': ['strong']
@@ -58654,7 +59406,7 @@ class ChatHelp extends CustomElement {
     });
   }
   renderHelpMessage(o) {
-    return x`<div class="message chat-${this.type}" data-isodate="${o.isodate}">${unsafe_html_o(o.markup)}</div>`;
+    return lit_html_x`<div class="message chat-${this.type}" data-isodate="${o.isodate}">${unsafe_html_o(o.markup)}</div>`;
   }
 }
 shared_api.elements.define('converse-chat-help', ChatHelp);
@@ -58664,7 +59416,7 @@ shared_api.elements.define('converse-chat-help', ChatHelp);
 
 const emoji_picker_u = public_converse.env.utils;
 const emoji_category = o => {
-  return x`<li data-category="${o.category}" class="emoji-category ${o.category} ${o.current_category === o.category ? 'picked' : ''}" title="${__(shared_api.settings.get('emoji_category_labels')[o.category])}"><a class="pick-category" @click="${o.onCategoryPicked}" href="#emoji-picker-${o.category}" data-category="${o.category}">${o.emoji}</a></li>`;
+  return lit_html_x`<li data-category="${o.category}" class="emoji-category ${o.category} ${o.current_category === o.category ? 'picked' : ''}" title="${__(shared_api.settings.get('emoji_category_labels')[o.category])}"><a class="pick-category" @click="${o.onCategoryPicked}" href="#emoji-picker-${o.category}" data-category="${o.category}">${o.emoji}</a></li>`;
 };
 const emoji_picker_header = o => {
   const cats = shared_api.settings.get('emoji_categories');
@@ -58672,35 +59424,35 @@ const emoji_picker_header = o => {
     'category': c,
     'emoji': o.sn2Emoji(cats[c])
   }, o)) : '';
-  return x`<ul>${Object.keys(cats).map(transform)}</ul>`;
+  return lit_html_x`<ul>${Object.keys(cats).map(transform)}</ul>`;
 };
 const emoji_item = o => {
-  return x`<li class="emoji insert-emoji ${o.shouldBeHidden(o.emoji.sn) ? 'hidden' : ''}" data-emoji="${o.emoji.sn}" title="${o.emoji.sn}"><a href="#" @click="${o.insertEmoji}" data-emoji="${o.emoji.sn}">${emoji_picker_u.shortnamesToEmojis(o.emoji.sn)}</a></li>`;
+  return lit_html_x`<li class="emoji insert-emoji ${o.shouldBeHidden(o.emoji.sn) ? 'hidden' : ''}" data-emoji="${o.emoji.sn}" title="${o.emoji.sn}"><a href="#" @click="${o.insertEmoji}" data-emoji="${o.emoji.sn}">${emoji_picker_u.shortnamesToEmojis(o.emoji.sn)}</a></li>`;
 };
 const tplSearchResults = o => {
   const i18n_search_results = __('Search results');
-  return x`<span ?hidden="${!o.query}" class="emoji-lists__container emojis-lists__container--search"><a id="emoji-picker-search-results" class="emoji-category__heading">${i18n_search_results}</a><ul class="emoji-picker">${o.search_results.map(emoji => emoji_item(Object.assign({
+  return lit_html_x`<span ?hidden="${!o.query}" class="emoji-lists__container emojis-lists__container--search"><a id="emoji-picker-search-results" class="emoji-category__heading">${i18n_search_results}</a><ul class="emoji-picker">${o.search_results.map(emoji => emoji_item(Object.assign({
     emoji
   }, o)))}</ul></span>`;
 };
 const emojis_for_category = o => {
-  return x`<a id="emoji-picker-${o.category}" class="emoji-category__heading" data-category="${o.category}">${__(shared_api.settings.get('emoji_category_labels')[o.category])}</a><ul class="emoji-picker" data-category="${o.category}">${Object.values(public_converse.emojis.json[o.category]).map(emoji => emoji_item(Object.assign({
+  return lit_html_x`<a id="emoji-picker-${o.category}" class="emoji-category__heading" data-category="${o.category}">${__(shared_api.settings.get('emoji_category_labels')[o.category])}</a><ul class="emoji-picker" data-category="${o.category}">${Object.values(public_converse.emojis.json[o.category]).map(emoji => emoji_item(Object.assign({
     emoji
   }, o)))}</ul>`;
 };
 const tplAllEmojis = o => {
   const cats = shared_api.settings.get('emoji_categories');
-  return x`<span ?hidden="${o.query}" class="emoji-lists__container emoji-lists__container--browse">${Object.keys(cats).map(c => cats[c] ? emojis_for_category(Object.assign({
+  return lit_html_x`<span ?hidden="${o.query}" class="emoji-lists__container emoji-lists__container--browse">${Object.keys(cats).map(c => cats[c] ? emojis_for_category(Object.assign({
     'category': c
   }, o)) : '')}</span>`;
 };
 const skintone_emoji = o => {
-  return x`<li data-skintone="${o.skintone}" class="emoji-skintone ${o.current_skintone === o.skintone ? 'picked' : ''}"><a class="pick-skintone" href="#" data-skintone="${o.skintone}" @click="${o.onSkintonePicked}">${emoji_picker_u.shortnamesToEmojis(':' + o.skintone + ':')}</a></li>`;
+  return lit_html_x`<li data-skintone="${o.skintone}" class="emoji-skintone ${o.current_skintone === o.skintone ? 'picked' : ''}"><a class="pick-skintone" href="#" data-skintone="${o.skintone}" @click="${o.onSkintonePicked}">${emoji_picker_u.shortnamesToEmojis(':' + o.skintone + ':')}</a></li>`;
 };
 const tplEmojiPicker = o => {
   const i18n_search = __('Search');
   const skintones = ['tone1', 'tone2', 'tone3', 'tone4', 'tone5'];
-  return x`<div class="emoji-picker__header"><input class="form-control emoji-search" name="emoji-search" placeholder="${i18n_search}" .value="${o.query || ''}" @keydown="${o.onSearchInputKeyDown}" @blur="${o.onSearchInputBlurred}" @focus="${o.onSearchInputFocus}"> ${o.query ? '' : emoji_picker_header(o)}</div>${o.render_emojis ? x`<converse-emoji-picker-content .chatview="${o.chatview}" .model="${o.model}" .search_results="${o.search_results}" current_skintone="${o.current_skintone}" query="${o.query}"></converse-emoji-picker-content>` : ''}<div class="emoji-skintone-picker"><ul>${skintones.map(skintone => skintone_emoji(Object.assign({
+  return lit_html_x`<div class="emoji-picker__header"><input class="form-control emoji-search" name="emoji-search" placeholder="${i18n_search}" .value="${o.query || ''}" @keydown="${o.onSearchInputKeyDown}" @blur="${o.onSearchInputBlurred}" @focus="${o.onSearchInputFocus}"> ${o.query ? '' : emoji_picker_header(o)}</div>${o.render_emojis ? lit_html_x`<converse-emoji-picker-content .chatview="${o.chatview}" .model="${o.model}" .search_results="${o.search_results}" current_skintone="${o.current_skintone}" query="${o.query}"></converse-emoji-picker-content>` : ''}<div class="emoji-skintone-picker"><ul>${skintones.map(skintone => skintone_emoji(Object.assign({
     skintone
   }, o)))}</ul></div>`;
 };
@@ -58741,7 +59493,7 @@ class EmojiPickerContent extends CustomElement {
       'search_results': this.search_results,
       'shouldBeHidden': shortname => this.shouldBeHidden(shortname)
     };
-    return x`<div class="emoji-picker__lists">${tplSearchResults(props)} ${tplAllEmojis(props)}</div>`;
+    return lit_html_x`<div class="emoji-picker__lists">${tplSearchResults(props)} ${tplAllEmojis(props)}</div>`;
   }
   firstUpdated() {
     this.initIntersectionObserver();
@@ -58855,7 +59607,7 @@ class EmojiDropdown extends Dropdown {
   render() {
     const is_groupchat = this.chatview.model.get('type') === shared_converse.CHATROOMS_TYPE;
     const color = is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
-    return x`<div class="dropup"><button class="toggle-emojis" title="${__('Insert emojis')}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><converse-icon color="var(${color})" class="fa fa-smile" path-prefix="${shared_api.settings.get('assets_path')}" size="1em"></converse-icon></button><div class="dropdown-menu">${until_m(this.initModel().then(() => x`<converse-emoji-picker .chatview="${this.chatview}" .model="${this.model}" @emojiSelected="${() => this.hideMenu()}" ?render_emojis="${this.render_emojis}" current_category="${this.model.get('current_category') || ''}" current_skintone="${this.model.get('current_skintone') || ''}" query="${this.model.get('query') || ''}"></converse-emoji-picker>`), '')}</div></div>`;
+    return lit_html_x`<div class="dropup"><button class="toggle-emojis" title="${__('Insert emojis')}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><converse-icon color="var(${color})" class="fa fa-smile" path-prefix="${shared_api.settings.get('assets_path')}" size="1em"></converse-icon></button><div class="dropdown-menu">${until_m(this.initModel().then(() => lit_html_x`<converse-emoji-picker .chatview="${this.chatview}" .model="${this.model}" @emojiSelected="${() => this.hideMenu()}" ?render_emojis="${this.render_emojis}" current_category="${this.model.get('current_category') || ''}" current_skintone="${this.model.get('current_skintone') || ''}" query="${this.model.get('query') || ''}"></converse-emoji-picker>`), '')}</div></div>`;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -59195,7 +59947,7 @@ shared_api.elements.define('converse-emoji-picker', EmojiPicker);
 
 /* harmony default export */ const message_limit = (counter => {
   const i18n_chars_remaining = __('Message characters remaining');
-  return x`<span class="message-limit ${counter < 1 ? 'error' : ''}" title="${i18n_chars_remaining}">${counter}</span>`;
+  return lit_html_x`<span class="message-limit ${counter < 1 ? 'error' : ''}" title="${i18n_chars_remaining}">${counter}</span>`;
 });
 ;// CONCATENATED MODULE: ./src/shared/chat/message-limit.js
 
@@ -59227,10 +59979,10 @@ shared_api.elements.define('converse-message-limit-indicator', MessageLimitIndic
 
 function tplSendButton() {
   const i18n_send_message = __('Send the message');
-  return x`<button type="submit" class="btn send-button" title="${i18n_send_message}"><converse-icon color="var(--toolbar-btn-text-color)" class="fa fa-paper-plane" size="1em"></converse-icon></button>`;
+  return lit_html_x`<button type="submit" class="btn send-button" title="${i18n_send_message}"><converse-icon color="var(--toolbar-btn-text-color)" class="fa fa-paper-plane" size="1em"></converse-icon></button>`;
 }
 /* harmony default export */ const toolbar = (el => {
-  return x`<span class="toolbar-buttons">${until_m(el.getButtons(), '')}</span> ${el.show_send_button ? tplSendButton() : ''}`;
+  return lit_html_x`<span class="toolbar-buttons">${until_m(el.getButtons(), '')}</span> ${el.show_send_button ? tplSendButton() : ''}`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/chat/styles/toolbar.scss
 var styles_toolbar = __webpack_require__(9833);
@@ -59323,26 +60075,26 @@ class ChatToolbar extends CustomElement {
     const buttons = [];
     if (this.show_emoji_button) {
       const chatview = shared_converse.chatboxviews.get(this.model.get('jid'));
-      buttons.push(x`<converse-emoji-dropdown .chatview="${chatview}"></converse-emoji-dropdown>`);
+      buttons.push(lit_html_x`<converse-emoji-dropdown .chatview="${chatview}"></converse-emoji-dropdown>`);
     }
     if (this.show_call_button) {
       const color = this.is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
       const i18n_start_call = __('Start a call');
-      buttons.push(x`<button class="toggle-call" @click="${this.toggleCall}" title="${i18n_start_call}"><converse-icon color="var(${color})" class="fa fa-phone" size="1em"></converse-icon></button>`);
+      buttons.push(lit_html_x`<button class="toggle-call" @click="${this.toggleCall}" title="${i18n_start_call}"><converse-icon color="var(${color})" class="fa fa-phone" size="1em"></converse-icon></button>`);
     }
     const message_limit = shared_api.settings.get('message_limit');
     if (message_limit) {
-      buttons.push(x`<converse-message-limit-indicator .model="${this.model}" class="right"></converse-message-limit-indicator>`);
+      buttons.push(lit_html_x`<converse-message-limit-indicator .model="${this.model}" class="right"></converse-message-limit-indicator>`);
     }
     if (this.show_spoiler_button) {
       buttons.push(this.getSpoilerButton());
     }
     const http_upload_promise = shared_api.disco.supports(toolbar_Strophe.NS.HTTPUPLOAD, shared_converse.domain);
-    buttons.push(x`${until_m(http_upload_promise.then(is_supported => this.getHTTPUploadButton(is_supported)), '')}`);
+    buttons.push(lit_html_x`${until_m(http_upload_promise.then(is_supported => this.getHTTPUploadButton(is_supported)), '')}`);
     if (this.is_groupchat && shared_api.settings.get('visible_toolbar_buttons')?.toggle_occupants) {
       const i18n_hide_occupants = __('Hide participants');
       const i18n_show_occupants = __('Show participants');
-      buttons.push(x`<button class="toggle_occupants right" title="${this.hidden_occupants ? i18n_show_occupants : i18n_hide_occupants}" @click="${this.toggleOccupants}"><converse-icon color="var(--muc-toolbar-btn-color)" class="fa ${this.hidden_occupants ? `fa-angle-double-left` : `fa-angle-double-right`}" size="1em"></converse-icon></button>`);
+      buttons.push(lit_html_x`<button class="toggle_occupants right" title="${this.hidden_occupants ? i18n_show_occupants : i18n_hide_occupants}" @click="${this.toggleOccupants}"><converse-icon color="var(--muc-toolbar-btn-color)" class="fa ${this.hidden_occupants ? `fa-angle-double-left` : `fa-angle-double-right`}" size="1em"></converse-icon></button>`);
     }
 
     /**
@@ -59362,7 +60114,7 @@ class ChatToolbar extends CustomElement {
     if (is_supported) {
       const i18n_choose_file = __('Choose a file to send');
       const color = this.is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
-      return x`<button title="${i18n_choose_file}" @click="${this.toggleFileUpload}"><converse-icon color="var(${color})" class="fa fa-paperclip" size="1em"></converse-icon></button> <input type="file" @change="${this.onFileSelection}" class="fileupload" multiple="" style="display:none">`;
+      return lit_html_x`<button title="${i18n_choose_file}" @click="${this.toggleFileUpload}"><converse-icon color="var(${color})" class="fa fa-paperclip" size="1em"></converse-icon></button> <input type="file" @change="${this.onFileSelection}" class="fileupload" multiple="" style="display:none">`;
     } else {
       return '';
     }
@@ -59379,13 +60131,13 @@ class ChatToolbar extends CustomElement {
       i18n_toggle_spoiler = __("Click to write your message as a spoiler");
     }
     const color = this.is_groupchat ? '--muc-toolbar-btn-color' : '--chat-toolbar-btn-color';
-    const markup = x`<button class="toggle-compose-spoiler" title="${i18n_toggle_spoiler}" @click="${this.toggleComposeSpoilerMessage}"><converse-icon color="var(${color})" class="fa ${model.get('composing_spoiler') ? 'fa-eye-slash' : 'fa-eye'}" size="1em"></converse-icon></button>`;
+    const markup = lit_html_x`<button class="toggle-compose-spoiler" title="${i18n_toggle_spoiler}" @click="${this.toggleComposeSpoilerMessage}"><converse-icon color="var(${color})" class="fa ${model.get('composing_spoiler') ? 'fa-eye-slash' : 'fa-eye'}" size="1em"></converse-icon></button>`;
     if (this.is_groupchat) {
       return markup;
     } else {
       const contact_jid = model.get('jid');
       const spoilers_promise = Promise.all(model.presence.resources.map(r => shared_api.disco.supports(toolbar_Strophe.NS.SPOILER, `${contact_jid}/${r.get('name')}`))).then(results => results.reduce((acc, val) => acc && val, true));
-      return x`${until_m(spoilers_promise.then(() => markup), '')}`;
+      return lit_html_x`${until_m(spoilers_promise.then(() => markup), '')}`;
     }
   }
   toggleFileUpload(ev) {
@@ -59434,9 +60186,9 @@ shared_api.elements.define('converse-chat-toolbar', ChatToolbar);
 
 /* harmony default export */ const chat_head = (o => {
   const i18n_profile = __("The User's Profile Image");
-  const avatar = x`<span title="${i18n_profile}"><converse-avatar class="avatar chat-msg__avatar" .data="${o.model.vcard?.attributes}" nonce="${o.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></span>`;
+  const avatar = lit_html_x`<span title="${i18n_profile}"><converse-avatar class="avatar chat-msg__avatar" .data="${o.model.vcard?.attributes}" nonce="${o.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></span>`;
   const display_name = o.model.getDisplayName();
-  return x`<div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}"><div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''} ${o.type !== shared_converse.HEADLINES_TYPE ? x`<a class="show-msg-author-modal" @click="${o.showUserDetailsModal}">${avatar}</a>` : ''}<div class="chatbox-title__text" title="${o.jid}">${o.type !== shared_converse.HEADLINES_TYPE ? x`<a class="user show-msg-author-modal" @click="${o.showUserDetailsModal}">${display_name}</a>` : display_name}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getDropdownButtons(o.heading_buttons_promise), '')} ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}</div></div>${o.status ? x`<p class="chat-head__desc">${o.status}</p>` : ''}`;
+  return lit_html_x`<div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}"><div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? lit_html_x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''} ${o.type !== shared_converse.HEADLINES_TYPE ? lit_html_x`<a class="show-msg-author-modal" @click="${o.showUserDetailsModal}">${avatar}</a>` : ''}<div class="chatbox-title__text" title="${o.jid}">${o.type !== shared_converse.HEADLINES_TYPE ? lit_html_x`<a class="user show-msg-author-modal" @click="${o.showUserDetailsModal}">${display_name}</a>` : display_name}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getDropdownButtons(o.heading_buttons_promise), '')} ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}</div></div>${o.status ? lit_html_x`<p class="chat-head__desc">${o.status}</p>` : ''}`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/chatview/styles/chat-head.scss
 var styles_chat_head = __webpack_require__(263);
@@ -59669,7 +60421,7 @@ function resetElementHeight(ev) {
   const label_message = o.composing_spoiler ? __('Hidden message') : __('Message');
   const label_spoiler_hint = __('Optional hint');
   const show_send_button = shared_api.settings.get('show_send_button');
-  return x`<form class="sendXMPPMessage"><input type="text" enterkeyhint="send" placeholder="${label_spoiler_hint || ''}" i value="${o.hint_value || ''}" class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"> <textarea autofocus type="text" enterkeyhint="send" @drop="${o.onDrop}" @input="${resetElementHeight}" @keydown="${o.onKeyDown}" @keyup="${o.onKeyUp}" @paste="${o.onPaste}" @change="${o.onChange}" class="chat-textarea ${show_send_button ? 'chat-textarea-send-button' : ''} ${o.composing_spoiler ? 'spoiler' : ''}" placeholder="${label_message}">${o.message_value || ''}</textarea></form>`;
+  return lit_html_x`<form class="sendXMPPMessage"><input type="text" enterkeyhint="send" placeholder="${label_spoiler_hint || ''}" i value="${o.hint_value || ''}" class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"> <textarea autofocus type="text" enterkeyhint="send" @drop="${o.onDrop}" @input="${resetElementHeight}" @keydown="${o.onKeyDown}" @keyup="${o.onKeyUp}" @paste="${o.onPaste}" @change="${o.onChange}" class="chat-textarea ${show_send_button ? 'chat-textarea-send-button' : ''} ${o.composing_spoiler ? 'spoiler' : ''}" placeholder="${label_message}">${o.message_value || ''}</textarea></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/chatview/message-form.js
 
@@ -59907,7 +60659,7 @@ shared_api.elements.define('converse-message-form', MessageForm);
   const show_send_button = shared_api.settings.get('show_send_button');
   const show_spoiler_button = shared_api.settings.get('visible_toolbar_buttons').spoiler;
   const show_toolbar = shared_api.settings.get('show_toolbar');
-  return x`${o.model.ui.get('scrolled') && o.model.get('num_unread') ? x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${shared_api.settings.get('show_toolbar') ? x`<converse-chat-toolbar class="chat-toolbar no-text-select" .model="${o.model}" ?composing_spoiler="${o.model.get('composing_spoiler')}" ?show_call_button="${show_call_button}" ?show_emoji_button="${show_emoji_button}" ?show_send_button="${show_send_button}" ?show_spoiler_button="${show_spoiler_button}" ?show_toolbar="${show_toolbar}" message_limit="${message_limit}"></converse-chat-toolbar>` : ''}<converse-message-form jid="${o.model.get('jid')}"></converse-message-form>`;
+  return lit_html_x`${o.model.ui.get('scrolled') && o.model.get('num_unread') ? lit_html_x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${shared_api.settings.get('show_toolbar') ? lit_html_x`<converse-chat-toolbar class="chat-toolbar no-text-select" .model="${o.model}" ?composing_spoiler="${o.model.get('composing_spoiler')}" ?show_call_button="${show_call_button}" ?show_emoji_button="${show_emoji_button}" ?show_send_button="${show_send_button}" ?show_spoiler_button="${show_spoiler_button}" ?show_toolbar="${show_toolbar}" message_limit="${message_limit}"></converse-chat-toolbar>` : ''}<converse-message-form jid="${o.model.get('jid')}"></converse-message-form>`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/chatview/styles/chat-bottom-panel.scss
 var chat_bottom_panel = __webpack_require__(298);
@@ -59974,7 +60726,7 @@ class ChatBottomPanel extends ElementView {
     this.addEventListener('focusout', ev => this.emitBlurred(ev));
   }
   render() {
-    B(bottom_panel({
+    lit_html_B(bottom_panel({
       'model': this.model,
       'viewUnreadMessages': ev => this.viewUnreadMessages(ev)
     }), this);
@@ -60139,7 +60891,7 @@ class BaseChatView extends CustomElement {
 ;// CONCATENATED MODULE: ./src/plugins/chatview/templates/chat.js
 
 
-/* harmony default export */ const chat = (o => x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${o.model ? x`<converse-chat-heading jid="${o.jid}" class="chat-head chat-head-chatbox row no-gutters"></converse-chat-heading><div class="chat-body"><div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${o.jid}"></converse-chat-content>${o.show_help_messages ? x`<div class="chat-content__help"><converse-chat-help .model="${o.model}" .messages="${o.help_messages}" ?hidden="${!o.show_help_messages}" type="info" chat_type="${shared_converse.CHATROOMS_TYPE}"></converse-chat-help></div>` : ''}</div><converse-chat-bottom-panel jid="${o.jid}" class="bottom-panel"></converse-chat-bottom-panel></div>` : ''}</div>`);
+/* harmony default export */ const chat = (o => lit_html_x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${o.model ? lit_html_x`<converse-chat-heading jid="${o.jid}" class="chat-head chat-head-chatbox row no-gutters"></converse-chat-heading><div class="chat-body"><div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${o.jid}"></converse-chat-content>${o.show_help_messages ? lit_html_x`<div class="chat-content__help"><converse-chat-help .model="${o.model}" .messages="${o.help_messages}" ?hidden="${!o.show_help_messages}" type="info" chat_type="${shared_converse.CHATROOMS_TYPE}"></converse-chat-help></div>` : ''}</div><converse-chat-bottom-panel jid="${o.jid}" class="bottom-panel"></converse-chat-bottom-panel></div>` : ''}</div>`);
 ;// CONCATENATED MODULE: ./src/plugins/chatview/chat.js
 
 
@@ -60290,7 +61042,7 @@ class ConverseBrandByline extends CustomElement {
   render() {
     // eslint-disable-line class-methods-use-this
     const is_fullscreen = shared_api.settings.get('view_mode') === 'fullscreen';
-    return x`${is_fullscreen ? x`<p class="brand-subtitle">${shared_converse.VERSION_NAME}</p><p class="brand-subtitle"><a target="_blank" rel="nofollow" href="https://conversejs.org">Open Source</a> XMPP chat client brought to you by <a target="_blank" rel="nofollow" href="https://opkode.com">Opkode</a></p><p class="brand-subtitle"><a target="_blank" rel="nofollow" href="https://hosted.weblate.org/projects/conversejs/#languages">Translate</a> it into your own language</p>` : ''}`;
+    return lit_html_x`${is_fullscreen ? lit_html_x`<p class="brand-subtitle">${shared_converse.VERSION_NAME}</p><p class="brand-subtitle"><a target="_blank" rel="nofollow" href="https://conversejs.org">Open Source</a> XMPP chat client brought to you by <a target="_blank" rel="nofollow" href="https://opkode.com">Opkode</a></p><p class="brand-subtitle"><a target="_blank" rel="nofollow" href="https://hosted.weblate.org/projects/conversejs/#languages">Translate</a> it into your own language</p>` : ''}`;
   }
 }
 shared_api.elements.define('converse-brand-byline', ConverseBrandByline);
@@ -60302,7 +61054,7 @@ class ConverseBrandLogo extends CustomElement {
   render() {
     // eslint-disable-line class-methods-use-this
     const is_fullscreen = shared_api.settings.get('view_mode') === 'fullscreen';
-    return x`<a class="brand-heading" href="https://conversejs.org" target="_blank" rel="noopener"><span class="brand-name-wrapper ${is_fullscreen ? 'brand-name-wrapper--fullscreen' : ''}"><svg class="converse-svg-logo" xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 364 364"><title>Converse</title><g class="cls-1" id="g904"><g data-name="Layer 2"><g data-name="Layer 7"><path class="cls-3" d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z"/><path class="cls-4" d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z"/></g></g></g></svg> <span class="brand-name"><span class="brand-name__text">converse<span class="subdued">.js</span></span> ${is_fullscreen ? x`<p class="byline">messaging freedom</p>` : ''}</span></span></a>`;
+    return lit_html_x`<a class="brand-heading" href="https://conversejs.org" target="_blank" rel="noopener"><span class="brand-name-wrapper ${is_fullscreen ? 'brand-name-wrapper--fullscreen' : ''}"><svg class="converse-svg-logo" xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 364 364"><title>Converse</title><g class="cls-1" id="g904"><g data-name="Layer 2"><g data-name="Layer 7"><path class="cls-3" d="M221.46,103.71c0,18.83-29.36,18.83-29.12,0C192.1,84.88,221.46,84.88,221.46,103.71Z"/><path class="cls-4" d="M179.9,4.15A175.48,175.48,0,1,0,355.38,179.63,175.48,175.48,0,0,0,179.9,4.15Zm-40.79,264.5c-.23-17.82,27.58-17.82,27.58,0S138.88,286.48,139.11,268.65ZM218.6,168.24A79.65,79.65,0,0,1,205.15,174a12.76,12.76,0,0,0-6.29,4.65L167.54,222a1.36,1.36,0,0,1-2.46-.8v-35.8a2.58,2.58,0,0,0-3.06-2.53c-15.43,3-30.23,7.7-42.73,19.94-38.8,38-29.42,105.69,16.09,133.16a162.25,162.25,0,0,1-91.47-67.27C-3.86,182.26,34.5,47.25,138.37,25.66c46.89-9.75,118.25,5.16,123.73,62.83C265.15,120.64,246.56,152.89,218.6,168.24Z"/></g></g></g></svg> <span class="brand-name"><span class="brand-name__text">converse<span class="subdued">.js</span></span> ${is_fullscreen ? lit_html_x`<p class="byline">messaging freedom</p>` : ''}</span></span></a>`;
   }
 }
 shared_api.elements.define('converse-brand-logo', ConverseBrandLogo);
@@ -60340,22 +61092,22 @@ const CONNECTION_STATUS_CSS_CLASS = Object.fromEntries([[constants_Strophe.Statu
 const trust_checkbox = checked => {
   const i18n_hint_trusted = __('To improve performance, we cache your data in this browser. ' + 'Uncheck this box if this is a public computer or if you want your data to be deleted when you log out. ' + "It's important that you explicitly log out, otherwise not all cached data might be deleted. " + 'Please note, when using an untrusted device, OMEMO encryption is NOT available.');
   const i18n_trusted = __('This is a trusted device');
-  return x`<div class="form-group form-check login-trusted"><input id="converse-login-trusted" type="checkbox" class="form-check-input" name="trusted" ?checked="${checked}"> <label for="converse-login-trusted" class="form-check-label login-trusted__desc">${i18n_trusted}</label><converse-icon class="fa fa-info-circle" data-toggle="popover" data-title="Trusted device?" data-content="${i18n_hint_trusted}" size="1.2em" title="${i18n_hint_trusted}"></converse-icon></div>`;
+  return lit_html_x`<div class="form-group form-check login-trusted"><input id="converse-login-trusted" type="checkbox" class="form-check-input" name="trusted" ?checked="${checked}"> <label for="converse-login-trusted" class="form-check-label login-trusted__desc">${i18n_trusted}</label><converse-icon class="fa fa-info-circle" data-toggle="popover" data-title="Trusted device?" data-content="${i18n_hint_trusted}" size="1.2em" title="${i18n_hint_trusted}"></converse-icon></div>`;
 };
 const connection_url_input = () => {
   const i18n_connection_url = __('Connection URL');
   const i18n_form_help = __('HTTP or websocket URL that is used to connect to your XMPP server');
   const i18n_placeholder = __('e.g. wss://example.org/xmpp-websocket');
-  return x`<div class="form-group fade-in"><label for="converse-conn-url">${i18n_connection_url}</label><p class="form-help instructions">${i18n_form_help}</p><input id="converse-conn-url" class="form-control" type="url" name="connection-url" placeholder="${i18n_placeholder}"></div>`;
+  return lit_html_x`<div class="form-group fade-in"><label for="converse-conn-url">${i18n_connection_url}</label><p class="form-help instructions">${i18n_form_help}</p><input id="converse-conn-url" class="form-control" type="url" name="connection-url" placeholder="${i18n_placeholder}"></div>`;
 };
 const password_input = () => {
   const i18n_password = __('Password');
-  return x`<div class="form-group"><label for="converse-login-password">${i18n_password}</label> <input id="converse-login-password" class="form-control" required="required" value="${shared_api.settings.get('password') ?? ''}" type="password" name="password" placeholder="${i18n_password}"></div>`;
+  return lit_html_x`<div class="form-group"><label for="converse-login-password">${i18n_password}</label> <input id="converse-login-password" class="form-control" required="required" value="${shared_api.settings.get('password') ?? ''}" type="password" name="password" placeholder="${i18n_password}"></div>`;
 };
 const tplRegisterLink = () => {
   const i18n_create_account = __('Create an account');
   const i18n_hint_no_account = __("Don't have a chat account?");
-  return x`<fieldset class="switch-form"><p>${i18n_hint_no_account}</p><p><a class="register-account toggle-register-login" href="#converse/register">${i18n_create_account}</a></p></fieldset>`;
+  return lit_html_x`<fieldset class="switch-form"><p>${i18n_hint_no_account}</p><p><a class="register-account toggle-register-login" href="#converse/register">${i18n_create_account}</a></p></fieldset>`;
 };
 const tplShowRegisterLink = () => {
   return shared_api.settings.get('allow_registration') && !shared_api.settings.get('auto_login') && shared_converse.pluggable.plugins['converse-register'].enabled(shared_converse);
@@ -60368,13 +61120,13 @@ const auth_fields = el => {
   const default_domain = shared_api.settings.get('default_domain');
   const placeholder_username = (locked_domain || default_domain) && __('Username') || __('user@domain');
   const show_trust_checkbox = shared_api.settings.get('allow_user_trust_override');
-  return x`<div class="form-group"><label for="converse-login-jid">${i18n_xmpp_address}:</label> <input id="converse-login-jid" ?autofocus="${shared_api.settings.get('auto_focus') ? true : false}" @changed="${el.validate}" value="${shared_api.settings.get('jid') ?? ''}" required class="form-control" type="text" name="jid" placeholder="${placeholder_username}"></div>${authentication !== EXTERNAL ? password_input() : ''} ${shared_api.settings.get('show_connection_url_input') ? connection_url_input() : ''} ${show_trust_checkbox ? trust_checkbox(show_trust_checkbox === 'off' ? false : true) : ''}<fieldset class="form-group buttons"><input class="btn btn-primary" type="submit" value="${i18n_login}"></fieldset>${tplShowRegisterLink() ? tplRegisterLink() : ''}`;
+  return lit_html_x`<div class="form-group"><label for="converse-login-jid">${i18n_xmpp_address}:</label> <input id="converse-login-jid" ?autofocus="${shared_api.settings.get('auto_focus') ? true : false}" @changed="${el.validate}" value="${shared_api.settings.get('jid') ?? ''}" required class="form-control" type="text" name="jid" placeholder="${placeholder_username}"></div>${authentication !== EXTERNAL ? password_input() : ''} ${shared_api.settings.get('show_connection_url_input') ? connection_url_input() : ''} ${show_trust_checkbox ? trust_checkbox(show_trust_checkbox === 'off' ? false : true) : ''}<fieldset class="form-group buttons"><input class="btn btn-primary" type="submit" value="${i18n_login}"></fieldset>${tplShowRegisterLink() ? tplRegisterLink() : ''}`;
 };
 const form_fields = el => {
   const authentication = shared_api.settings.get('authentication');
   const i18n_disconnected = __('Disconnected');
   const i18n_anon_login = __('Click here to log in anonymously');
-  return x`${authentication == LOGIN || authentication == EXTERNAL ? auth_fields(el) : ''} ${authentication == ANONYMOUS ? x`<input class="btn btn-primary login-anon" type="submit" value="${i18n_anon_login}">` : ''} ${authentication == PREBIND ? x`<p>${i18n_disconnected}</p>` : ''}`;
+  return lit_html_x`${authentication == LOGIN || authentication == EXTERNAL ? auth_fields(el) : ''} ${authentication == ANONYMOUS ? lit_html_x`<input class="btn btn-primary login-anon" type="submit" value="${i18n_anon_login}">` : ''} ${authentication == PREBIND ? lit_html_x`<p>${i18n_disconnected}</p>` : ''}`;
 };
 /* harmony default export */ const loginform = (el => {
   const connection_status = shared_converse.connfeedback.get('connection_status');
@@ -60384,7 +61136,7 @@ const form_fields = el => {
     feedback_class = CONNECTION_STATUS_CSS_CLASS[connection_status];
   }
   const conn_feedback_message = shared_converse.connfeedback.get('message');
-  return x`<converse-brand-heading></converse-brand-heading><form id="converse-login" class="converse-form" method="post" @submit="${el.onLoginFormSubmitted}"><div class="conn-feedback fade-in ${!pretty_status ? 'hidden' : feedback_class}"><p class="feedback-subject">${pretty_status}</p><p class="feedback-message ${!conn_feedback_message ? 'hidden' : ''}">${conn_feedback_message}</p></div>${CONNECTION_STATUS[connection_status] === 'CONNECTING' ? spinner({
+  return lit_html_x`<converse-brand-heading></converse-brand-heading><form id="converse-login" class="converse-form" method="post" @submit="${el.onLoginFormSubmitted}"><div class="conn-feedback fade-in ${!pretty_status ? 'hidden' : feedback_class}"><p class="feedback-subject">${pretty_status}</p><p class="feedback-message ${!conn_feedback_message ? 'hidden' : ''}">${conn_feedback_message}</p></div>${CONNECTION_STATUS[connection_status] === 'CONNECTING' ? spinner({
     'classes': 'hor_centered'
   }) : form_fields(el)}</form>`;
 });
@@ -60582,7 +61334,7 @@ shared_api.elements.define('converse-login-form', LoginForm);
 
 
 /* harmony default export */ const navback = (jid => {
-  return x`<converse-icon size="1em" class="fa fa-arrow-left" @click="${() => navigateToControlBox(jid)}"></converse-icon>`;
+  return lit_html_x`<converse-icon size="1em" class="fa fa-arrow-left" @click="${() => navigateToControlBox(jid)}"></converse-icon>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/navback.js
 
@@ -60657,7 +61409,7 @@ const ControlBox = Model.extend({
 
 /* harmony default export */ const toggle = (o => {
   const i18n_toggle = shared_api.connection.connected() ? __('Chat Contacts') : __('Toggle chat');
-  return x`<a id="toggle-controlbox" class="toggle-controlbox ${o.hide ? 'hidden' : ''}" @click="${o.onClick}"><span class="toggle-feedback">${i18n_toggle}</span></a>`;
+  return lit_html_x`<a id="toggle-controlbox" class="toggle-controlbox ${o.hide ? 'hidden' : ''}" @click="${o.onClick}"><span class="toggle-feedback">${i18n_toggle}</span></a>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/toggle.js
 
@@ -60694,14 +61446,14 @@ function whenNotConnected(o) {
     return spinner();
   }
   if (o['active-form'] === 'register') {
-    return x`<converse-register-panel></converse-register-panel>`;
+    return lit_html_x`<converse-register-panel></converse-register-panel>`;
   }
-  return x`<converse-login-form id="converse-login-panel" class="controlbox-pane fade-in row no-gutters"></converse-login-form>`;
+  return lit_html_x`<converse-login-form id="converse-login-panel" class="controlbox-pane fade-in row no-gutters"></converse-login-form>`;
 }
 /* harmony default export */ const controlbox = (el => {
   const o = el.model.toJSON();
   const sticky_controlbox = shared_api.settings.get('sticky_controlbox');
-  return x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize><div class="chat-head controlbox-head">${sticky_controlbox ? '' : x`<a class="chatbox-btn close-chatbox-button" @click="${ev => el.close(ev)}"><converse-icon class="fa fa-times" size="1em"></converse-icon></a>`}</div><div class="controlbox-panes"><div class="controlbox-pane">${o.connected ? x`<converse-user-profile></converse-user-profile><converse-headlines-feeds-list class="controlbox-section"></converse-headlines-feeds-list><div id="chatrooms" class="controlbox-section"><converse-rooms-list></converse-rooms-list></div>${shared_api.settings.get("authentication") === shared_converse.ANONYMOUS ? '' : x`<div id="converse-roster" class="controlbox-section"><converse-roster></converse-roster></div>`}` : whenNotConnected(o)}</div></div></div>`;
+  return lit_html_x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize><div class="chat-head controlbox-head">${sticky_controlbox ? '' : lit_html_x`<a class="chatbox-btn close-chatbox-button" @click="${ev => el.close(ev)}"><converse-icon class="fa fa-times" size="1em"></converse-icon></a>`}</div><div class="controlbox-panes"><div class="controlbox-pane">${o.connected ? lit_html_x`<converse-user-profile></converse-user-profile><converse-headlines-feeds-list class="controlbox-section"></converse-headlines-feeds-list><div id="chatrooms" class="controlbox-section"><converse-rooms-list></converse-rooms-list></div>${shared_api.settings.get("authentication") === shared_converse.ANONYMOUS ? '' : lit_html_x`<div id="converse-roster" class="controlbox-section"><converse-roster></converse-roster></div>`}` : whenNotConnected(o)}</div></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/controlbox/controlbox.js
 
@@ -60937,7 +61689,7 @@ public_converse.plugins.add('converse-controlbox', {
     shared_api.listen.on('chatBoxesFetched', onChatBoxesFetched);
     shared_api.listen.on('clearSession', controlbox_utils_clearSession);
     shared_api.listen.on('will-reconnect', disconnect);
-    shared_api.waitUntil('chatBoxViewsInitialized').then(addControlBox).catch(e => log.fatal(e));
+    shared_api.waitUntil('chatBoxViewsInitialized').then(addControlBox).catch(e => headless_log.fatal(e));
   }
 });
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/templates/chat-head.js
@@ -60946,7 +61698,7 @@ public_converse.plugins.add('converse-controlbox', {
 
 
 /* harmony default export */ const templates_chat_head = (o => {
-  return x`<div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}"><div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}<div class="chatbox-title__text" title="${o.jid}">${o.display_name}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getDropdownButtons(o.heading_buttons_promise), '')} ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}</div></div>${o.status ? x`<p class="chat-head__desc">${o.status}</p>` : ''}`;
+  return lit_html_x`<div class="chatbox-title ${o.status ? '' : "chatbox-title--no-desc"}"><div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? lit_html_x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}<div class="chatbox-title__text" title="${o.jid}">${o.display_name}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getDropdownButtons(o.heading_buttons_promise), '')} ${until_m(getStandaloneButtons(o.heading_buttons_promise), '')}</div></div>${o.status ? lit_html_x`<p class="chat-head__desc">${o.status}</p>` : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/heading.js
 
@@ -61006,7 +61758,7 @@ shared_api.elements.define('converse-headlines-heading', HeadlinesHeading);
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/templates/headlines.js
 
 
-/* harmony default export */ const headlines = (model => x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${model ? x`<converse-headlines-heading jid="${model.get('jid')}" class="chat-head chat-head-chatbox row no-gutters"></converse-headlines-heading><div class="chat-body"><div class="chat-content" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${model.get('jid')}"></converse-chat-content></div></div>` : ''}</div>`);
+/* harmony default export */ const headlines = (model => lit_html_x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${model ? lit_html_x`<converse-headlines-heading jid="${model.get('jid')}" class="chat-head chat-head-chatbox row no-gutters"></converse-headlines-heading><div class="chat-body"><div class="chat-content" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${model.get('jid')}"></converse-chat-content></div></div>` : ''}</div>`);
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/view.js
 
 
@@ -61060,12 +61812,12 @@ shared_api.elements.define('converse-headlines', HeadlinesFeedView);
 
 function tplHeadlinesFeedsListItem(el, feed) {
   const open_title = __('Click to open this server message');
-  return x`<div class="list-item controlbox-padded d-flex flex-row" data-headline-jid="${feed.get('jid')}"><a class="list-item-link open-headline available-room w-100" data-headline-jid="${feed.get('jid')}" title="${open_title}" @click="${ev => el.openHeadline(ev)}" href="#">${feed.get('jid')}</a></div>`;
+  return lit_html_x`<div class="list-item controlbox-padded d-flex flex-row" data-headline-jid="${feed.get('jid')}"><a class="list-item-link open-headline available-room w-100" data-headline-jid="${feed.get('jid')}" title="${open_title}" @click="${ev => el.openHeadline(ev)}" href="#">${feed.get('jid')}</a></div>`;
 }
 /* harmony default export */ const feeds_list = (el => {
   const feeds = el.model.filter(m => m.get('type') === shared_converse.HEADLINES_TYPE);
   const heading_headline = __('Announcements');
-  return x`<div class="controlbox-section" id="headline"><div class="d-flex controlbox-padded ${feeds.length ? '' : 'hidden'}"><span class="w-100 controlbox-heading controlbox-heading--headline">${heading_headline}</span></div></div><div class="list-container list-container--headline ${feeds.length ? '' : 'hidden'}"><div class="items-list rooms-list headline-list">${feeds.map(feed => tplHeadlinesFeedsListItem(el, feed))}</div></div>`;
+  return lit_html_x`<div class="controlbox-section" id="headline"><div class="d-flex controlbox-padded ${feeds.length ? '' : 'hidden'}"><span class="w-100 controlbox-heading controlbox-heading--headline">${heading_headline}</span></div></div><div class="list-container list-container--headline ${feeds.length ? '' : 'hidden'}"><div class="items-list rooms-list headline-list">${feeds.map(feed => tplHeadlinesFeedsListItem(el, feed))}</div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/headlines-view/feed-list.js
 
@@ -61298,7 +62050,7 @@ async function fetchMessagesOnScrollUp(view) {
           });
         }
       } catch (e) {
-        log.error(e);
+        headless_log.error(e);
         view.model.ui.set('chat-content-spinner-top', false);
         return;
       }
@@ -61335,7 +62087,7 @@ public_converse.plugins.add('converse-mam-views', {
   const i18n_reason = __('Reason');
   const occupant = el.muc.getOwnOccupant();
   const assignable_affiliations = getAssignableAffiliations(occupant);
-  return x`<form class="affiliation-form" @submit="${ev => el.assignAffiliation(ev)}">${el.alert_message ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''}<div class="form-group"><div class="row"><div class="col"><label><strong>${i18n_new_affiliation}:</strong></label> <select class="custom-select select-affiliation" name="affiliation">${assignable_affiliations.map(aff => x`<option value="${aff}" ?selected="${aff === el.affiliation}">${aff}</option>`)}</select></div><div class="col"><label><strong>${i18n_reason}:</strong></label> <input class="form-control" type="text" name="reason"></div></div></div><div class="form-group"><div class="col"><input type="submit" class="btn btn-primary" name="change" value="${i18n_change_affiliation}"></div></div></form>`;
+  return lit_html_x`<form class="affiliation-form" @submit="${ev => el.assignAffiliation(ev)}">${el.alert_message ? lit_html_x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''}<div class="form-group"><div class="row"><div class="col"><label><strong>${i18n_new_affiliation}:</strong></label> <select class="custom-select select-affiliation" name="affiliation">${assignable_affiliations.map(aff => lit_html_x`<option value="${aff}" ?selected="${aff === el.affiliation}">${aff}</option>`)}</select></div><div class="col"><label><strong>${i18n_reason}:</strong></label> <input class="form-control" type="text" name="reason"></div></div></div><div class="form-group"><div class="col"><input type="submit" class="btn btn-primary" name="change" value="${i18n_change_affiliation}"></div></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/affiliation-form.js
 
@@ -61399,7 +62151,7 @@ class AffiliationForm extends CustomElement {
       } else {
         this.alert(__('Sorry, something went wrong while trying to set the affiliation'), 'danger');
       }
-      log.error(e);
+      headless_log.error(e);
       return;
     }
     await this.muc.occupants.fetchMembers();
@@ -61427,7 +62179,7 @@ shared_api.elements.define('converse-muc-affiliation-form', AffiliationForm);
   const i18n_reason = __('Reason');
   const occupant = el.muc.getOwnOccupant();
   const assignable_roles = getAssignableRoles(occupant);
-  return x`<form class="role-form" @submit="${el.assignRole}"><div class="form-group"><input type="hidden" name="jid" value="${el.jid}"> <input type="hidden" name="nick" value="${el.nick}"><div class="row"><div class="col"><label><strong>${i18n_new_role}:</strong></label> <select class="custom-select select-role" name="role">${assignable_roles.map(role => x`<option value="${role}" ?selected="${role === el.role}">${role}</option>`)}</select></div><div class="col"><label><strong>${i18n_reason}:</strong></label> <input class="form-control" type="text" name="reason"></div></div></div><div class="form-group"><div class="col"><input type="submit" class="btn btn-primary" value="${i18n_change_role}"></div></div></form>`;
+  return lit_html_x`<form class="role-form" @submit="${el.assignRole}"><div class="form-group"><input type="hidden" name="jid" value="${el.jid}"> <input type="hidden" name="nick" value="${el.nick}"><div class="row"><div class="col"><label><strong>${i18n_new_role}:</strong></label> <select class="custom-select select-role" name="role">${assignable_roles.map(role => lit_html_x`<option value="${role}" ?selected="${role === el.role}">${role}</option>`)}</select></div><div class="col"><label><strong>${i18n_reason}:</strong></label> <input class="form-control" type="text" name="reason"></div></div></div><div class="form-group"><div class="col"><input type="submit" class="btn btn-primary" value="${i18n_change_role}"></div></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/role-form.js
 
@@ -61494,7 +62246,7 @@ class RoleForm extends CustomElement {
         this.alert(__("You're not allowed to make that change"), 'danger');
       } else {
         this.alert(__('Sorry, something went wrong while trying to set the role'), 'danger');
-        if (isErrorObject(e)) log.error(e);
+        if (isErrorObject(e)) headless_log.error(e);
       }
     });
   }
@@ -61509,7 +62261,7 @@ shared_api.elements.define('converse-muc-role-form', RoleForm);
   const label_message = o.composing_spoiler ? __('Hidden message') : __('Message');
   const label_spoiler_hint = __('Optional hint');
   const show_send_button = shared_api.settings.get('show_send_button');
-  return x`<form class="setNicknameButtonForm hidden"><input type="submit" class="btn btn-primary" name="join" value="Join"></form><form class="sendXMPPMessage"><input type="text" placeholder="${label_spoiler_hint || ''}" value="${o.hint_value || ''}" class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"><div class="suggestion-box"><ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul><textarea autofocus type="text" @drop="${o.onDrop}" @input="${resetElementHeight}" @keydown="${o.onKeyDown}" @keyup="${o.onKeyUp}" @paste="${o.onPaste}" @change="${o.onChange}" class="chat-textarea suggestion-box__input ${show_send_button ? 'chat-textarea-send-button' : ''} ${o.composing_spoiler ? 'spoiler' : ''}" placeholder="${label_message}">${o.message_value || ''}</textarea> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></form>`;
+  return lit_html_x`<form class="setNicknameButtonForm hidden"><input type="submit" class="btn btn-primary" name="join" value="Join"></form><form class="sendXMPPMessage"><input type="text" placeholder="${label_spoiler_hint || ''}" value="${o.hint_value || ''}" class="${o.composing_spoiler ? '' : 'hidden'} spoiler-hint"><div class="suggestion-box"><ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul><textarea autofocus type="text" @drop="${o.onDrop}" @input="${resetElementHeight}" @keydown="${o.onKeyDown}" @keyup="${o.onKeyUp}" @paste="${o.onPaste}" @change="${o.onChange}" class="chat-textarea suggestion-box__input ${show_send_button ? 'chat-textarea-send-button' : ''} ${o.composing_spoiler ? 'spoiler' : ''}" placeholder="${label_message}">${o.message_value || ''}</textarea> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/message-form.js
 
@@ -61584,7 +62336,7 @@ shared_api.elements.define('converse-muc-message-form', MUCMessageForm);
   const i18n_join = el.model?.isEntered() ? __('Change nickname') : __('Enter groupchat');
   const i18n_heading = shared_api.settings.get('muc_show_logs_before_join') ? __('Choose a nickname to enter') : __('Please choose your nickname');
   const validation_message = el.model?.get('nickname_validation_message');
-  return x`<div class="chatroom-form-container muc-nickname-form"><form class="converse-form chatroom-form converse-centered-form" @submit="${ev => el.submitNickname(ev)}"><fieldset class="form-group"><label>${i18n_heading}</label><p class="validation-message">${validation_message}</p><input type="text" required="required" name="nick" value="${el.model?.get('nick') || ''}" class="form-control ${validation_message ? 'error' : ''}" placeholder="${i18n_nickname}"></fieldset><fieldset class="form-group"><input type="submit" class="btn btn-primary" name="join" value="${i18n_join}"></fieldset></form></div>`;
+  return lit_html_x`<div class="chatroom-form-container muc-nickname-form"><form class="converse-form chatroom-form converse-centered-form" @submit="${ev => el.submitNickname(ev)}"><fieldset class="form-group"><label>${i18n_heading}</label><p class="validation-message">${validation_message}</p><input type="text" required="required" name="nick" value="${el.model?.get('nick') || ''}" class="form-control ${validation_message ? 'error' : ''}" placeholder="${i18n_nickname}"></fieldset><fieldset class="form-group"><input type="submit" class="btn btn-primary" name="join" value="${i18n_join}"></fieldset></form></div>`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/nickname-form.scss
 var nickname_form = __webpack_require__(6714);
@@ -61673,17 +62425,17 @@ const tplCanEdit = o => {
   const show_send_button = shared_api.settings.get('show_send_button');
   const show_spoiler_button = shared_api.settings.get('visible_toolbar_buttons').spoiler;
   const show_toolbar = shared_api.settings.get('show_toolbar');
-  return x`${o.model.ui.get('scrolled') && o.model.get('num_unread') ? x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${show_toolbar ? x`<converse-chat-toolbar class="chat-toolbar no-text-select" .model="${o.model}" ?hidden_occupants="${o.model.get('hidden_occupants')}" ?is_groupchat="${o.is_groupchat}" ?show_call_button="${show_call_button}" ?show_emoji_button="${show_emoji_button}" ?show_send_button="${show_send_button}" ?show_spoiler_button="${show_spoiler_button}" ?show_toolbar="${show_toolbar}" message_limit="${message_limit}"></converse-chat-toolbar>` : ''}<converse-muc-message-form jid="${o.model.get('jid')}"></converse-muc-message-form>`;
+  return lit_html_x`${o.model.ui.get('scrolled') && o.model.get('num_unread') ? lit_html_x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${show_toolbar ? lit_html_x`<converse-chat-toolbar class="chat-toolbar no-text-select" .model="${o.model}" ?hidden_occupants="${o.model.get('hidden_occupants')}" ?is_groupchat="${o.is_groupchat}" ?show_call_button="${show_call_button}" ?show_emoji_button="${show_emoji_button}" ?show_send_button="${show_send_button}" ?show_spoiler_button="${show_spoiler_button}" ?show_toolbar="${show_toolbar}" message_limit="${message_limit}"></converse-chat-toolbar>` : ''}<converse-muc-message-form jid="${o.model.get('jid')}"></converse-muc-message-form>`;
 };
 /* harmony default export */ const muc_bottom_panel = (o => {
   const unread_msgs = __('You have unread messages');
   const conn_status = o.model.session.get('connection_status');
   const i18n_not_allowed = __("You're not allowed to send messages in this room");
   if (conn_status === public_converse.ROOMSTATUS.ENTERED) {
-    return x`${o.model.ui.get('scrolled') && o.model.get('num_unread_general') ? x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${o.can_edit ? tplCanEdit(o) : x`<span class="muc-bottom-panel muc-bottom-panel--muted">${i18n_not_allowed}</span>`}`;
+    return lit_html_x`${o.model.ui.get('scrolled') && o.model.get('num_unread_general') ? lit_html_x`<div class="new-msgs-indicator" @click="${ev => o.viewUnreadMessages(ev)}">▼ ${unread_msgs} ▼</div>` : ''} ${o.can_edit ? tplCanEdit(o) : lit_html_x`<span class="muc-bottom-panel muc-bottom-panel--muted">${i18n_not_allowed}</span>`}`;
   } else if (conn_status == public_converse.ROOMSTATUS.NICKNAME_REQUIRED) {
     if (shared_api.settings.get('muc_show_logs_before_join')) {
-      return x`<span class="muc-bottom-panel muc-bottom-panel--nickname"><converse-muc-nickname-form jid="${o.model.get('jid')}"></converse-muc-nickname-form></span>`;
+      return lit_html_x`<span class="muc-bottom-panel muc-bottom-panel--nickname"><converse-muc-nickname-form jid="${o.model.get('jid')}"></converse-muc-nickname-form></span>`;
     }
   } else {
     return '';
@@ -61744,7 +62496,7 @@ class MUCBottomPanel extends ChatBottomPanel {
   render() {
     const entered = this.model.session.get('connection_status') === public_converse.ROOMSTATUS.ENTERED;
     const can_edit = entered && !(this.model.features.get('moderated') && this.model.getOwnRole() === 'visitor');
-    B(muc_bottom_panel({
+    lit_html_B(muc_bottom_panel({
       can_edit,
       entered,
       'model': this.model,
@@ -61820,7 +62572,7 @@ const occupant_title = o => {
   } else {
     [classes, color] = ['fa fa-circle', 'subdued-color'];
   }
-  return x`<li class="occupant" id="${o.id}" title="${occupant_title(o)}"><div class="row no-gutters"><div class="col-auto"><a class="show-msg-author-modal" @click="${ev => showOccupantModal(ev, o)}"><converse-avatar class="avatar chat-msg__avatar" .data="${o.vcard?.attributes}" nonce="${o.vcard?.get('vcard_updated')}" height="30" width="30"></converse-avatar><converse-icon title="${hint_show}" color="var(--${color})" style="margin-top:-.1em" size="0.82em" class="${classes} chat-status chat-status--avatar"></converse-icon></a></div><div class="col occupant-nick-badge"><span class="occupant-nick" @click="${chat.onOccupantClicked}">${o.getDisplayName()}</span> <span class="occupant-badges">${affiliation === "owner" ? x`<span class="badge badge-groupchat">${i18n_owner}</span>` : ''} ${affiliation === "admin" ? x`<span class="badge badge-info">${i18n_admin}</span>` : ''} ${affiliation === "member" ? x`<span class="badge badge-info">${i18n_member}</span>` : ''} ${role === "moderator" ? x`<span class="badge badge-info">${i18n_moderator}</span>` : ''} ${role === "visitor" ? x`<span class="badge badge-secondary">${i18n_visitor}</span>` : ''}</span></div></div></li>`;
+  return lit_html_x`<li class="occupant" id="${o.id}" title="${occupant_title(o)}"><div class="row no-gutters"><div class="col-auto"><a class="show-msg-author-modal" @click="${ev => showOccupantModal(ev, o)}"><converse-avatar class="avatar chat-msg__avatar" .data="${o.vcard?.attributes}" nonce="${o.vcard?.get('vcard_updated')}" height="30" width="30"></converse-avatar><converse-icon title="${hint_show}" color="var(--${color})" style="margin-top:-.1em" size="0.82em" class="${classes} chat-status chat-status--avatar"></converse-icon></a></div><div class="col occupant-nick-badge"><span class="occupant-nick" @click="${chat.onOccupantClicked}">${o.getDisplayName()}</span> <span class="occupant-badges">${affiliation === "owner" ? lit_html_x`<span class="badge badge-groupchat">${i18n_owner}</span>` : ''} ${affiliation === "admin" ? lit_html_x`<span class="badge badge-info">${i18n_admin}</span>` : ''} ${affiliation === "member" ? lit_html_x`<span class="badge badge-info">${i18n_member}</span>` : ''} ${role === "moderator" ? lit_html_x`<span class="badge badge-info">${i18n_moderator}</span>` : ''} ${role === "visitor" ? lit_html_x`<span class="badge badge-secondary">${i18n_visitor}</span>` : ''}</span></div></div></li>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/muc-sidebar.js
 
@@ -61829,7 +62581,7 @@ const occupant_title = o => {
 
 /* harmony default export */ const muc_sidebar = (o => {
   const i18n_participants = o.occupants.length === 1 ? __('Participant') : __('Participants');
-  return x`<div class="occupants-header"><div class="occupants-header--title"><span class="occupants-heading">${o.occupants.length} ${i18n_participants}</span> <i class="hide-occupants" @click="${o.closeSidebar}"><converse-icon class="fa fa-times" size="1em"></converse-icon></i></div></div><div class="dragresize dragresize-occupants-left"></div><ul class="occupant-list">${repeat_c(o.occupants, occ => occ.get('jid'), occ => muc_views_templates_occupant(occ, o))}</ul>`;
+  return lit_html_x`<div class="occupants-header"><div class="occupants-header--title"><span class="occupants-heading">${o.occupants.length} ${i18n_participants}</span> <i class="hide-occupants" @click="${o.closeSidebar}"><converse-icon class="fa fa-times" size="1em"></converse-icon></i></div></div><div class="dragresize dragresize-occupants-left"></div><ul class="occupant-list">${repeat_c(o.occupants, occ => occ.get('jid'), occ => muc_views_templates_occupant(occ, o))}</ul>`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/shared/styles/status.scss
 var styles_status = __webpack_require__(5152);
@@ -61950,7 +62702,7 @@ shared_api.elements.define('converse-muc-sidebar', MUCSidebar);
 
 
 
-/* harmony default export */ const muc_chatarea = (o => x`<div class="chat-area"><div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${o.jid}"></converse-chat-content>${o.model?.get('show_help_messages') ? x`<div class="chat-content__help"><converse-chat-help .model="${o.model}" .messages="${o.getHelpMessages()}" type="info" chat_type="${shared_converse.CHATROOMS_TYPE}"></converse-chat-help></div>` : ''}</div><converse-muc-bottom-panel jid="${o.jid}" class="bottom-panel"></converse-muc-bottom-panel></div><div class="disconnect-container hidden"></div>${o.model ? x`<converse-muc-sidebar class="occupants col-md-3 col-4 ${o.shouldShowSidebar() ? '' : 'hidden'}" style="flex:0 0 ${o.model.get('occupants_width')}" jid="${o.jid}" @mousedown="${o.onMousedown}"></converse-muc-sidebar>` : ''}`);
+/* harmony default export */ const muc_chatarea = (o => lit_html_x`<div class="chat-area"><div class="chat-content ${o.show_send_button ? 'chat-content-sendbutton' : ''}" aria-live="polite"><converse-chat-content class="chat-content__messages" jid="${o.jid}"></converse-chat-content>${o.model?.get('show_help_messages') ? lit_html_x`<div class="chat-content__help"><converse-chat-help .model="${o.model}" .messages="${o.getHelpMessages()}" type="info" chat_type="${shared_converse.CHATROOMS_TYPE}"></converse-chat-help></div>` : ''}</div><converse-muc-bottom-panel jid="${o.jid}" class="bottom-panel"></converse-muc-bottom-panel></div><div class="disconnect-container hidden"></div>${o.model ? lit_html_x`<converse-muc-sidebar class="occupants col-md-3 col-4 ${o.shouldShowSidebar() ? '' : 'hidden'}" style="flex:0 0 ${o.model.get('occupants_width')}" jid="${o.jid}" @mousedown="${o.onMousedown}"></converse-muc-sidebar>` : ''}`);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/chatarea.js
 
 
@@ -62110,9 +62862,9 @@ const muc_config_form_u = public_converse.env.utils;
   }
   const i18n_save = __('Save');
   const i18n_cancel = __('Cancel');
-  return x`<form class="converse-form chatroom-form ${fields.length ? '' : 'converse-form--spinner'}" autocomplete="off" @submit="${o.submitConfigForm}"><fieldset class="form-group"><legend class="centered">${title}</legend>${title !== instructions ? x`<p class="form-help">${instructions}</p>` : ''} ${fields.length ? fields : spinner({
+  return lit_html_x`<form class="converse-form chatroom-form ${fields.length ? '' : 'converse-form--spinner'}" autocomplete="off" @submit="${o.submitConfigForm}"><fieldset class="form-group"><legend class="centered">${title}</legend>${title !== instructions ? lit_html_x`<p class="form-help">${instructions}</p>` : ''} ${fields.length ? fields : spinner({
     'classes': 'hor_centered'
-  })}</fieldset>${fields.length ? x`<fieldset><input type="submit" class="btn btn-primary" value="${i18n_save}"> <input type="button" class="btn btn-secondary button-cancel" value="${i18n_cancel}" @click="${o.closeConfigForm}"></fieldset>` : ''}</form>`;
+  })}</fieldset>${fields.length ? lit_html_x`<fieldset><input type="submit" class="btn btn-primary" value="${i18n_save}"> <input type="button" class="btn btn-secondary button-cancel" value="${i18n_cancel}" @click="${o.closeConfigForm}"></fieldset>` : ''}</form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/config-form.js
 
@@ -62157,7 +62909,7 @@ class MUCConfigForm extends CustomElement {
     try {
       await this.model.sendConfiguration(config_array);
     } catch (e) {
-      log.error(e);
+      headless_log.error(e);
       const message = __("Sorry, an error occurred while trying to submit the config form.") + " " + __("Check your browser's developer console for details.");
       shared_api.alert('error', __('Error'), message);
     }
@@ -62176,12 +62928,12 @@ shared_api.elements.define('converse-muc-config-form', MUCConfigForm);
 
 const tplMoved = o => {
   const i18n_moved = __('The conversation has moved to a new address. Click the link below to enter.');
-  return x`<p class="moved-label">${i18n_moved}</p><p class="moved-link"><a class="switch-chat" @click="${ev => o.onSwitch(ev)}">${o.moved_jid}</a></p>`;
+  return lit_html_x`<p class="moved-label">${i18n_moved}</p><p class="moved-link"><a class="switch-chat" @click="${ev => o.onSwitch(ev)}">${o.moved_jid}</a></p>`;
 };
 /* harmony default export */ const muc_destroyed = (o => {
   const i18n_non_existent = __('This groupchat no longer exists');
   const i18n_reason = __('The following reason was given: "%1$s"', o.reason || '');
-  return x`<div class="alert alert-danger"><h3 class="alert-heading disconnect-msg">${i18n_non_existent}</h3></div>${o.reason ? x`<p class="destroyed-reason">${i18n_reason}</p>` : ''} ${o.moved_jid ? tplMoved(o) : ''}`;
+  return lit_html_x`<div class="alert alert-danger"><h3 class="alert-heading disconnect-msg">${i18n_non_existent}</h3></div>${o.reason ? lit_html_x`<p class="destroyed-reason">${i18n_reason}</p>` : ''} ${o.moved_jid ? tplMoved(o) : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/destroyed.js
 
@@ -62220,7 +62972,7 @@ shared_api.elements.define('converse-muc-destroyed', MUCDestroyed);
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/muc-disconnect.js
 
 /* harmony default export */ const muc_disconnect = (messages => {
-  return x`<div class="alert alert-danger"><h3 class="alert-heading disconnect-msg">${messages[0]}</h3>${messages.slice(1).map(m => x`<p class="disconnect-msg">${m}</p>`)}</div>`;
+  return lit_html_x`<div class="alert alert-danger"><h3 class="alert-heading disconnect-msg">${messages[0]}</h3>${messages.slice(1).map(m => lit_html_x`<p class="disconnect-msg">${m}</p>`)}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/disconnected.js
 
@@ -62263,7 +63015,7 @@ shared_api.elements.define('converse-muc-disconnected', MUCDisconnected);
 const subject = o => {
   const i18n_topic = __('Topic');
   const i18n_topic_author = __('Topic author');
-  return x`<p class="room-info"><strong>${i18n_topic}</strong>:<converse-rich-text text="${o.subject.text}" render_styling></converse-rich-text></p><p class="room-info"><strong>${i18n_topic_author}</strong>: ${o.subject && o.subject.author}</p>`;
+  return lit_html_x`<p class="room-info"><strong>${i18n_topic}</strong>:<converse-rich-text text="${o.subject.text}" render_styling></converse-rich-text></p><p class="room-info"><strong>${i18n_topic_author}</strong>: ${o.subject && o.subject.author}</p>`;
 };
 /* harmony default export */ const muc_details = (model => {
   const o = model.toJSON();
@@ -62300,7 +63052,7 @@ const subject = o => {
   const i18n_semi_anon_help = __('Only moderators can see your XMPP address');
   const i18n_temporary = __('Temporary');
   const i18n_temporary_help = __('This groupchat will disappear once the last person leaves');
-  return x`<div class="room-info"><p class="room-info"><strong>${i18n_name}</strong>: ${o.name}</p><p class="room-info"><strong>${i18n_address}</strong>:<converse-rich-text text="xmpp:${o.jid}?join"></converse-rich-text></p><p class="room-info"><strong>${i18n_desc}</strong>:<converse-rich-text text="${config.description}" render_styling></converse-rich-text></p>${o.subject ? subject(o) : ''}<p class="room-info"><strong>${i18n_online_users}</strong>: ${num_occupants}</p><p class="room-info"><strong>${i18n_features}</strong>:</p><div class="chatroom-features"><ul class="features-list">${features.passwordprotected ? x`<li class="feature"><converse-icon size="1em" class="fa fa-lock"></converse-icon>${i18n_password_protected} - <em>${i18n_password_help}</em></li>` : ''} ${features.unsecured ? x`<li class="feature"><converse-icon size="1em" class="fa fa-unlock"></converse-icon>${i18n_no_password_required} - <em>${i18n_no_pass_help}</em></li>` : ''} ${features.hidden ? x`<li class="feature"><converse-icon size="1em" class="fa fa-eye-slash"></converse-icon>${i18n_hidden} - <em>${i18n_hidden_help}</em></li>` : ''} ${features.public_room ? x`<li class="feature"><converse-icon size="1em" class="fa fa-eye"></converse-icon>${i18n_public} - <em>${o.__('This groupchat is publicly searchable')}</em></li>` : ''} ${features.membersonly ? x`<li class="feature"><converse-icon size="1em" class="fa fa-address-book"></converse-icon>${i18n_members_only} - <em>${i18n_members_help}</em></li>` : ''} ${features.open ? x`<li class="feature"><converse-icon size="1em" class="fa fa-globe"></converse-icon>${i18n_open} - <em>${i18n_open_help}</em></li>` : ''} ${features.persistent ? x`<li class="feature"><converse-icon size="1em" class="fa fa-save"></converse-icon>${i18n_persistent} - <em>${i18n_persistent_help}</em></li>` : ''} ${features.temporary ? x`<li class="feature"><converse-icon size="1em" class="fa fa-snowflake"></converse-icon>${i18n_temporary} - <em>${i18n_temporary_help}</em></li>` : ''} ${features.nonanonymous ? x`<li class="feature"><converse-icon size="1em" class="fa fa-id-card"></converse-icon>${i18n_not_anonymous} - <em>${i18n_not_anonymous_help}</em></li>` : ''} ${features.semianonymous ? x`<li class="feature"><converse-icon size="1em" class="fa fa-user-secret"></converse-icon>${i18n_semi_anon} - <em>${i18n_semi_anon_help}</em></li>` : ''} ${features.moderated ? x`<li class="feature"><converse-icon size="1em" class="fa fa-gavel"></converse-icon>${i18n_moderated} - <em>${i18n_moderated_help}</em></li>` : ''} ${features.unmoderated ? x`<li class="feature"><converse-icon size="1em" class="fa fa-info-circle"></converse-icon>${i18n_not_moderated} - <em>${i18n_not_moderated_help}</em></li>` : ''} ${features.mam_enabled ? x`<li class="feature"><converse-icon size="1em" class="fa fa-database"></converse-icon>${i18n_archiving} - <em>${i18n_archiving_help}</em></li>` : ''}</ul></div><p></p></div>`;
+  return lit_html_x`<div class="room-info"><p class="room-info"><strong>${i18n_name}</strong>: ${o.name}</p><p class="room-info"><strong>${i18n_address}</strong>:<converse-rich-text text="xmpp:${o.jid}?join"></converse-rich-text></p><p class="room-info"><strong>${i18n_desc}</strong>:<converse-rich-text text="${config.description}" render_styling></converse-rich-text></p>${o.subject ? subject(o) : ''}<p class="room-info"><strong>${i18n_online_users}</strong>: ${num_occupants}</p><p class="room-info"><strong>${i18n_features}</strong>:</p><div class="chatroom-features"><ul class="features-list">${features.passwordprotected ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-lock"></converse-icon>${i18n_password_protected} - <em>${i18n_password_help}</em></li>` : ''} ${features.unsecured ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-unlock"></converse-icon>${i18n_no_password_required} - <em>${i18n_no_pass_help}</em></li>` : ''} ${features.hidden ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-eye-slash"></converse-icon>${i18n_hidden} - <em>${i18n_hidden_help}</em></li>` : ''} ${features.public_room ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-eye"></converse-icon>${i18n_public} - <em>${o.__('This groupchat is publicly searchable')}</em></li>` : ''} ${features.membersonly ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-address-book"></converse-icon>${i18n_members_only} - <em>${i18n_members_help}</em></li>` : ''} ${features.open ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-globe"></converse-icon>${i18n_open} - <em>${i18n_open_help}</em></li>` : ''} ${features.persistent ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-save"></converse-icon>${i18n_persistent} - <em>${i18n_persistent_help}</em></li>` : ''} ${features.temporary ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-snowflake"></converse-icon>${i18n_temporary} - <em>${i18n_temporary_help}</em></li>` : ''} ${features.nonanonymous ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-id-card"></converse-icon>${i18n_not_anonymous} - <em>${i18n_not_anonymous_help}</em></li>` : ''} ${features.semianonymous ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-user-secret"></converse-icon>${i18n_semi_anon} - <em>${i18n_semi_anon_help}</em></li>` : ''} ${features.moderated ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-gavel"></converse-icon>${i18n_moderated} - <em>${i18n_moderated_help}</em></li>` : ''} ${features.unmoderated ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-info-circle"></converse-icon>${i18n_not_moderated} - <em>${i18n_not_moderated_help}</em></li>` : ''} ${features.mam_enabled ? lit_html_x`<li class="feature"><converse-icon size="1em" class="fa fa-database"></converse-icon>${i18n_archiving} - <em>${i18n_archiving_help}</em></li>` : ''}</ul></div><p></p></div>`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/muc-details-modal.scss
 var muc_details_modal = __webpack_require__(1067);
@@ -62365,7 +63117,7 @@ shared_api.elements.define('converse-muc-details-modal', MUCDetailsModal);
   const i18n_error_message = __('Please enter a valid XMPP address');
   const i18n_invite_label = __('XMPP Address');
   const i18n_reason = __('Optional reason for the invitation');
-  return x`<form class="converse-form" @submit="${ev => el.submitInviteForm(ev)}"><div class="form-group"><label class="clearfix" for="invitee_jids">${i18n_invite_label}:</label> ${el.model.get('invalid_invite_jid') ? x`<div class="error error-feedback">${i18n_error_message}</div>` : ''}<converse-autocomplete .getAutoCompleteList="${() => el.getAutoCompleteList()}" ?autofocus="${true}" min_chars="1" position="below" required="required" name="invitee_jids" id="invitee_jids" placeholder="${i18n_jid_placeholder}"></converse-autocomplete></div><div class="form-group"><label>${i18n_reason}:</label> <textarea class="form-control" name="reason"></textarea></div><div class="form-group"><input type="submit" class="btn btn-primary" value="${i18n_invite}"></div></form>`;
+  return lit_html_x`<form class="converse-form" @submit="${ev => el.submitInviteForm(ev)}"><div class="form-group"><label class="clearfix" for="invitee_jids">${i18n_invite_label}:</label> ${el.model.get('invalid_invite_jid') ? lit_html_x`<div class="error error-feedback">${i18n_error_message}</div>` : ''}<converse-autocomplete .getAutoCompleteList="${() => el.getAutoCompleteList()}" ?autofocus="${true}" min_chars="1" position="below" required="required" name="invitee_jids" id="invitee_jids" placeholder="${i18n_jid_placeholder}"></converse-autocomplete></div><div class="form-group"><label>${i18n_reason}:</label> <textarea class="form-control" name="reason"></textarea></div><div class="form-group"><input type="submit" class="btn btn-primary" value="${i18n_invite}"></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/modals/muc-invite.js
 
@@ -62418,7 +63170,7 @@ shared_api.elements.define('converse-muc-invite-modal', MUCInviteModal);
 
 class MUCNicknameModal extends modal_modal {
   renderModal() {
-    return x`<converse-muc-nickname-form jid="${this.model.get('jid')}"></converse-muc-nickname-form>`;
+    return lit_html_x`<converse-muc-nickname-form jid="${this.model.get('jid')}"></converse-muc-nickname-form>`;
   }
   getModalTitle() {
     // eslint-disable-line class-methods-use-this
@@ -62577,7 +63329,7 @@ shared_api.elements.define('converse-rich-text', rich_text_RichText);
   const subject = o.subject ? o.subject.text : '';
   const show_subject = subject && !subject_hidden;
   const muc_vcard = el.model.vcard?.get('image');
-  return x`<div class="chatbox-title ${show_subject ? '' : "chatbox-title--no-desc"}">${muc_vcard && muc_vcard !== shared_converse.DEFAULT_IMAGE ? x`<converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar>` : ''}<div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}<div class="chatbox-title__text" title="${shared_api.settings.get('locked_muc_domain') !== 'hidden' ? o.jid : ''}">${el.model.getDisplayName()} ${o.bookmarked ? x`<converse-icon class="fa fa-bookmark chatbox-title__text--bookmarked" size="1em" color="var(--chatroom-head-color)" title="${i18n_bookmarked}"></converse-icon>` : ''}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getStandaloneButtons(heading_buttons_promise), '')} ${until_m(getDropdownButtons(heading_buttons_promise), '')}</div></div>${show_subject ? x`<p class="chat-head__desc" title="${i18n_hide_topic}"><converse-rich-text text="${subject}" render_styling></converse-rich-text></p>` : ''}`;
+  return lit_html_x`<div class="chatbox-title ${show_subject ? '' : "chatbox-title--no-desc"}">${muc_vcard && muc_vcard !== shared_converse.DEFAULT_IMAGE ? lit_html_x`<converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar>` : ''}<div class="chatbox-title--row">${!shared_converse.api.settings.get("singleton") ? lit_html_x`<converse-controlbox-navback jid="${o.jid}"></converse-controlbox-navback>` : ''}<div class="chatbox-title__text" title="${shared_api.settings.get('locked_muc_domain') !== 'hidden' ? o.jid : ''}">${el.model.getDisplayName()} ${o.bookmarked ? lit_html_x`<converse-icon class="fa fa-bookmark chatbox-title__text--bookmarked" size="1em" color="var(--chatroom-head-color)" title="${i18n_bookmarked}"></converse-icon>` : ''}</div></div><div class="chatbox-title__buttons row no-gutters">${until_m(getStandaloneButtons(heading_buttons_promise), '')} ${until_m(getDropdownButtons(heading_buttons_promise), '')}</div></div>${show_subject ? lit_html_x`<p class="chat-head__desc" title="${i18n_hide_topic}"><converse-rich-text text="${subject}" render_styling></converse-rich-text></p>` : ''}`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/muc-head.scss
 var styles_muc_head = __webpack_require__(4083);
@@ -62791,7 +63543,7 @@ shared_api.elements.define('converse-muc-heading', MUCHeading);
   const i18n_heading = __('This groupchat requires a password');
   const i18n_password = __('Password: ');
   const i18n_submit = __('Submit');
-  return x`<form class="converse-form chatroom-form converse-centered-form" @submit="${o.submitPassword}"><fieldset class="form-group"><label>${i18n_heading}</label><p class="validation-message">${o.validation_message}</p><input class="hidden-username" type="text" autocomplete="username" value="${o.jid}"><input type="password" name="password" required="required" class="form-control ${o.validation_message ? 'error' : ''}" placeholder="${i18n_password}"></fieldset><fieldset class="form-group"><input class="btn btn-primary" type="submit" value="${i18n_submit}"></fieldset></form>`;
+  return lit_html_x`<form class="converse-form chatroom-form converse-centered-form" @submit="${o.submitPassword}"><fieldset class="form-group"><label>${i18n_heading}</label><p class="validation-message">${o.validation_message}</p><input class="hidden-username" type="text" autocomplete="username" value="${o.jid}"><input type="password" name="password" required="required" class="form-control ${o.validation_message ? 'error' : ''}" placeholder="${i18n_password}"></fieldset><fieldset class="form-group"><input class="btn btn-primary" type="submit" value="${i18n_submit}"></fieldset></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/password-form.js
 
@@ -62838,7 +63590,7 @@ shared_api.elements.define('converse-muc-password-form', MUCPasswordForm);
 
 
 /* harmony default export */ const templates_muc = (o => {
-  return x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${o.model ? x`<converse-muc-heading jid="${o.model.get('jid')}" class="chat-head chat-head-chatroom row no-gutters"></converse-muc-heading><div class="chat-body chatroom-body row no-gutters">${getChatRoomBodyTemplate(o)}</div>` : ''}</div>`;
+  return lit_html_x`<div class="flyout box-flyout"><converse-dragresize></converse-dragresize>${o.model ? lit_html_x`<converse-muc-heading jid="${o.model.get('jid')}" class="chat-head chat-head-chatroom row no-gutters"></converse-muc-heading><div class="chat-body chatroom-body row no-gutters">${getChatRoomBodyTemplate(o)}</div>` : ''}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/muc.js
 
@@ -63022,7 +63774,7 @@ const MinimizedChatsToggle = Model.extend({
 ;// CONCATENATED MODULE: ./src/plugins/minimize/templates/chats-panel.js
 
 
-/* harmony default export */ const chats_panel = (o => x`<div id="minimized-chats" class="${o.chats.length ? '' : 'hidden'}"><a id="toggle-minimized-chats" class="row no-gutters" @click="${o.toggle}">${o.num_minimized} ${__('Minimized')} <span class="unread-message-count ${!o.num_unread ? 'unread-message-count-hidden' : ''}" href="#">${o.num_unread}</span></a><div class="flyout minimized-chats-flyout row no-gutters ${o.collapsed ? 'hidden' : ''}">${o.chats.map(chat => x`<converse-minimized-chat .model="${chat}" title="${chat.getDisplayName()}" type="${chat.get('type')}" num_unread="${chat.get('num_unread')}"></converse-minimized-chat>`)}</div></div>`);
+/* harmony default export */ const chats_panel = (o => lit_html_x`<div id="minimized-chats" class="${o.chats.length ? '' : 'hidden'}"><a id="toggle-minimized-chats" class="row no-gutters" @click="${o.toggle}">${o.num_minimized} ${__('Minimized')} <span class="unread-message-count ${!o.num_unread ? 'unread-message-count-hidden' : ''}" href="#">${o.num_unread}</span></a><div class="flyout minimized-chats-flyout row no-gutters ${o.collapsed ? 'hidden' : ''}">${o.chats.map(chat => lit_html_x`<converse-minimized-chat .model="${chat}" title="${chat.getDisplayName()}" type="${chat.get('type')}" num_unread="${chat.get('num_unread')}"></converse-minimized-chat>`)}</div></div>`);
 ;// CONCATENATED MODULE: ./src/plugins/minimize/view.js
 
 
@@ -63093,7 +63845,7 @@ shared_api.elements.define('converse-minimized-chats', MinimizedChats);
   } else {
     close_color = "var(--chat-head-text-color)";
   }
-  return x`<div class="chat-head-${o.type} chat-head row no-gutters"><a class="restore-chat w-100 align-self-center" title="${i18n_tooltip}" @click="${o.restore}">${o.num_unread ? x`<span class="message-count badge badge-light">${o.num_unread}</span>` : ''} ${o.title} </a><a class="chatbox-btn close-chatbox-button" @click="${o.close}"><converse-icon color="${close_color}" class="fas fa-times" @click="${o.close}" size="1em"></converse-icon></a></div>`;
+  return lit_html_x`<div class="chat-head-${o.type} chat-head row no-gutters"><a class="restore-chat w-100 align-self-center" title="${i18n_tooltip}" @click="${o.restore}">${o.num_unread ? lit_html_x`<span class="message-count badge badge-light">${o.num_unread}</span>` : ''} ${o.title} </a><a class="chatbox-btn close-chatbox-button" @click="${o.close}"><converse-icon color="${close_color}" class="fas fa-times" @click="${o.close}" size="1em"></converse-icon></a></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/minimize/utils.js
 
@@ -63483,7 +64235,7 @@ function areDesktopNotificationsEnabled() {
 }
 function clearFavicon() {
   favicon = null;
-  navigator.clearAppBadge?.().catch(e => log.error("Could not clear unread count in app badge " + e));
+  navigator.clearAppBadge?.().catch(e => headless_log.error("Could not clear unread count in app badge " + e));
 }
 function updateUnreadFavicon() {
   if (shared_api.settings.get('show_tab_notifications')) {
@@ -63494,7 +64246,7 @@ function updateUnreadFavicon() {
     const chats = shared_converse.chatboxes.models;
     const num_unread = chats.reduce((acc, chat) => acc + (chat.get('num_unread') || 0), 0);
     favicon.badge(num_unread);
-    navigator.setAppBadge?.(num_unread).catch(e => log.error("Could set unread count in app badge - " + e));
+    navigator.setAppBadge?.(num_unread).catch(e => headless_log.error("Could set unread count in app badge - " + e));
   }
 }
 function isReferenced(references, muc_jid, nick) {
@@ -63653,7 +64405,7 @@ function showMessageNotification(data) {
     title = __('%1$s says', notifications_utils_Strophe.getResourceFromJid(full_from_jid));
   } else {
     if (shared_converse.roster === undefined) {
-      log.error('Could not send notification, because roster is undefined');
+      headless_log.error('Could not send notification, because roster is undefined');
       return;
     }
     roster_item = shared_converse.roster.get(from_jid);
@@ -63817,7 +64569,7 @@ public_converse.plugins.add('converse-notification', {
   const placeholder_status_message = __('Personal status message');
   const status = el.model.get('status');
   const status_message = el.model.get('status_message');
-  return x`<form class="converse-form set-xmpp-status" id="set-xmpp-status" @submit="${ev => el.onFormSubmitted(ev)}"><div class="form-group"><div class="custom-control custom-radio"><input ?checked="${status === 'online'}" type="radio" id="radio-online" value="online" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-online"><converse-icon size="1em" class="fa fa-circle chat-status chat-status--online"></converse-icon>${label_online}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'busy'}" type="radio" id="radio-busy" value="dnd" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-busy"><converse-icon size="1em" class="fa fa-minus-circle chat-status chat-status--busy"></converse-icon>${label_busy}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'away'}" type="radio" id="radio-away" value="away" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-away"><converse-icon size="1em" class="fa fa-circle chat-status chat-status--away"></converse-icon>${label_away}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'xa'}" type="radio" id="radio-xa" value="xa" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-xa"><converse-icon size="1em" class="far fa-circle chat-status chat-status--xa"></converse-icon>${label_xa}</label></div></div><div class="form-group"><div class="btn-group w-100"><input name="status_message" type="text" class="form-control" autofocus value="${status_message || ''}" placeholder="${placeholder_status_message}"><converse-icon size="1em" class="fa fa-times clear-input ${status_message ? '' : 'hidden'}" @click="${ev => el.clearStatusMessage(ev)}"></converse-icon></div></div><button type="submit" class="btn btn-primary">${label_save}</button></form>`;
+  return lit_html_x`<form class="converse-form set-xmpp-status" id="set-xmpp-status" @submit="${ev => el.onFormSubmitted(ev)}"><div class="form-group"><div class="custom-control custom-radio"><input ?checked="${status === 'online'}" type="radio" id="radio-online" value="online" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-online"><converse-icon size="1em" class="fa fa-circle chat-status chat-status--online"></converse-icon>${label_online}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'busy'}" type="radio" id="radio-busy" value="dnd" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-busy"><converse-icon size="1em" class="fa fa-minus-circle chat-status chat-status--busy"></converse-icon>${label_busy}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'away'}" type="radio" id="radio-away" value="away" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-away"><converse-icon size="1em" class="fa fa-circle chat-status chat-status--away"></converse-icon>${label_away}</label></div><div class="custom-control custom-radio"><input ?checked="${status === 'xa'}" type="radio" id="radio-xa" value="xa" name="chat_status" class="custom-control-input"> <label class="custom-control-label" for="radio-xa"><converse-icon size="1em" class="far fa-circle chat-status chat-status--xa"></converse-icon>${label_xa}</label></div></div><div class="form-group"><div class="btn-group w-100"><input name="status_message" type="text" class="form-control" autofocus value="${status_message || ''}" placeholder="${placeholder_status_message}"><converse-icon size="1em" class="fa fa-times clear-input ${status_message ? '' : 'hidden'}" @click="${ev => el.clearStatusMessage(ev)}"></converse-icon></div></div><button type="submit" class="btn btn-primary">${label_save}</button></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/modals/chat-status.js
 
@@ -63881,7 +64633,7 @@ class ImagePicker extends CustomElement {
     };
   }
   render() {
-    return x`<a class="change-avatar" @click="${this.openFileSelection}" title="${i18n_profile_picture}"><converse-avatar class="avatar" .data="${this.data}" height="${this.height}" width="${this.width}"></converse-avatar></a><input @change="${this.updateFilePreview}" class="hidden" name="image" type="file">`;
+    return lit_html_x`<a class="change-avatar" @click="${this.openFileSelection}" title="${i18n_profile_picture}"><converse-avatar class="avatar" .data="${this.data}" height="${this.height}" width="${this.width}"></converse-avatar></a><input @change="${this.updateFilePreview}" class="hidden" name="image" type="file">`;
   }
   openFileSelection(ev) {
     ev.preventDefault();
@@ -63905,7 +64657,7 @@ shared_api.elements.define('converse-image-picker', ImagePicker);
 
 
 
-const tplOmemoPage = el => x`<div class="tab-pane ${el.tab === 'omemo' ? 'active' : ''}" id="omemo-tabpanel" role="tabpanel" aria-labelledby="omemo-tab">${el.tab === 'omemo' ? x`<converse-omemo-profile></converse-omemo-profile>` : ''}</div>`;
+const tplOmemoPage = el => lit_html_x`<div class="tab-pane ${el.tab === 'omemo' ? 'active' : ''}" id="omemo-tabpanel" role="tabpanel" aria-labelledby="omemo-tab">${el.tab === 'omemo' ? lit_html_x`<converse-omemo-profile></converse-omemo-profile>` : ''}</div>`;
 /* harmony default export */ const profile_modal = (el => {
   const o = {
     ...el.model.toJSON(),
@@ -63922,15 +64674,15 @@ const tplOmemoPage = el => x`<div class="tab-pane ${el.tab === 'omemo' ? 'active
   const i18n_omemo = __('OMEMO');
   const i18n_profile = __('Profile');
   const ii18n_reset_password = __('Reset Password');
-  const navigation_tabs = [x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "profile" ? "active" : ""}" id="profile-tab" href="#profile-tabpanel" aria-controls="profile-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="profile" data-toggle="tab">${i18n_profile}</a></li>`];
-  navigation_tabs.push(x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "passwordreset" ? "active" : ""}" id="passwordreset-tab" href="#passwordreset-tabpanel" aria-controls="passwordreset-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="passwordreset" data-toggle="tab">${ii18n_reset_password}</a></li>`);
+  const navigation_tabs = [lit_html_x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "profile" ? "active" : ""}" id="profile-tab" href="#profile-tabpanel" aria-controls="profile-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="profile" data-toggle="tab">${i18n_profile}</a></li>`];
+  navigation_tabs.push(lit_html_x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "passwordreset" ? "active" : ""}" id="passwordreset-tab" href="#passwordreset-tabpanel" aria-controls="passwordreset-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="passwordreset" data-toggle="tab">${ii18n_reset_password}</a></li>`);
   if (shared_converse.pluggable.plugins['converse-omemo']?.enabled(shared_converse)) {
-    navigation_tabs.push(x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "omemo" ? "active" : ""}" id="omemo-tab" href="#omemo-tabpanel" aria-controls="omemo-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="omemo" data-toggle="tab">${i18n_omemo}</a></li>`);
+    navigation_tabs.push(lit_html_x`<li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "omemo" ? "active" : ""}" id="omemo-tab" href="#omemo-tabpanel" aria-controls="omemo-tabpanel" role="tab" @click="${ev => el.switchTab(ev)}" data-name="omemo" data-toggle="tab">${i18n_omemo}</a></li>`);
   }
-  return x`<ul class="nav nav-pills justify-content-center">${navigation_tabs}</ul><div class="tab-content"><div class="tab-pane ${el.tab === 'profile' ? 'active' : ''}" id="profile-tabpanel" role="tabpanel" aria-labelledby="profile-tab"><form class="converse-form converse-form--modal profile-form" action="#" @submit="${ev => el.onFormSubmitted(ev)}"><div class="row"><div class="col-auto"><converse-image-picker .data="${{
+  return lit_html_x`<ul class="nav nav-pills justify-content-center">${navigation_tabs}</ul><div class="tab-content"><div class="tab-pane ${el.tab === 'profile' ? 'active' : ''}" id="profile-tabpanel" role="tabpanel" aria-labelledby="profile-tab"><form class="converse-form converse-form--modal profile-form" action="#" @submit="${ev => el.onFormSubmitted(ev)}"><div class="row"><div class="col-auto"><converse-image-picker .data="${{
     image: o.image,
     image_type: o.image_type
-  }}" width="128" height="128"></converse-image-picker></div><div class="col"><div class="form-group"><label class="col-form-label">${i18n_jid}:</label><div>${o.jid}</div></div></div></div><div class="form-group"><label for="vcard-fullname" class="col-form-label">${i18n_fullname}:</label> <input id="vcard-fullname" type="text" class="form-control" name="fn" value="${o.fullname || ''}"></div><div class="form-group"><label for="vcard-nickname" class="col-form-label">${i18n_nickname}:</label> <input id="vcard-nickname" type="text" class="form-control" name="nickname" value="${o.nickname || ''}"></div><div class="form-group"><label for="vcard-url" class="col-form-label">${i18n_url}:</label> <input id="vcard-url" type="url" class="form-control" name="url" value="${o.url || ''}"></div><div class="form-group"><label for="vcard-email" class="col-form-label">${i18n_email}:</label> <input id="vcard-email" type="email" class="form-control" name="email" value="${o.email || ''}"></div><div class="form-group"><label for="vcard-role" class="col-form-label">${i18n_role}:</label> <input id="vcard-role" type="text" class="form-control" name="role" value="${o.role || ''}" aria-describedby="vcard-role-help"> <small id="vcard-role-help" class="form-text text-muted">${i18n_role_help}</small></div><hr><div class="form-group"><button type="submit" class="save-form btn btn-primary">${i18n_save}</button></div></form></div><div class="tab-pane ${el.tab === 'passwordreset' ? 'active' : ''}" id="passwordreset-tabpanel" role="tabpanel" aria-labelledby="passwordreset-tab">${el.tab === 'passwordreset' ? x`<converse-change-password-form></converse-change-password-form>` : ''}</div>${shared_converse.pluggable.plugins['converse-omemo']?.enabled(shared_converse) ? tplOmemoPage(el) : ''}</div>`;
+  }}" width="128" height="128"></converse-image-picker></div><div class="col"><div class="form-group"><label class="col-form-label">${i18n_jid}:</label><div>${o.jid}</div></div></div></div><div class="form-group"><label for="vcard-fullname" class="col-form-label">${i18n_fullname}:</label> <input id="vcard-fullname" type="text" class="form-control" name="fn" value="${o.fullname || ''}"></div><div class="form-group"><label for="vcard-nickname" class="col-form-label">${i18n_nickname}:</label> <input id="vcard-nickname" type="text" class="form-control" name="nickname" value="${o.nickname || ''}"></div><div class="form-group"><label for="vcard-url" class="col-form-label">${i18n_url}:</label> <input id="vcard-url" type="url" class="form-control" name="url" value="${o.url || ''}"></div><div class="form-group"><label for="vcard-email" class="col-form-label">${i18n_email}:</label> <input id="vcard-email" type="email" class="form-control" name="email" value="${o.email || ''}"></div><div class="form-group"><label for="vcard-role" class="col-form-label">${i18n_role}:</label> <input id="vcard-role" type="text" class="form-control" name="role" value="${o.role || ''}" aria-describedby="vcard-role-help"> <small id="vcard-role-help" class="form-text text-muted">${i18n_role_help}</small></div><hr><div class="form-group"><button type="submit" class="save-form btn btn-primary">${i18n_save}</button></div></form></div><div class="tab-pane ${el.tab === 'passwordreset' ? 'active' : ''}" id="passwordreset-tabpanel" role="tabpanel" aria-labelledby="passwordreset-tab">${el.tab === 'passwordreset' ? lit_html_x`<converse-change-password-form></converse-change-password-form>` : ''}</div>${shared_converse.pluggable.plugins['converse-omemo']?.enabled(shared_converse) ? tplOmemoPage(el) : ''}</div>`;
 });
 // EXTERNAL MODULE: ./node_modules/client-compress/dist/index.js
 var dist = __webpack_require__(326);
@@ -63943,7 +64695,7 @@ var dist_default = /*#__PURE__*/__webpack_require__.n(dist);
   const i18n_passwords_must_match = __('The new passwords must match');
   const i18n_new_password = __('New password');
   const i18n_confirm_password = __('Confirm new password');
-  return x`<form class="converse-form passwordreset-form" method="POST" @submit="${ev => el.onSubmit(ev)}">${el.alert_message ? x`<div class="alert alert-danger" role="alert">${el.alert_message}</div>` : ''}<div class="form-group"><label for="converse_password_reset_new">${i18n_new_password}</label> <input class="form-control ${el.passwords_mismatched ? 'error' : ''}" type="password" name="password" required="required" id="converse_password_reset_new" autocomplete="new-password" minlength="8" ?disabled="${el.alert_message}"></div><div class="form-group"><label for="converse_password_reset_check">${i18n_confirm_password}</label> <input class="form-control ${el.passwords_mismatched ? 'error' : ''}" type="password" name="password_check" required="required" id="converse_password_reset_check" autocomplete="new-password" minlength="8" ?disabled="${el.alert_message}" @input="${ev => el.checkPasswordsMatch(ev)}"> ${el.passwords_mismatched ? x`<span class="error">${i18n_passwords_must_match}</span>` : ''}</div><input class="save-form btn btn-primary" type="submit" value="${i18n_submit}" ?disabled="${el.alert_message}"></form>`;
+  return lit_html_x`<form class="converse-form passwordreset-form" method="POST" @submit="${ev => el.onSubmit(ev)}">${el.alert_message ? lit_html_x`<div class="alert alert-danger" role="alert">${el.alert_message}</div>` : ''}<div class="form-group"><label for="converse_password_reset_new">${i18n_new_password}</label> <input class="form-control ${el.passwords_mismatched ? 'error' : ''}" type="password" name="password" required="required" id="converse_password_reset_new" autocomplete="new-password" minlength="8" ?disabled="${el.alert_message}"></div><div class="form-group"><label for="converse_password_reset_check">${i18n_confirm_password}</label> <input class="form-control ${el.passwords_mismatched ? 'error' : ''}" type="password" name="password_check" required="required" id="converse_password_reset_check" autocomplete="new-password" minlength="8" ?disabled="${el.alert_message}" @input="${ev => el.checkPasswordsMatch(ev)}"> ${el.passwords_mismatched ? lit_html_x`<span class="error">${i18n_passwords_must_match}</span>` : ''}</div><input class="save-form btn btn-primary" type="submit" value="${i18n_submit}" ?disabled="${el.alert_message}"></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/password-reset.js
 
@@ -64000,8 +64752,8 @@ class PasswordReset extends CustomElement {
       return;
     } else if (password_reset_u.isErrorStanza(iq_response)) {
       this.alert_message = __('Your server responded with an unknown error, check the console for details');
-      log.error("Could not set password");
-      log.error(iq_response);
+      headless_log.error("Could not set password");
+      headless_log.error(iq_response);
       return;
     }
     const username = iq_response.querySelector('username').textContent;
@@ -64069,7 +64821,7 @@ class ProfileModal extends modal_modal {
     try {
       await shared_api.vcard.set(shared_converse.bare_jid, data);
     } catch (err) {
-      log.fatal(err);
+      headless_log.fatal(err);
       this.alert([__("Sorry, an error happened while trying to save your profile data."), __("You can check your browser's developer console for any error output.")].join(" "));
       return;
     }
@@ -64121,7 +64873,7 @@ shared_api.elements.define('converse-profile-modal', ProfileModal);
 const user_settings_tplNavigation = el => {
   const i18n_about = __('About');
   const i18n_commands = __('Commands');
-  return x`<ul class="nav nav-pills justify-content-center"><li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "about" ? "active" : ""}" id="about-tab" href="#about-tabpanel" aria-controls="about-tabpanel" role="tab" data-toggle="tab" data-name="about" @click="${ev => el.switchTab(ev)}">${i18n_about}</a></li><li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "commands" ? "active" : ""}" id="commands-tab" href="#commands-tabpanel" aria-controls="commands-tabpanel" role="tab" data-toggle="tab" data-name="commands" @click="${ev => el.switchTab(ev)}">${i18n_commands}</a></li></ul>`;
+  return lit_html_x`<ul class="nav nav-pills justify-content-center"><li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "about" ? "active" : ""}" id="about-tab" href="#about-tabpanel" aria-controls="about-tabpanel" role="tab" data-toggle="tab" data-name="about" @click="${ev => el.switchTab(ev)}">${i18n_about}</a></li><li role="presentation" class="nav-item"><a class="nav-link ${el.tab === "commands" ? "active" : ""}" id="commands-tab" href="#commands-tabpanel" aria-controls="commands-tabpanel" role="tab" data-toggle="tab" data-name="commands" @click="${ev => el.switchTab(ev)}">${i18n_commands}</a></li></ul>`;
 };
 /* harmony default export */ const templates_user_settings = (el => {
   const first_subtitle = __('%1$s Open Source %2$s XMPP chat client brought to you by %3$s Opkode %2$s', '<a target="_blank" rel="nofollow" href="https://conversejs.org">', '</a>', '<a target="_blank" rel="nofollow" href="https://opkode.com">');
@@ -64129,7 +64881,7 @@ const user_settings_tplNavigation = el => {
   const show_client_info = shared_api.settings.get('show_client_info');
   const allow_adhoc_commands = shared_api.settings.get('allow_adhoc_commands');
   const show_both_tabs = show_client_info && allow_adhoc_commands;
-  return x`${show_both_tabs ? user_settings_tplNavigation(el) : ''}<div class="tab-content">${show_client_info ? x`<div class="tab-pane tab-pane--columns ${el.tab === 'about' ? 'active' : ''}" id="about-tabpanel" role="tabpanel" aria-labelledby="about-tab"><span class="modal-alert"></span><br><div class="container"><h6 class="brand-heading">Converse</h6><p class="brand-subtitle">${shared_converse.VERSION_NAME}</p><p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(first_subtitle))}</p><p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(second_subtitle))}</p></div></div>` : ''} ${allow_adhoc_commands ? x`<div class="tab-pane tab-pane--columns ${el.tab === 'commands' ? 'active' : ''}" id="commands-tabpanel" role="tabpanel" aria-labelledby="commands-tab"><converse-adhoc-commands></div>` : ''}</div>`;
+  return lit_html_x`${show_both_tabs ? user_settings_tplNavigation(el) : ''}<div class="tab-content">${show_client_info ? lit_html_x`<div class="tab-pane tab-pane--columns ${el.tab === 'about' ? 'active' : ''}" id="about-tabpanel" role="tabpanel" aria-labelledby="about-tab"><span class="modal-alert"></span><br><div class="container"><h6 class="brand-heading">Converse</h6><p class="brand-subtitle">${shared_converse.VERSION_NAME}</p><p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(first_subtitle))}</p><p class="brand-subtitle">${unsafe_html_o(purify_default().sanitize(second_subtitle))}</p></div></div>` : ''} ${allow_adhoc_commands ? lit_html_x`<div class="tab-pane tab-pane--columns ${el.tab === 'commands' ? 'active' : ''}" id="commands-tabpanel" role="tabpanel" aria-labelledby="commands-tab"><converse-adhoc-commands></div>` : ''}</div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/modals/user-settings.js
 
@@ -64196,11 +64948,11 @@ async function logOut(ev) {
 
 function tplSignout() {
   const i18n_logout = __('Log out');
-  return x`<a class="controlbox-heading__btn logout align-self-center" title="${i18n_logout}" @click="${logOut}"><converse-icon class="fa fa-sign-out-alt" size="1em"></converse-icon></a>`;
+  return lit_html_x`<a class="controlbox-heading__btn logout align-self-center" title="${i18n_logout}" @click="${logOut}"><converse-icon class="fa fa-sign-out-alt" size="1em"></converse-icon></a>`;
 }
 function tplUserSettingsButton(o) {
   const i18n_details = __('Show details about this chat client');
-  return x`<a class="controlbox-heading__btn show-client-info align-self-center" title="${i18n_details}" @click="${o.showUserSettingsModal}"><converse-icon class="fa fa-cog" size="1em"></converse-icon></a>`;
+  return lit_html_x`<a class="controlbox-heading__btn show-client-info align-self-center" title="${i18n_details}" @click="${o.showUserSettingsModal}"><converse-icon class="fa fa-cog" size="1em"></converse-icon></a>`;
 }
 /* harmony default export */ const profile = (el => {
   const chat_status = el.model.get('status') || 'offline';
@@ -64217,7 +64969,7 @@ function tplUserSettingsButton(o) {
   } else {
     [classes, color] = ['fa fa-circle chat-status', 'subdued-color'];
   }
-  return x`<div class="userinfo controlbox-padded"><div class="controlbox-section profile d-flex"><a class="show-profile" href="#" @click="${el.showProfileModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a><span class="username w-100 align-self-center">${el.model.getDisplayName()}</span> ${show_settings_button ? tplUserSettingsButton(el) : ''} ${shared_api.settings.get('allow_logout') ? tplSignout() : ''}</div><div class="d-flex xmpp-status"><a class="change-status" title="${i18n_change_status}" data-toggle="modal" data-target="#changeStatusModal" @click="${el.showStatusChangeModal}"><span class="${chat_status} w-100 align-self-center" data-value="${chat_status}"><converse-icon color="var(--${color})" style="margin-top:-.1em" size="0.82em" class="${classes}"></converse-icon>${status_message}</span></a></div></div>`;
+  return lit_html_x`<div class="userinfo controlbox-padded"><div class="controlbox-section profile d-flex"><a class="show-profile" href="#" @click="${el.showProfileModal}"><converse-avatar class="avatar align-self-center" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="40" width="40"></converse-avatar></a><span class="username w-100 align-self-center">${el.model.getDisplayName()}</span> ${show_settings_button ? tplUserSettingsButton(el) : ''} ${shared_api.settings.get('allow_logout') ? tplSignout() : ''}</div><div class="d-flex xmpp-status"><a class="change-status" title="${i18n_change_status}" data-toggle="modal" data-target="#changeStatusModal" @click="${el.showStatusChangeModal}"><span class="${chat_status} w-100 align-self-center" data-value="${chat_status}"><converse-icon color="var(--${color})" style="margin-top:-.1em" size="0.82em" class="${classes}"></converse-icon>${status_message}</span></a></div></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/profile/statusview.js
 
@@ -64546,8 +65298,8 @@ async function downloadFile(url) {
   try {
     response = await fetch(url);
   } catch (e) {
-    log.error(`${e.name}: Failed to download encrypted media: ${url}`);
-    log.error(e);
+    headless_log.error(`${e.name}: Failed to download encrypted media: ${url}`);
+    headless_log.error(e);
     return null;
   }
   if (response.status >= 200 && response.status < 400) {
@@ -64559,7 +65311,7 @@ async function getAndDecryptFile(uri) {
   const http_url = uri.toString().replace(/^aesgcm/, protocol);
   const cipher = await downloadFile(http_url);
   if (cipher === null) {
-    log.error(`Could not decrypt a received encrypted file ${uri.toString()} since it could not be downloaded`);
+    headless_log.error(`Could not decrypt a received encrypted file ${uri.toString()} since it could not be downloaded`);
     return new Error(__('Error: could not decrypt a received encrypted file, because it could not be downloaded'));
   }
   const hash = uri.hash().slice(1);
@@ -64569,8 +65321,8 @@ async function getAndDecryptFile(uri) {
   try {
     content = await decryptFile(iv, key, cipher);
   } catch (e) {
-    log.error(`Could not decrypt file ${uri.toString()}`);
-    log.error(e);
+    headless_log.error(`Could not decrypt file ${uri.toString()}`);
+    headless_log.error(e);
     return null;
   }
   const [filename, extension] = uri.filename().split('.');
@@ -64581,14 +65333,14 @@ async function getAndDecryptFile(uri) {
     });
     return URL.createObjectURL(file);
   } catch (e) {
-    log.error(`Could not decrypt file ${uri.toString()}`);
-    log.error(e);
+    headless_log.error(`Could not decrypt file ${uri.toString()}`);
+    headless_log.error(e);
     return null;
   }
 }
 function getTemplateForObjectURL(uri, obj_url, richtext) {
   if (isError(obj_url)) {
-    return x`<p class="error">${obj_url.message}</p>`;
+    return lit_html_x`<p class="error">${obj_url.message}</p>`;
   }
   const file_url = uri.toString();
   if (isImageURL(file_url)) {
@@ -64620,13 +65372,13 @@ function addEncryptedFiles(text, offset, richtext) {
       return url;
     }, parse_options);
   } catch (error) {
-    log.debug(error);
+    headless_log.debug(error);
     return;
   }
   objs.forEach(o => {
     const uri = getURI(text.slice(o.start, o.end));
     const promise = getAndDecryptFile(uri).then(obj_url => getTemplateForObjectURL(uri, obj_url, richtext));
-    const template = x`${until_m(promise, '')}`;
+    const template = lit_html_x`${until_m(promise, '')}`;
     richtext.addTemplateResult(o.start + offset, o.end + offset, template);
   });
 }
@@ -64782,7 +65534,7 @@ async function decryptPrekeyWhisperMessage(attrs) {
     // sender this way, the invalid session of the original
     // sender will get overwritten with this newly created,
     // valid session.
-    log.error(`${e.name} ${e.message}`);
+    headless_log.error(`${e.name} ${e.message}`);
     return Object.assign(attrs, getDecryptionErrorAttributes(e));
   }
   // TODO from the XEP:
@@ -64807,7 +65559,7 @@ async function decryptPrekeyWhisperMessage(attrs) {
       });
     }
   } catch (e) {
-    log.error(`${e.name} ${e.message}`);
+    headless_log.error(`${e.name} ${e.message}`);
     return Object.assign(attrs, getDecryptionErrorAttributes(e));
   }
 }
@@ -64822,7 +65574,7 @@ async function decryptWhisperMessage(attrs) {
       'plaintext': plaintext
     });
   } catch (e) {
-    log.error(`${e.name} ${e.message}`);
+    headless_log.error(`${e.name} ${e.message}`);
     return Object.assign(attrs, getDecryptionErrorAttributes(e));
   }
 }
@@ -64927,7 +65679,7 @@ async function buildSession(device) {
 }
 async function getSession(device) {
   if (!device.get('bundle')) {
-    log.error(`Could not build an OMEMO session for device ${device.get('id')} because we don't have its bundle`);
+    headless_log.error(`Could not build an OMEMO session for device ${device.get('id')} because we don't have its bundle`);
     return null;
   }
   const address = new libsignal.SignalProtocolAddress(device.get('jid'), device.get('id'));
@@ -64939,8 +65691,8 @@ async function getSession(device) {
       const session = await buildSession(device);
       return session;
     } catch (e) {
-      log.error(`Could not build an OMEMO session for device ${device.get('id')}`);
-      log.error(e);
+      headless_log.error(`Could not build an OMEMO session for device ${device.get('id')}`);
+      headless_log.error(e);
       return null;
     }
   }
@@ -65007,7 +65759,7 @@ function registerPEPPushHandler() {
         await updateBundleFromStanza(message);
       }
     } catch (e) {
-      log.error(e.message);
+      headless_log.error(e.message);
     }
     return true;
   }, null, 'message', 'headline');
@@ -65030,7 +65782,7 @@ async function fetchDeviceLists() {
     shared_converse.devicelists.fetch({
       'success': resolve,
       'error': (_m, e) => {
-        log.error(e);
+        headless_log.error(e);
         resolve();
       }
     });
@@ -65045,7 +65797,7 @@ async function initOMEMO(reconnecting) {
     return;
   }
   if (!shared_converse.config.get('trusted') || shared_api.settings.get('clear_cache_on_logout')) {
-    log.warn('Not initializing OMEMO, since this browser is not trusted or clear_cache_on_logout is set to true');
+    headless_log.warn('Not initializing OMEMO, since this browser is not trusted or clear_cache_on_logout is set to true');
     return;
   }
   try {
@@ -65053,8 +65805,8 @@ async function initOMEMO(reconnecting) {
     await restoreOMEMOSession();
     await shared_converse.omemo_store.publishBundle();
   } catch (e) {
-    log.error('Could not initialize OMEMO support');
-    log.error(e);
+    headless_log.error('Could not initialize OMEMO support');
+    headless_log.error(e);
     return;
   }
   /**
@@ -65135,7 +65887,7 @@ function getOMEMOToolbarButton(toolbar_el, buttons) {
   } else {
     color = `var(--muc-toolbar-btn-disabled-color)`;
   }
-  buttons.push(x`<button class="toggle-omemo" title="${title}" data-disabled="${!model.get('omemo_supported')}" @click="${toggleOMEMO}"><converse-icon class="fa ${model.get('omemo_active') ? `fa-lock` : `fa-unlock`}" path-prefix="${shared_api.settings.get('assets_path')}" size="1em" color="${color}"></converse-icon></button>`);
+  buttons.push(lit_html_x`<button class="toggle-omemo" title="${title}" data-disabled="${!model.get('omemo_supported')}" @click="${toggleOMEMO}"><converse-icon class="fa ${model.get('omemo_active') ? `fa-lock` : `fa-unlock`}" path-prefix="${shared_api.settings.get('assets_path')}" size="1em" color="${color}"></converse-icon></button>`);
   return buttons;
 }
 async function getBundlesAndBuildSessions(chatbox) {
@@ -65245,7 +65997,7 @@ const device_fingerprint = (el, device) => {
   const i18n_trusted = __('Trusted');
   const i18n_untrusted = __('Untrusted');
   if (device.get('bundle') && device.get('bundle').fingerprint) {
-    return x`<li class="list-group-item"><form class="fingerprint-trust"><div class="btn-group btn-group-toggle"><label class="btn btn--small ${device.get('trusted') === 1 ? 'btn-primary active' : 'btn-secondary'}" @click="${el.toggleDeviceTrust}"><input type="radio" name="${device.get('id')}" value="1" ?checked="${device.get('trusted') !== -1}">${i18n_trusted}</label> <label class="btn btn--small ${device.get('trusted') === -1 ? 'btn-primary active' : 'btn-secondary'}" @click="${el.toggleDeviceTrust}"><input type="radio" name="${device.get('id')}" value="-1" ?checked="${device.get('trusted') === -1}">${i18n_untrusted}</label></div><code class="fingerprint">${formatFingerprint(device.get('bundle').fingerprint)}</code></form></li>`;
+    return lit_html_x`<li class="list-group-item"><form class="fingerprint-trust"><div class="btn-group btn-group-toggle"><label class="btn btn--small ${device.get('trusted') === 1 ? 'btn-primary active' : 'btn-secondary'}" @click="${el.toggleDeviceTrust}"><input type="radio" name="${device.get('id')}" value="1" ?checked="${device.get('trusted') !== -1}">${i18n_trusted}</label> <label class="btn btn--small ${device.get('trusted') === -1 ? 'btn-primary active' : 'btn-secondary'}" @click="${el.toggleDeviceTrust}"><input type="radio" name="${device.get('id')}" value="-1" ?checked="${device.get('trusted') === -1}">${i18n_untrusted}</label></div><code class="fingerprint">${formatFingerprint(device.get('bundle').fingerprint)}</code></form></li>`;
   } else {
     return '';
   }
@@ -65254,7 +66006,7 @@ const device_fingerprint = (el, device) => {
   const i18n_fingerprints = __('OMEMO Fingerprints');
   const i18n_no_devices = __("No OMEMO-enabled devices found");
   const devices = el.devicelist.devices;
-  return x`<hr><ul class="list-group fingerprints"><li class="list-group-item active">${i18n_fingerprints}</li>${devices.length ? devices.map(device => device_fingerprint(el, device)) : x`<li class="list-group-item">${i18n_no_devices}</li>`}</ul>`;
+  return lit_html_x`<hr><ul class="list-group fingerprints"><li class="list-group-item active">${i18n_fingerprints}</li>${devices.length ? devices.map(device => device_fingerprint(el, device)) : lit_html_x`<li class="list-group-item">${i18n_no_devices}</li>`}</ul>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/omemo/fingerprints.js
 
@@ -65292,30 +66044,30 @@ shared_api.elements.define('converse-omemo-fingerprints', Fingerprints);
 
 
 
-const fingerprint = el => x`<span class="fingerprint">${formatFingerprint(el.current_device.get('bundle').fingerprint)}</span>`;
+const fingerprint = el => lit_html_x`<span class="fingerprint">${formatFingerprint(el.current_device.get('bundle').fingerprint)}</span>`;
 const device_with_fingerprint = el => {
   const i18n_fingerprint_checkbox_label = __('Checkbox for selecting the following fingerprint');
-  return x`<li class="fingerprint-removal-item list-group-item"><label><input type="checkbox" value="${el.device.get('id')}" aria-label="${i18n_fingerprint_checkbox_label}"> <span class="fingerprint">${formatFingerprint(el.device.get('bundle').fingerprint)}</span></label></li>`;
+  return lit_html_x`<li class="fingerprint-removal-item list-group-item"><label><input type="checkbox" value="${el.device.get('id')}" aria-label="${i18n_fingerprint_checkbox_label}"> <span class="fingerprint">${formatFingerprint(el.device.get('bundle').fingerprint)}</span></label></li>`;
 };
 const device_without_fingerprint = el => {
   const i18n_device_without_fingerprint = __('Device without a fingerprint');
   const i18n_fingerprint_checkbox_label = __('Checkbox for selecting the following device');
-  return x`<li class="fingerprint-removal-item list-group-item"><label><input type="checkbox" value="${el.device.get('id')}" aria-label="${i18n_fingerprint_checkbox_label}"> <span>${i18n_device_without_fingerprint}</span></label></li>`;
+  return lit_html_x`<li class="fingerprint-removal-item list-group-item"><label><input type="checkbox" value="${el.device.get('id')}" aria-label="${i18n_fingerprint_checkbox_label}"> <span>${i18n_device_without_fingerprint}</span></label></li>`;
 };
-const device_item = el => x`${el.device.get('bundle') && el.device.get('bundle').fingerprint ? device_with_fingerprint(el) : device_without_fingerprint(el)}`;
+const device_item = el => lit_html_x`${el.device.get('bundle') && el.device.get('bundle').fingerprint ? device_with_fingerprint(el) : device_without_fingerprint(el)}`;
 const device_list = el => {
   const i18n_other_devices = __('Other OMEMO-enabled devices');
   const i18n_other_devices_label = __('Checkbox to select fingerprints of all other OMEMO devices');
   const i18n_remove_devices = __('Remove checked devices and close');
   const i18n_select_all = __('Select all');
-  return x`<ul class="list-group fingerprints"><li class="list-group-item active"><label><input type="checkbox" class="select-all" @change="${el.selectAll}" title="${i18n_select_all}" aria-label="${i18n_other_devices_label}"> ${i18n_other_devices}</label></li>${el.other_devices?.map(device => device_item(Object.assign({
+  return lit_html_x`<ul class="list-group fingerprints"><li class="list-group-item active"><label><input type="checkbox" class="select-all" @change="${el.selectAll}" title="${i18n_select_all}" aria-label="${i18n_other_devices_label}"> ${i18n_other_devices}</label></li>${el.other_devices?.map(device => device_item(Object.assign({
     device
   }, el)))}</ul><div class="form-group"><button type="submit" class="save-form btn btn-primary">${i18n_remove_devices}</button></div>`;
 };
 /* harmony default export */ const templates_profile = (el => {
   const i18n_fingerprint = __("This device's OMEMO fingerprint");
   const i18n_generate = __('Generate new keys and fingerprint');
-  return x`<form class="converse-form fingerprint-removal" @submit="${el.removeSelectedFingerprints}"><ul class="list-group fingerprints"><li class="list-group-item active">${i18n_fingerprint}</li><li class="list-group-item">${el.current_device && el.current_device.get('bundle') && el.current_device.get('bundle').fingerprint ? fingerprint(el) : spinner()}</li></ul><div class="form-group"><button type="button" class="generate-bundle btn btn-danger" @click="${el.generateOMEMODeviceBundle}">${i18n_generate}</button></div>${el.other_devices?.length ? device_list(el) : ''}</form>`;
+  return lit_html_x`<form class="converse-form fingerprint-removal" @submit="${el.removeSelectedFingerprints}"><ul class="list-group fingerprints"><li class="list-group-item active">${i18n_fingerprint}</li><li class="list-group-item">${el.current_device && el.current_device.get('bundle') && el.current_device.get('bundle').fingerprint ? fingerprint(el) : spinner()}</li></ul><div class="form-group"><button type="button" class="generate-bundle btn btn-danger" @click="${el.generateOMEMODeviceBundle}">${i18n_generate}</button></div>${el.other_devices?.length ? device_list(el) : ''}</form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/omemo/profile.js
 
@@ -65364,7 +66116,7 @@ class profile_Profile extends CustomElement {
     try {
       await this.devicelist.removeOwnDevices(device_ids);
     } catch (err) {
-      log.error(err);
+      headless_log.error(err);
       shared_converse.api.alert(profile_Strophe.LogLevel.ERROR, __('Error'), [__('Sorry, an error occurred while trying to remove the devices.')]);
     }
     await this.setAttributes();
@@ -65449,8 +66201,8 @@ const Device = Model.extend({
     try {
       iq = await shared_api.sendIQ(stanza);
     } catch (iq) {
-      log.error(`Could not fetch bundle for device ${this.get('id')} from ${this.get('jid')}`);
-      log.error(iq);
+      headless_log.error(`Could not fetch bundle for device ${this.get('id')} from ${this.get('jid')}`);
+      headless_log.error(iq);
       return null;
     }
     if (iq.querySelector('error')) {
@@ -65515,10 +66267,10 @@ const DeviceList = Model.extend({
         ids = await this.fetchDevicesFromServer();
       } catch (e) {
         if (e === null) {
-          log.error(`Timeout error while fetching devices for ${this.get('jid')}`);
+          headless_log.error(`Timeout error while fetching devices for ${this.get('jid')}`);
         } else {
-          log.error(`Could not fetch devices for ${this.get('jid')}`);
-          log.error(e);
+          headless_log.error(`Could not fetch devices for ${this.get('jid')}`);
+          headless_log.error(e);
         }
         this.destroy();
       }
@@ -65533,7 +66285,7 @@ const DeviceList = Model.extend({
         this.devices.fetch({
           'success': c => resolve(this.onDevicesFound(c)),
           'error': (_, e) => {
-            log.error(e);
+            headless_log.error(e);
             resolve();
           }
         });
@@ -65559,7 +66311,7 @@ const DeviceList = Model.extend({
     if (!shared_converse.omemo_store) {
       // Happens during tests. The connection gets torn down
       // before publishCurrentDevice has time to finish.
-      log.warn('publishCurrentDevice: omemo_store is not defined, likely a timing issue');
+      headless_log.warn('publishCurrentDevice: omemo_store is not defined, likely a timing issue');
       return;
     }
     if (!device_ids.includes(await this.getOwnDeviceId())) {
@@ -65613,7 +66365,7 @@ const DeviceList = Model.extend({
     await Promise.all(device_ids.map(id => this.devices.get(id)).map(d => new Promise(resolve => d.destroy({
       'success': resolve,
       'error': (_, e) => {
-        log.error(e);
+        headless_log.error(e);
         resolve();
       }
     }))));
@@ -65909,7 +66661,7 @@ const OMEMOStore = Model.extend({
   async generateMissingPreKeys() {
     const missing_keys = lodash_es_difference(lodash_es_invokeMap(lodash_es_range(0, shared_converse.NUM_PREKEYS), Number.prototype.toString), Object.keys(this.getPreKeys()));
     if (missing_keys.length < 1) {
-      log.warn('No missing prekeys to generate for our own device');
+      headless_log.warn('No missing prekeys to generate for our own device');
       return Promise.resolve();
     }
     const keys = await Promise.all(missing_keys.map(id => libsignal.KeyHelper.generatePreKey(parseInt(id, 10))));
@@ -66008,8 +66760,8 @@ const OMEMOStore = Model.extend({
             }
           },
           'error': (model, resp) => {
-            log.warn("Could not fetch OMEMO session from cache, we'll generate a new one.");
-            log.warn(resp);
+            headless_log.warn("Could not fetch OMEMO session from cache, we'll generate a new one.");
+            headless_log.warn(resp);
             this.generateBundle().then(resolve).catch(reject);
           }
         });
@@ -66175,10 +66927,10 @@ public_converse.plugins.add('converse-omemo', {
     shared_api.listen.on('afterMessageBodyTransformed', handleEncryptedFiles);
     shared_api.listen.on('userDetailsModalInitialized', contact => {
       const jid = contact.get('jid');
-      shared_converse.generateFingerprints(jid).catch(e => log.error(e));
+      shared_converse.generateFingerprints(jid).catch(e => headless_log.error(e));
     });
     shared_api.listen.on('profileModalInitialized', () => {
-      shared_converse.generateFingerprints(shared_converse.bare_jid).catch(e => log.error(e));
+      shared_converse.generateFingerprints(shared_converse.bare_jid).catch(e => headless_log.error(e));
     });
     shared_api.listen.on('clearSession', () => {
       delete shared_converse.omemo_store;
@@ -66201,7 +66953,7 @@ async function disablePushAppServer(domain, push_app_server) {
     return;
   }
   if (!(await shared_api.disco.supports(push_utils_Strophe.NS.PUSH, domain || shared_converse.bare_jid))) {
-    log.warn(`Not disabling push app server "${push_app_server.jid}", no disco support from your server.`);
+    headless_log.warn(`Not disabling push app server "${push_app_server.jid}", no disco support from your server.`);
     return;
   }
   const stanza = push_utils_$iq({
@@ -66222,8 +66974,8 @@ async function disablePushAppServer(domain, push_app_server) {
     });
   }
   shared_api.sendIQ(stanza).catch(e => {
-    log.error(`Could not disable push app server for ${push_app_server.jid}`);
-    log.error(e);
+    headless_log.error(`Could not disable push app server for ${push_app_server.jid}`);
+    headless_log.error(e);
   });
 }
 async function enablePushAppServer(domain, push_app_server) {
@@ -66232,11 +66984,11 @@ async function enablePushAppServer(domain, push_app_server) {
   }
   const identity = await shared_api.disco.getIdentity('pubsub', 'push', push_app_server.jid);
   if (!identity) {
-    return log.warn(`Not enabling push the service "${push_app_server.jid}", it doesn't have the right disco identtiy.`);
+    return headless_log.warn(`Not enabling push the service "${push_app_server.jid}", it doesn't have the right disco identtiy.`);
   }
   const result = await Promise.all([shared_api.disco.supports(push_utils_Strophe.NS.PUSH, push_app_server.jid), shared_api.disco.supports(push_utils_Strophe.NS.PUSH, domain)]);
   if (!result[0] && !result[1]) {
-    log.warn(`Not enabling push app server "${push_app_server.jid}", no disco support from your server.`);
+    headless_log.warn(`Not enabling push app server "${push_app_server.jid}", no disco support from your server.`);
     return;
   }
   const stanza = push_utils_$iq({
@@ -66277,8 +67029,8 @@ async function enablePush(domain) {
   try {
     await Promise.all(enabled.concat(disabled));
   } catch (e) {
-    log.error('Could not enable or disable push App Server');
-    if (e) log.error(e);
+    headless_log.error('Could not enable or disable push App Server');
+    if (e) headless_log.error(e);
   } finally {
     push_enabled.push(domain);
   }
@@ -66324,7 +67076,7 @@ public_converse.plugins.add('converse-push', {
 /* harmony default export */ const switch_form = (() => {
   const i18n_has_account = __('Already have a chat account?');
   const i18n_login = __('Log in here');
-  return x`<div class="switch-form"><p>${i18n_has_account}</p><p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p></div>`;
+  return lit_html_x`<div class="switch-form"><p>${i18n_has_account}</p><p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/register/templates/registration_form.js
 
@@ -66336,7 +67088,7 @@ public_converse.plugins.add('converse-push', {
   const i18n_legend = __('Account Registration:');
   const i18n_register = __('Register');
   const registration_domain = shared_api.settings.get('registration_domain');
-  return x`<form id="converse-register" class="converse-form" @submit="${ev => el.onFormSubmission(ev)}"><legend class="col-form-label">${i18n_legend} ${el.domain}</legend><p class="title">${el.title}</p><p class="form-help instructions">${el.instructions}</p><div class="form-errors hidden"></div>${el.form_fields}<fieldset class="buttons form-group">${el.fields ? x`<input type="submit" class="btn btn-primary" value="${i18n_register}">` : ''} ${registration_domain ? '' : x`<input type="button" class="btn btn-secondary button-cancel" value="${i18n_choose_provider}" @click="${ev => el.renderProviderChoiceForm(ev)}">`} ${switch_form()}</fieldset></form>`;
+  return lit_html_x`<form id="converse-register" class="converse-form" @submit="${ev => el.onFormSubmission(ev)}"><legend class="col-form-label">${i18n_legend} ${el.domain}</legend><p class="title">${el.title}</p><p class="form-help instructions">${el.instructions}</p><div class="form-errors hidden"></div>${el.form_fields}<fieldset class="buttons form-group">${el.fields ? lit_html_x`<input type="submit" class="btn btn-primary" value="${i18n_register}">` : ''} ${registration_domain ? '' : lit_html_x`<input type="button" class="btn btn-secondary button-cancel" value="${i18n_choose_provider}" @click="${ev => el.renderProviderChoiceForm(ev)}">`} ${switch_form()}</fieldset></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/register/templates/register_panel.js
 
@@ -66348,36 +67100,36 @@ public_converse.plugins.add('converse-push', {
 const tplFormRequest = el => {
   const default_domain = shared_api.settings.get('registration_domain');
   const i18n_cancel = __('Cancel');
-  return x`<form id="converse-register" class="converse-form no-scrolling" @submit="${ev => el.onFormSubmission(ev)}">${spinner({
+  return lit_html_x`<form id="converse-register" class="converse-form no-scrolling" @submit="${ev => el.onFormSubmission(ev)}">${spinner({
     'classes': 'hor_centered'
-  })} ${default_domain ? '' : x`<button class="btn btn-secondary button-cancel hor_centered" @click="${ev => el.renderProviderChoiceForm(ev)}">${i18n_cancel}</button>`}</form>`;
+  })} ${default_domain ? '' : lit_html_x`<button class="btn btn-secondary button-cancel hor_centered" @click="${ev => el.renderProviderChoiceForm(ev)}">${i18n_cancel}</button>`}</form>`;
 };
 const tplDomainInput = () => {
   const domain_placeholder = shared_api.settings.get('domain_placeholder');
   const i18n_providers = __('Tip: A list of public XMPP providers is available');
   const i18n_providers_link = __('here');
   const href_providers = shared_api.settings.get('providers_link');
-  return x`<input class="form-control" required="required" type="text" name="domain" placeholder="${domain_placeholder}"><p class="form-text text-muted">${i18n_providers} <a href="${href_providers}" class="url" target="_blank" rel="noopener">${i18n_providers_link}</a>.</p>`;
+  return lit_html_x`<input class="form-control" required="required" type="text" name="domain" placeholder="${domain_placeholder}"><p class="form-text text-muted">${i18n_providers} <a href="${href_providers}" class="url" target="_blank" rel="noopener">${i18n_providers_link}</a>.</p>`;
 };
 const tplFetchFormButtons = () => {
   const i18n_register = __('Fetch registration form');
   const i18n_existing_account = __('Already have a chat account?');
   const i18n_login = __('Log in here');
-  return x`<fieldset class="form-group buttons"><input class="btn btn-primary" type="submit" value="${i18n_register}"></fieldset><div class="switch-form"><p>${i18n_existing_account}</p><p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p></div>`;
+  return lit_html_x`<fieldset class="form-group buttons"><input class="btn btn-primary" type="submit" value="${i18n_register}"></fieldset><div class="switch-form"><p>${i18n_existing_account}</p><p><a class="login-here toggle-register-login" href="#converse/login">${i18n_login}</a></p></div>`;
 };
 const tplChooseProvider = el => {
   const default_domain = shared_api.settings.get('registration_domain');
   const i18n_create_account = __('Create your account');
   const i18n_choose_provider = __('Please enter the XMPP provider to register with:');
   const show_form_buttons = !default_domain && el.status === CHOOSE_PROVIDER;
-  return x`<form id="converse-register" class="converse-form" @submit="${ev => el.onFormSubmission(ev)}"><legend class="col-form-label">${i18n_create_account}</legend><div class="form-group"><label>${i18n_choose_provider}</label> ${default_domain ? default_domain : tplDomainInput()}</div>${show_form_buttons ? tplFetchFormButtons() : ''}</form>`;
+  return lit_html_x`<form id="converse-register" class="converse-form" @submit="${ev => el.onFormSubmission(ev)}"><legend class="col-form-label">${i18n_create_account}</legend><div class="form-group"><label>${i18n_choose_provider}</label> ${default_domain ? default_domain : tplDomainInput()}</div>${show_form_buttons ? tplFetchFormButtons() : ''}</form>`;
 };
 const CHOOSE_PROVIDER = 0;
 const FETCHING_FORM = 1;
 const REGISTRATION_FORM = 2;
 const REGISTRATION_FORM_ERROR = 3;
 /* harmony default export */ const register_panel = (el => {
-  return x`<converse-brand-logo></converse-brand-logo>${el.alert_message ? x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''} ${el.status === CHOOSE_PROVIDER ? tplChooseProvider(el) : ''} ${el.status === FETCHING_FORM ? tplFormRequest(el) : ''} ${el.status === REGISTRATION_FORM ? registration_form(el) : ''} ${el.status === REGISTRATION_FORM_ERROR ? switch_form() : ''}`;
+  return lit_html_x`<converse-brand-logo></converse-brand-logo>${el.alert_message ? lit_html_x`<div class="alert alert-${el.alert_type}" role="alert">${el.alert_message}</div>` : ''} ${el.status === CHOOSE_PROVIDER ? tplChooseProvider(el) : ''} ${el.status === FETCHING_FORM ? tplFormRequest(el) : ''} ${el.status === REGISTRATION_FORM ? registration_form(el) : ''} ${el.status === REGISTRATION_FORM_ERROR ? switch_form() : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/register/utils.js
 
@@ -66416,13 +67168,13 @@ function webForm2xForm(field) {
   } else if (field.tagName == "TEXTAREA") {
     value = field.value.split('\n').filter(s => s.trim());
   } else if (field.tagName == "SELECT") {
-    value = utils_core.getSelectValues(field);
+    value = core.getSelectValues(field);
   } else {
     value = field.value;
   }
-  return utils_core.toStanza(tplXformField(name, Array.isArray(value) ? value.map(tplXformValue) : tplXformValue(value)));
+  return core.toStanza(tplXformField(name, Array.isArray(value) ? value.map(tplXformValue) : tplXformValue(value)));
 }
-utils_core.webForm2xForm = webForm2xForm;
+core.webForm2xForm = webForm2xForm;
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/register/styles/register.scss
 var register = __webpack_require__(3538);
 ;// CONCATENATED MODULE: ./src/plugins/register/styles/register.scss
@@ -66668,12 +67420,12 @@ class RegisterPanel extends CustomElement {
    * @param { number } status_code - The Strophe.Status status code
    */
   onConnectStatusChanged(status_code) {
-    log.debug('converse-register: onConnectStatusChanged');
+    headless_log.debug('converse-register: onConnectStatusChanged');
     if ([panel_Strophe.Status.DISCONNECTED, panel_Strophe.Status.CONNFAIL, panel_Strophe.Status.REGIFAIL, panel_Strophe.Status.NOTACCEPTABLE, panel_Strophe.Status.CONFLICT].includes(status_code)) {
-      log.error(`Problem during registration: Strophe.Status is ${CONNECTION_STATUS[status_code]}`);
+      headless_log.error(`Problem during registration: Strophe.Status is ${CONNECTION_STATUS[status_code]}`);
       this.abortRegistration();
     } else if (status_code === panel_Strophe.Status.REGISTERED) {
-      log.debug("Registered successfully.");
+      headless_log.debug("Registered successfully.");
       shared_converse.connection.reset();
       if (["converse/login", "converse/register"].includes(shared_converse.router.history.getFragment())) {
         shared_converse.router.navigate('', {
@@ -66839,7 +67591,7 @@ class RegisterPanel extends CustomElement {
         this.fields[_var.toLowerCase()] = field.querySelector('value')?.textContent ?? '';
       } else {
         // TODO: other option seems to be type="fixed"
-        log.warn("Found field we couldn't parse");
+        headless_log.warn("Found field we couldn't parse");
       }
     });
     this.form_type = 'xform';
@@ -66854,7 +67606,7 @@ class RegisterPanel extends CustomElement {
    */
   _onRegisterIQ(stanza) {
     if (stanza.getAttribute("type") === "error") {
-      log.error("Registration failed.");
+      headless_log.error("Registration failed.");
       this.reportErrors(stanza);
       let error = stanza.getElementsByTagName("error");
       if (error.length !== 1) {
@@ -67002,7 +67754,7 @@ async function searchRooms(query) {
   try {
     iq_result = await shared_api.sendIQ(iq);
   } catch (e) {
-    log.error(e);
+    headless_log.error(e);
     return [];
   }
   const s = `result[xmlns="${search_Strophe.NS.MUCSEARCH}"] item`;
@@ -67030,7 +67782,7 @@ function search_getAutoCompleteList(query) {
 const nickname_input = el => {
   const i18n_nickname = __('Nickname');
   const i18n_required_field = __('This field is required');
-  return x`<div class="form-group"><label for="nickname">${i18n_nickname}:</label> <input type="text" title="${i18n_required_field}" required="required" name="nickname" value="${el.model.get('nick') || ''}" class="form-control"></div>`;
+  return lit_html_x`<div class="form-group"><label for="nickname">${i18n_nickname}:</label> <input type="text" title="${i18n_required_field}" required="required" name="nickname" value="${el.model.get('nick') || ''}" class="form-control"></div>`;
 };
 /* harmony default export */ const add_muc = (el => {
   const i18n_join = __('Join');
@@ -67042,9 +67794,9 @@ const nickname_input = el => {
   const label_room_address = muc_domain ? __('Groupchat name') : __('Groupchat address');
   const muc_roomid_policy_error_msg = el.muc_roomid_policy_error_msg;
   const muc_roomid_policy_hint = shared_api.settings.get('muc_roomid_policy_hint');
-  return x`<form class="converse-form add-chatroom" @submit="${ev => el.openChatRoom(ev)}"><div class="form-group"><label for="chatroom">${label_room_address}:</label> ${muc_roomid_policy_error_msg ? x`<label class="roomid-policy-error">${muc_roomid_policy_error_msg}</label>` : ''}<converse-autocomplete .getAutoCompleteList="${search_getAutoCompleteList}" ?autofocus="${true}" min_chars="3" position="below" placeholder="${placeholder}" class="add-muc-autocomplete" name="chatroom"></converse-autocomplete></div>${muc_roomid_policy_hint ? x`<div class="form-group">${unsafe_html_o(purify_default().sanitize(muc_roomid_policy_hint, {
+  return lit_html_x`<form class="converse-form add-chatroom" @submit="${ev => el.openChatRoom(ev)}"><div class="form-group"><label for="chatroom">${label_room_address}:</label> ${muc_roomid_policy_error_msg ? lit_html_x`<label class="roomid-policy-error">${muc_roomid_policy_error_msg}</label>` : ''}<converse-autocomplete .getAutoCompleteList="${search_getAutoCompleteList}" ?autofocus="${true}" min_chars="3" position="below" placeholder="${placeholder}" class="add-muc-autocomplete" name="chatroom"></converse-autocomplete></div>${muc_roomid_policy_hint ? lit_html_x`<div class="form-group">${unsafe_html_o(purify_default().sanitize(muc_roomid_policy_hint, {
     'ALLOWED_TAGS': ['b', 'br', 'em']
-  }))}</div>` : ''} ${!shared_api.settings.get('locked_muc_nickname') ? nickname_input(el) : ''} <input type="submit" class="btn btn-primary" name="join" value="${i18n_join || ''}" ?disabled="${muc_roomid_policy_error_msg}/"></form>`;
+  }))}</div>` : ''} ${!shared_api.settings.get('locked_muc_nickname') ? nickname_input(el) : ''} <input type="submit" class="btn btn-primary" name="join" value="${i18n_join || ''}" ?disabled="${muc_roomid_policy_error_msg}"></form>`;
 });
 // EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[2].use[3]!./node_modules/mini-css-extract-plugin/dist/loader.js!./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[6].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[6].use[2]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[6].use[3]!./src/plugins/muc-views/styles/add-muc-modal.scss
 var add_muc_modal = __webpack_require__(5902);
@@ -67204,7 +67956,7 @@ function head(array) {
   const i18n_semi_anon = __('Semi-anonymous');
   const i18n_temp_room = __('Temporary');
   const i18n_unmoderated = __('Unmoderated');
-  return x`<div class="room-info"><p class="room-info"><strong>${i18n_jid}</strong> ${o.jid}</p><p class="room-info"><strong>${i18n_desc}</strong> ${o.desc}</p><p class="room-info"><strong>${i18n_occ}</strong> ${o.occ}</p><p class="room-info"><strong>${i18n_features}</strong></p><ul>${o.passwordprotected ? x`<li class="room-info locked">${i18n_requires_auth}</li>` : ''} ${o.hidden ? x`<li class="room-info">${i18n_hidden}</li>` : ''} ${o.membersonly ? x`<li class="room-info">${i18n_requires_invite}</li>` : ''} ${o.moderated ? x`<li class="room-info">${i18n_moderated}</li>` : ''} ${o.nonanonymous ? x`<li class="room-info">${i18n_non_anon}</li>` : ''} ${o.open ? x`<li class="room-info">${i18n_open_room}</li>` : ''} ${o.persistent ? x`<li class="room-info">${i18n_permanent_room}</li>` : ''} ${o.publicroom ? x`<li class="room-info">${i18n_public}</li>` : ''} ${o.semianonymous ? x`<li class="room-info">${i18n_semi_anon}</li>` : ''} ${o.temporary ? x`<li class="room-info">${i18n_temp_room}</li>` : ''} ${o.unmoderated ? x`<li class="room-info">${i18n_unmoderated}</li>` : ''}</ul><p></p></div>`;
+  return lit_html_x`<div class="room-info"><p class="room-info"><strong>${i18n_jid}</strong> ${o.jid}</p><p class="room-info"><strong>${i18n_desc}</strong> ${o.desc}</p><p class="room-info"><strong>${i18n_occ}</strong> ${o.occ}</p><p class="room-info"><strong>${i18n_features}</strong></p><ul>${o.passwordprotected ? lit_html_x`<li class="room-info locked">${i18n_requires_auth}</li>` : ''} ${o.hidden ? lit_html_x`<li class="room-info">${i18n_hidden}</li>` : ''} ${o.membersonly ? lit_html_x`<li class="room-info">${i18n_requires_invite}</li>` : ''} ${o.moderated ? lit_html_x`<li class="room-info">${i18n_moderated}</li>` : ''} ${o.nonanonymous ? lit_html_x`<li class="room-info">${i18n_non_anon}</li>` : ''} ${o.open ? lit_html_x`<li class="room-info">${i18n_open_room}</li>` : ''} ${o.persistent ? lit_html_x`<li class="room-info">${i18n_permanent_room}</li>` : ''} ${o.publicroom ? lit_html_x`<li class="room-info">${i18n_public}</li>` : ''} ${o.semianonymous ? lit_html_x`<li class="room-info">${i18n_semi_anon}</li>` : ''} ${o.temporary ? lit_html_x`<li class="room-info">${i18n_temp_room}</li>` : ''} ${o.unmoderated ? lit_html_x`<li class="room-info">${i18n_unmoderated}</li>` : ''}</ul><p></p></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/templates/muc-list.js
 
@@ -67214,15 +67966,15 @@ function head(array) {
 const muc_list_form = o => {
   const i18n_query = __('Show groupchats');
   const i18n_server_address = __('Server address');
-  return x`<form class="converse-form list-chatrooms" @submit="${o.submitForm}"><div class="form-group"><label for="chatroom">${i18n_server_address}:</label> <input type="text" autofocus @change="${o.setDomainFromEvent}" value="${o.muc_domain || ''}" required="required" name="server" class="form-control" placeholder="${o.server_placeholder}"></div><input type="submit" class="btn btn-primary" name="list" value="${i18n_query}"></form>`;
+  return lit_html_x`<form class="converse-form list-chatrooms" @submit="${o.submitForm}"><div class="form-group"><label for="chatroom">${i18n_server_address}:</label> <input type="text" autofocus @change="${o.setDomainFromEvent}" value="${o.muc_domain || ''}" required="required" name="server" class="form-control" placeholder="${o.server_placeholder}"></div><input type="submit" class="btn btn-primary" name="list" value="${i18n_query}"></form>`;
 };
 const tplItem = (o, item) => {
   const i18n_info_title = __('Show more information on this groupchat');
   const i18n_open_title = __('Click to open this groupchat');
-  return x`<li class="room-item list-group-item"><div class="available-chatroom d-flex flex-row"><a class="open-room available-room w-100" @click="${o.openRoom}" data-room-jid="${item.jid}" data-room-name="${item.name}" title="${i18n_open_title}" href="#">${item.name || item.jid}</a> <a class="right room-info icon-room-info" @click="${o.toggleRoomInfo}" data-room-jid="${item.jid}" title="${i18n_info_title}" href="#"></a></div></li>`;
+  return lit_html_x`<li class="room-item list-group-item"><div class="available-chatroom d-flex flex-row"><a class="open-room available-room w-100" @click="${o.openRoom}" data-room-jid="${item.jid}" data-room-name="${item.name}" title="${i18n_open_title}" href="#">${item.name || item.jid}</a> <a class="right room-info icon-room-info" @click="${o.toggleRoomInfo}" data-room-jid="${item.jid}" title="${i18n_info_title}" href="#"></a></div></li>`;
 };
 /* harmony default export */ const muc_list = (o => {
-  return x`${o.show_form ? muc_list_form(o) : ''}<ul class="available-chatrooms list-group">${o.loading_items ? x`<li class="list-group-item">${spinner()}</li>` : ''} ${o.feedback_text ? x`<li class="list-group-item active">${o.feedback_text}</li>` : ''} ${repeat_c(o.items, item => item.jid, item => tplItem(o, item))}</ul>`;
+  return lit_html_x`${o.show_form ? muc_list_form(o) : ''}<ul class="available-chatrooms list-group">${o.loading_items ? lit_html_x`<li class="list-group-item">${spinner()}</li>` : ''} ${o.feedback_text ? lit_html_x`<li class="list-group-item active">${o.feedback_text}</li>` : ''} ${repeat_c(o.items, item => item.jid, item => tplItem(o, item))}</ul>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/muc-views/modals/muc-list.js
 
@@ -67281,7 +68033,7 @@ function toggleRoomInfo(ev) {
     parent_el.querySelector('a.room-info').classList.remove('selected');
   } else {
     parent_el.insertAdjacentElement('beforeend', muc_list_u.getElementFromTemplateResult(spinner()));
-    shared_api.disco.info(ev.target.getAttribute('data-room-jid'), null).then(stanza => insertRoomInfo(parent_el, stanza)).catch(e => log.error(e));
+    shared_api.disco.info(ev.target.getAttribute('data-room-jid'), null).then(stanza => insertRoomInfo(parent_el, stanza)).catch(e => headless_log.error(e));
   }
 }
 class MUCListModal extends modal_modal {
@@ -67407,14 +68159,14 @@ function isCurrentlyOpen(room) {
 function tplBookmark(room) {
   const bm = room.get('bookmarked') ?? false;
   const i18n_bookmark = __('Bookmark');
-  return x`<a class="list-item-action add-bookmark" data-room-jid="${room.get('jid')}" data-bookmark-name="${room.getDisplayName()}" @click="${ev => addBookmarkViaEvent(ev)}" title="${i18n_bookmark}"><converse-icon class="fa ${bm ? 'fa-bookmark' : 'fa-bookmark-empty'}" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a>`;
+  return lit_html_x`<a class="list-item-action add-bookmark" data-room-jid="${room.get('jid')}" data-bookmark-name="${room.getDisplayName()}" @click="${ev => addBookmarkViaEvent(ev)}" title="${i18n_bookmark}"><converse-icon class="fa ${bm ? 'fa-bookmark' : 'fa-bookmark-empty'}" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a>`;
 }
-const tplUnreadIndicator = room => x`<span class="list-item-badge badge badge--muc msgs-indicator">${room.get('num_unread')}</span>`;
-const tplActivityIndicator = () => x`<span class="list-item-badge badge badge--muc msgs-indicator"></span>`;
+const tplUnreadIndicator = room => lit_html_x`<span class="list-item-badge badge badge--muc msgs-indicator">${room.get('num_unread')}</span>`;
+const tplActivityIndicator = () => lit_html_x`<span class="list-item-badge badge badge--muc msgs-indicator"></span>`;
 function tplRoomItem(el, room) {
   const i18n_leave_room = __('Leave this groupchat');
   const has_unread_msgs = room.get('num_unread_general') || room.get('has_activity');
-  return x`<div class="list-item controlbox-padded available-chatroom d-flex flex-row ${isCurrentlyOpen(room) ? 'open' : ''} ${has_unread_msgs ? 'unread-msgs' : ''}" data-room-jid="${room.get('jid')}">${room.get('num_unread') ? tplUnreadIndicator(room) : room.get('has_activity') ? tplActivityIndicator() : ''} <a class="list-item-link open-room available-room w-100" data-room-jid="${room.get('jid')}" title="${__('Click to open this groupchat')}" @click="${ev => el.openRoom(ev)}">${room.getDisplayName()}</a> ${shared_api.settings.get('allow_bookmarks') ? tplBookmark(room) : ''} <a class="list-item-action room-info" data-room-jid="${room.get('jid')}" title="${__('Show more information on this groupchat')}" @click="${ev => el.showRoomDetailsModal(ev)}"><converse-icon class="fa fa-info-circle" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a><a class="list-item-action close-room" data-room-jid="${room.get('jid')}" data-room-name="${room.getDisplayName()}" title="${i18n_leave_room}" @click="${ev => el.closeRoom(ev)}"><converse-icon class="fa fa-sign-out-alt" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a></div>`;
+  return lit_html_x`<div class="list-item controlbox-padded available-chatroom d-flex flex-row ${isCurrentlyOpen(room) ? 'open' : ''} ${has_unread_msgs ? 'unread-msgs' : ''}" data-room-jid="${room.get('jid')}">${room.get('num_unread') ? tplUnreadIndicator(room) : room.get('has_activity') ? tplActivityIndicator() : ''} <a class="list-item-link open-room available-room w-100" data-room-jid="${room.get('jid')}" title="${__('Click to open this groupchat')}" @click="${ev => el.openRoom(ev)}">${room.getDisplayName()}</a> ${shared_api.settings.get('allow_bookmarks') ? tplBookmark(room) : ''} <a class="list-item-action room-info" data-room-jid="${room.get('jid')}" title="${__('Show more information on this groupchat')}" @click="${ev => el.showRoomDetailsModal(ev)}"><converse-icon class="fa fa-info-circle" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a><a class="list-item-action close-room" data-room-jid="${room.get('jid')}" data-room-name="${room.getDisplayName()}" title="${i18n_leave_room}" @click="${ev => el.closeRoom(ev)}"><converse-icon class="fa fa-sign-out-alt" size="1.2em" color="${isCurrentlyOpen(room) ? 'var(--inverse-link-color)' : ''}"></converse-icon></a></div>`;
 }
 /* harmony default export */ const roomslist = (el => {
   const {
@@ -67430,7 +68182,7 @@ function tplRoomItem(el, room) {
   const i18n_title_new_room = __('Add a new groupchat');
   const i18n_show_bookmarks = __('Show bookmarked groupchats');
   const is_closed = el.model.get('toggle_state') === CLOSED;
-  return x`<div class="d-flex controlbox-padded"><span class="w-100 controlbox-heading controlbox-heading--groupchats"><a class="list-toggle open-rooms-toggle" title="${i18n_desc_rooms}" @click="${ev => el.toggleRoomsList(ev)}"><converse-icon class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}" size="1em" color="var(--muc-color)"></converse-icon>${i18n_heading_chatrooms} </a></span><a class="controlbox-heading__btn show-bookmark-list-modal" @click="${ev => shared_api.modal.show('converse-bookmark-list-modal', {
+  return lit_html_x`<div class="d-flex controlbox-padded"><span class="w-100 controlbox-heading controlbox-heading--groupchats"><a class="list-toggle open-rooms-toggle" title="${i18n_desc_rooms}" @click="${ev => el.toggleRoomsList(ev)}"><converse-icon class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}" size="1em" color="var(--muc-color)"></converse-icon>${i18n_heading_chatrooms} </a></span><a class="controlbox-heading__btn show-bookmark-list-modal" @click="${ev => shared_api.modal.show('converse-bookmark-list-modal', {
     'model': el.model
   }, ev)}" title="${i18n_show_bookmarks}" data-toggle="modal"><converse-icon class="fa fa-bookmark right" size="1em"></converse-icon></a><a class="controlbox-heading__btn show-list-muc-modal" @click="${ev => shared_api.modal.show('converse-muc-list-modal', {
     'model': el.model
@@ -67540,7 +68292,7 @@ public_converse.plugins.add('converse-roomslist', {
 });
 ;// CONCATENATED MODULE: ./src/shared/templates/icons.js
 
-/* harmony default export */ const icons = (() => x`<?xml version="1.0" encoding="UTF-8"?> <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="icon-address-book" viewBox="0 0 448 512"><path d="M436 160c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20V48c0-26.5-21.5-48-48-48H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h320c26.5 0 48-21.5 48-48v-48h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20zm-228-32c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm112 236.8c0 10.6-10 19.2-22.4 19.2H118.4C106 384 96 375.4 96 364.8v-19.2c0-31.8 30.1-57.6 67.2-57.6h5c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h5c37.1 0 67.2 25.8 67.2 57.6v19.2z"></path></symbol><symbol id="icon-angle-double-down" viewBox="0 0 320 512"><path d="M143 256.3L7 120.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0L313 86.3c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.4 9.5-24.6 9.5-34 .1zm34 192l136-136c9.4-9.4 9.4-24.6 0-33.9l-22.6-22.6c-9.4-9.4-24.6-9.4-33.9 0L160 352.1l-96.4-96.4c-9.4-9.4-24.6-9.4-33.9 0L7 278.3c-9.4 9.4-9.4 24.6 0 33.9l136 136c9.4 9.5 24.6 9.5 34 .1z"></path></symbol><symbol id="icon-angle-double-left" viewBox="0 0 448 512"><path d="M223.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L319.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L393.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34zm-192 34l136 136c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9L127.9 256l96.4-96.4c9.4-9.4 9.4-24.6 0-33.9L201.7 103c-9.4-9.4-24.6-9.4-33.9 0l-136 136c-9.5 9.4-9.5 24.6-.1 34z"></path></symbol><symbol id="icon-angle-double-right" viewBox="0 0 448 512"><path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34zm192-34l-136-136c-9.4-9.4-24.6-9.4-33.9 0l-22.6 22.6c-9.4 9.4-9.4 24.6 0 33.9l96.4 96.4-96.4 96.4c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l136-136c9.4-9.2 9.4-24.4 0-33.8z"></path></symbol><symbol id="icon-angle-double-up" viewBox="0 0 320 512"><path d="M177 255.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 351.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 425.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1zm-34-192L7 199.7c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l96.4-96.4 96.4 96.4c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9l-136-136c-9.2-9.4-24.4-9.4-33.8 0z"></path></symbol><symbol id="icon-angle-down" viewBox="0 0 320 512"><path d="M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z"></path></symbol><symbol id="icon-angle-left" viewBox="0 0 256 512"><path d="M31.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L127.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L201.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34z"></path></symbol><symbol id="icon-angle-right" viewBox="0 0 256 512"><path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z"></path></symbol><symbol id="icon-angle-up" viewBox="0 0 320 512"><path d="M177 159.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 255.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 329.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1z"></path></symbol><symbol id="icon-arrow-alt-circle-down" viewBox="0 0 512 512"><path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zM212 140v116h-70.9c-10.7 0-16.1 13-8.5 20.5l114.9 114.3c4.7 4.7 12.2 4.7 16.9 0l114.9-114.3c7.6-7.6 2.2-20.5-8.5-20.5H300V140c0-6.6-5.4-12-12-12h-64c-6.6 0-12 5.4-12 12z"></path></symbol><symbol id="icon-arrow-alt-circle-left" viewBox="0 0 512 512"><path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm116-292H256v-70.9c0-10.7-13-16.1-20.5-8.5L121.2 247.5c-4.7 4.7-4.7 12.2 0 16.9l114.3 114.9c7.6 7.6 20.5 2.2 20.5-8.5V300h116c6.6 0 12-5.4 12-12v-64c0-6.6-5.4-12-12-12z"></path></symbol><symbol id="icon-arrow-alt-circle-right" viewBox="0 0 512 512"><path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zM140 300h116v70.9c0 10.7 13 16.1 20.5 8.5l114.3-114.9c4.7-4.7 4.7-12.2 0-16.9l-114.3-115c-7.6-7.6-20.5-2.2-20.5 8.5V212H140c-6.6 0-12 5.4-12 12v64c0 6.6 5.4 12 12 12z"></path></symbol><symbol id="icon-arrow-alt-circle-up" viewBox="0 0 512 512"><path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm292 116V256h70.9c10.7 0 16.1-13 8.5-20.5L264.5 121.2c-4.7-4.7-12.2-4.7-16.9 0l-115 114.3c-7.6 7.6-2.2 20.5 8.5 20.5H212v116c0 6.6 5.4 12 12 12h64c6.6 0 12-5.4 12-12z"></path></symbol><symbol id="icon-arrow-circle-down" viewBox="0 0 512 512"><path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-143.6-28.9L288 302.6V120c0-13.3-10.7-24-24-24h-16c-13.3 0-24 10.7-24 24v182.6l-72.4-75.5c-9.3-9.7-24.8-9.9-34.3-.4l-10.9 11c-9.4 9.4-9.4 24.6 0 33.9L239 404.3c9.4 9.4 24.6 9.4 33.9 0l132.7-132.7c9.4-9.4 9.4-24.6 0-33.9l-10.9-11c-9.5-9.5-25-9.3-34.3.4z"></path></symbol><symbol id="icon-arrow-circle-left" viewBox="0 0 512 512"><path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm28.9-143.6L209.4 288H392c13.3 0 24-10.7 24-24v-16c0-13.3-10.7-24-24-24H209.4l75.5-72.4c9.7-9.3 9.9-24.8.4-34.3l-11-10.9c-9.4-9.4-24.6-9.4-33.9 0L107.7 239c-9.4 9.4-9.4 24.6 0 33.9l132.7 132.7c9.4 9.4 24.6 9.4 33.9 0l11-10.9c9.5-9.5 9.3-25-.4-34.3z"></path></symbol><symbol id="icon-arrow-circle-right" viewBox="0 0 512 512"><path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zm-28.9 143.6l75.5 72.4H120c-13.3 0-24 10.7-24 24v16c0 13.3 10.7 24 24 24h182.6l-75.5 72.4c-9.7 9.3-9.9 24.8-.4 34.3l11 10.9c9.4 9.4 24.6 9.4 33.9 0L404.3 273c9.4-9.4 9.4-24.6 0-33.9L271.6 106.3c-9.4-9.4-24.6-9.4-33.9 0l-11 10.9c-9.5 9.6-9.3 25.1.4 34.4z"></path></symbol><symbol id="icon-arrow-circle-up" viewBox="0 0 512 512"><path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm143.6 28.9l72.4-75.5V392c0 13.3 10.7 24 24 24h16c13.3 0 24-10.7 24-24V209.4l72.4 75.5c9.3 9.7 24.8 9.9 34.3.4l10.9-11c9.4-9.4 9.4-24.6 0-33.9L273 107.7c-9.4-9.4-24.6-9.4-33.9 0L106.3 240.4c-9.4 9.4-9.4 24.6 0 33.9l10.9 11c9.6 9.5 25.1 9.3 34.4-.4z"></path></symbol><symbol id="icon-arrow-down" viewBox="0 0 448 512"><path d="M413.1 222.5l22.2 22.2c9.4 9.4 9.4 24.6 0 33.9L241 473c-9.4 9.4-24.6 9.4-33.9 0L12.7 278.6c-9.4-9.4-9.4-24.6 0-33.9l22.2-22.2c9.5-9.5 25-9.3 34.3.4L184 343.4V56c0-13.3 10.7-24 24-24h32c13.3 0 24 10.7 24 24v287.4l114.8-120.5c9.3-9.8 24.8-10 34.3-.4z"></path></symbol><symbol id="icon-arrow-left" viewBox="0 0 448 512"><path d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"></path></symbol><symbol id="icon-arrow-right" viewBox="0 0 448 512"><path d="M190.5 66.9l22.2-22.2c9.4-9.4 24.6-9.4 33.9 0L441 239c9.4 9.4 9.4 24.6 0 33.9L246.6 467.3c-9.4 9.4-24.6 9.4-33.9 0l-22.2-22.2c-9.5-9.5-9.3-25 .4-34.3L311.4 296H24c-13.3 0-24-10.7-24-24v-32c0-13.3 10.7-24 24-24h287.4L190.9 101.2c-9.8-9.3-10-24.8-.4-34.3z"></path></symbol><symbol id="icon-arrow-up" viewBox="0 0 448 512"><path d="M34.9 289.5l-22.2-22.2c-9.4-9.4-9.4-24.6 0-33.9L207 39c9.4-9.4 24.6-9.4 33.9 0l194.3 194.3c9.4 9.4 9.4 24.6 0 33.9L413 289.4c-9.5 9.5-25 9.3-34.3-.4L264 168.6V456c0 13.3-10.7 24-24 24h-32c-13.3 0-24-10.7-24-24V168.6L69.2 289.1c-9.3 9.8-24.8 10-34.3.4z"></path></symbol><symbol id="icon-arrows-alt" viewBox="0 0 512 512"><path d="M352.201 425.775l-79.196 79.196c-9.373 9.373-24.568 9.373-33.941 0l-79.196-79.196c-15.119-15.119-4.411-40.971 16.971-40.97h51.162L228 284H127.196v51.162c0 21.382-25.851 32.09-40.971 16.971L7.029 272.937c-9.373-9.373-9.373-24.569 0-33.941L86.225 159.8c15.119-15.119 40.971-4.411 40.971 16.971V228H228V127.196h-51.23c-21.382 0-32.09-25.851-16.971-40.971l79.196-79.196c9.373-9.373 24.568-9.373 33.941 0l79.196 79.196c15.119 15.119 4.411 40.971-16.971 40.971h-51.162V228h100.804v-51.162c0-21.382 25.851-32.09 40.97-16.971l79.196 79.196c9.373 9.373 9.373 24.569 0 33.941L425.773 352.2c-15.119 15.119-40.971 4.411-40.97-16.971V284H284v100.804h51.23c21.382 0 32.09 25.851 16.971 40.971z"></path></symbol><symbol id="icon-arrows-alt-h" viewBox="0 0 512 512"><path d="M377.941 169.941V216H134.059v-46.059c0-21.382-25.851-32.09-40.971-16.971L7.029 239.029c-9.373 9.373-9.373 24.568 0 33.941l86.059 86.059c15.119 15.119 40.971 4.411 40.971-16.971V296h243.882v46.059c0 21.382 25.851 32.09 40.971 16.971l86.059-86.059c9.373-9.373 9.373-24.568 0-33.941l-86.059-86.059c-15.119-15.12-40.971-4.412-40.971 16.97z"></path></symbol><symbol id="icon-arrows-alt-v" viewBox="0 0 256 512"><path d="M214.059 377.941H168V134.059h46.059c21.382 0 32.09-25.851 16.971-40.971L144.971 7.029c-9.373-9.373-24.568-9.373-33.941 0L24.971 93.088c-15.119 15.119-4.411 40.971 16.971 40.971H88v243.882H41.941c-21.382 0-32.09 25.851-16.971 40.971l86.059 86.059c9.373 9.373 24.568 9.373 33.941 0l86.059-86.059c15.12-15.119 4.412-40.971-16.97-40.971z"></path></symbol><symbol id="icon-bars" viewBox="0 0 448 512"><path d="M16 132h416c8.837 0 16-7.163 16-16V76c0-8.837-7.163-16-16-16H16C7.163 60 0 67.163 0 76v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16z"></path></symbol><symbol id="icon-bookmark" viewBox="0 0 384 512"><path d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></symbol><symbol id="icon-bookmark-empty" viewBox="0 0 384 512"><path d="M0 48C0 21.5 21.5 0 48 0l0 48V441.4l130.1-92.9c8.3-6 19.6-6 27.9 0L336 441.4V48H48V0H336c26.5 0 48 21.5 48 48V488c0 9-5 17.2-13 21.3s-17.6 3.4-24.9-1.8L192 397.5 37.9 507.5c-7.3 5.2-16.9 5.9-24.9 1.8S0 497 0 488V48z"/></symbol><symbol id="icon-caret-down" viewBox="0 0 320 512"><path d="M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z"></path></symbol><symbol id="icon-caret-right" viewBox="0 0 192 512"><path d="M0 384.662V127.338c0-17.818 21.543-26.741 34.142-14.142l128.662 128.662c7.81 7.81 7.81 20.474 0 28.284L34.142 398.804C21.543 411.404 0 402.48 0 384.662z"></path></symbol><symbol id="icon-check" viewBox="0 0 512 512"><path d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"></path></symbol><symbol id="icon-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8z"></path></symbol><symbol id="icon-cog" viewBox="0 0 512 512"><path d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z"></path></symbol><symbol id="icon-database" viewBox="0 0 448 512"><path d="M448 73.143v45.714C448 159.143 347.667 192 224 192S0 159.143 0 118.857V73.143C0 32.857 100.333 0 224 0s224 32.857 224 73.143zM448 176v102.857C448 319.143 347.667 352 224 352S0 319.143 0 278.857V176c48.125 33.143 136.208 48.572 224 48.572S399.874 209.143 448 176zm0 160v102.857C448 479.143 347.667 512 224 512S0 479.143 0 438.857V336c48.125 33.143 136.208 48.572 224 48.572S399.874 369.143 448 336z"></path></symbol><symbol id="icon-edit" viewBox="0 0 576 512"><path d="M402.6 83.2l90.2 90.2c3.8 3.8 3.8 10 0 13.8L274.4 405.6l-92.8 10.3c-12.4 1.4-22.9-9.1-21.5-21.5l10.3-92.8L388.8 83.2c3.8-3.8 10-3.8 13.8 0zm162-22.9l-48.8-48.8c-15.2-15.2-39.9-15.2-55.2 0l-35.4 35.4c-3.8 3.8-3.8 10 0 13.8l90.2 90.2c3.8 3.8 10 3.8 13.8 0l35.4-35.4c15.2-15.3 15.2-40 0-55.2zM384 346.2V448H64V128h229.8c3.2 0 6.2-1.3 8.5-3.5l40-40c7.6-7.6 2.2-20.5-8.5-20.5H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V306.2c0-10.7-12.9-16-20.5-8.5l-40 40c-2.2 2.3-3.5 5.3-3.5 8.5z"></path></symbol><symbol id="icon-eye" viewBox="0 0 576 512"><path d="M572.52 241.4C518.29 135.59 410.93 64 288 64S57.68 135.64 3.48 241.41a32.35 32.35 0 0 0 0 29.19C57.71 376.41 165.07 448 288 448s230.32-71.64 284.52-177.41a32.35 32.35 0 0 0 0-29.19zM288 400a144 144 0 1 1 144-144 143.93 143.93 0 0 1-144 144zm0-240a95.31 95.31 0 0 0-25.31 3.79 47.85 47.85 0 0 1-66.9 66.9A95.78 95.78 0 1 0 288 160z"></path></symbol><symbol id="icon-eye-slash" viewBox="0 0 640 512"><path d="M320 400c-75.85 0-137.25-58.71-142.9-133.11L72.2 185.82c-13.79 17.3-26.48 35.59-36.72 55.59a32.35 32.35 0 0 0 0 29.19C89.71 376.41 197.07 448 320 448c26.91 0 52.87-4 77.89-10.46L346 397.39a144.13 144.13 0 0 1-26 2.61zm313.82 58.1l-110.55-85.44a331.25 331.25 0 0 0 81.25-102.07 32.35 32.35 0 0 0 0-29.19C550.29 135.59 442.93 64 320 64a308.15 308.15 0 0 0-147.32 37.7L45.46 3.37A16 16 0 0 0 23 6.18L3.37 31.45A16 16 0 0 0 6.18 53.9l588.36 454.73a16 16 0 0 0 22.46-2.81l19.64-25.27a16 16 0 0 0-2.82-22.45zm-183.72-142l-39.3-30.38A94.75 94.75 0 0 0 416 256a94.76 94.76 0 0 0-121.31-92.21A47.65 47.65 0 0 1 304 192a46.64 46.64 0 0 1-1.54 10l-73.61-56.89A142.31 142.31 0 0 1 320 112a143.92 143.92 0 0 1 144 144c0 21.63-5.29 41.79-13.9 60.11z"></path></symbol><symbol id="icon-gavel" viewBox="0 0 512 512"><path d="M504.971 199.362l-22.627-22.627c-9.373-9.373-24.569-9.373-33.941 0l-5.657 5.657L329.608 69.255l5.657-5.657c9.373-9.373 9.373-24.569 0-33.941L312.638 7.029c-9.373-9.373-24.569-9.373-33.941 0L154.246 131.48c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l5.657-5.657 39.598 39.598-81.04 81.04-5.657-5.657c-12.497-12.497-32.758-12.497-45.255 0L9.373 412.118c-12.497 12.497-12.497 32.758 0 45.255l45.255 45.255c12.497 12.497 32.758 12.497 45.255 0l114.745-114.745c12.497-12.497 12.497-32.758 0-45.255l-5.657-5.657 81.04-81.04 39.598 39.598-5.657 5.657c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l124.451-124.451c9.372-9.372 9.372-24.568 0-33.941z"></path></symbol><symbol id="icon-globe" viewBox="0 0 496 512"><path d="M336.5 160C322 70.7 287.8 8 248 8s-74 62.7-88.5 152h177zM152 256c0 22.2 1.2 43.5 3.3 64h185.3c2.1-20.5 3.3-41.8 3.3-64s-1.2-43.5-3.3-64H155.3c-2.1 20.5-3.3 41.8-3.3 64zm324.7-96c-28.6-67.9-86.5-120.4-158-141.6 24.4 33.8 41.2 84.7 50 141.6h108zM177.2 18.4C105.8 39.6 47.8 92.1 19.3 160h108c8.7-56.9 25.5-107.8 49.9-141.6zM487.4 192H372.7c2.1 21 3.3 42.5 3.3 64s-1.2 43-3.3 64h114.6c5.5-20.5 8.6-41.8 8.6-64s-3.1-43.5-8.5-64zM120 256c0-21.5 1.2-43 3.3-64H8.6C3.2 212.5 0 233.8 0 256s3.2 43.5 8.6 64h114.6c-2-21-3.2-42.5-3.2-64zm39.5 96c14.5 89.3 48.7 152 88.5 152s74-62.7 88.5-152h-177zm159.3 141.6c71.4-21.2 129.4-73.7 158-141.6h-108c-8.8 56.9-25.6 107.8-50 141.6zM19.3 352c28.6 67.9 86.5 120.4 158 141.6-24.4-33.8-41.2-84.7-50-141.6h-108z"></path></symbol><symbol id="icon-id-card" viewBox="0 0 576 512"><path d="M528 32H48C21.5 32 0 53.5 0 80v16h576V80c0-26.5-21.5-48-48-48zM0 432c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V128H0v304zm352-232c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zM176 192c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zM67.1 396.2C75.5 370.5 99.6 352 128 352h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.9-5.2 19.8-15.6 19.8H82.7c-10.4 0-18.8-10-15.6-19.8z"></path></symbol><symbol id="icon-id-card-alt" viewBox="0 0 576 512"><path d="M528 64H384v96H192V64H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48zM288 224c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm93.3 224H194.7c-10.4 0-18.8-10-15.6-19.8 8.3-25.6 32.4-44.2 60.9-44.2h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.8-5.2 19.8-15.6 19.8zM352 32c0-17.7-14.3-32-32-32h-64c-17.7 0-32 14.3-32 32v96h128V32z"></path></symbol><symbol id="icon-info" viewBox="0 0 192 512"><path d="M20 424.229h20V279.771H20c-11.046 0-20-8.954-20-20V212c0-11.046 8.954-20 20-20h112c11.046 0 20 8.954 20 20v212.229h20c11.046 0 20 8.954 20 20V492c0 11.046-8.954 20-20 20H20c-11.046 0-20-8.954-20-20v-47.771c0-11.046 8.954-20 20-20zM96 0C56.235 0 24 32.235 24 72s32.235 72 72 72 72-32.235 72-72S135.764 0 96 0z"></path></symbol><symbol id="icon-info-circle" viewBox="0 0 512 512"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></path></symbol><symbol id="icon-list-ul" viewBox="0 0 512 512"><path d="M48 48a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm448 16H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-320H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16zm0 160H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16z"></path></symbol><symbol id="icon-lock" viewBox="0 0 448 512"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path></symbol><symbol id="icon-lock-open" viewBox="0 0 576 512"><path d="M423.5 0C339.5.3 272 69.5 272 153.5V224H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48h-48v-71.1c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v80c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-80C576 68 507.5-.3 423.5 0z"></path></symbol><symbol id="icon-minus" viewBox="0 0 448 512"><path d="M416 208H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></symbol><symbol id="icon-minus-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zM124 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H124z"></path></symbol><symbol id="icon-minus-square" viewBox="0 0 448 512"><path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM92 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H92z"></path></symbol><symbol id="icon-paper-plane" viewBox="0 0 512 512"><path d="M476 3.2L12.5 270.6c-18.1 10.4-15.8 35.6 2.2 43.2L121 358.4l287.3-253.2c5.5-4.9 13.3 2.6 8.6 8.3L176 407v80.5c0 23.6 28.5 32.9 42.5 15.8L282 426l124.6 52.2c14.2 6 30.4-2.9 33-18.2l72-432C515 7.8 493.3-6.8 476 3.2z"></path></symbol><symbol id="icon-paperclip" viewBox="0 0 448 512"><path d="M43.246 466.142c-58.43-60.289-57.341-157.511 1.386-217.581L254.392 34c44.316-45.332 116.351-45.336 160.671 0 43.89 44.894 43.943 117.329 0 162.276L232.214 383.128c-29.855 30.537-78.633 30.111-107.982-.998-28.275-29.97-27.368-77.473 1.452-106.953l143.743-146.835c6.182-6.314 16.312-6.422 22.626-.241l22.861 22.379c6.315 6.182 6.422 16.312.241 22.626L171.427 319.927c-4.932 5.045-5.236 13.428-.648 18.292 4.372 4.634 11.245 4.711 15.688.165l182.849-186.851c19.613-20.062 19.613-52.725-.011-72.798-19.189-19.627-49.957-19.637-69.154 0L90.39 293.295c-34.763 35.56-35.299 93.12-1.191 128.313 34.01 35.093 88.985 35.137 123.058.286l172.06-175.999c6.177-6.319 16.307-6.433 22.626-.256l22.877 22.364c6.319 6.177 6.434 16.307.256 22.626l-172.06 175.998c-59.576 60.938-155.943 60.216-214.77-.485z"></path></symbol><symbol id="icon-pencil-alt" viewBox="0 0 512 512"><path d="M497.9 142.1l-46.1 46.1c-4.7 4.7-12.3 4.7-17 0l-111-111c-4.7-4.7-4.7-12.3 0-17l46.1-46.1c18.7-18.7 49.1-18.7 67.9 0l60.1 60.1c18.8 18.7 18.8 49.1 0 67.9zM284.2 99.8L21.6 362.4.4 483.9c-2.9 16.4 11.4 30.6 27.8 27.8l121.5-21.3 262.6-262.6c4.7-4.7 4.7-12.3 0-17l-111-111c-4.8-4.7-12.4-4.7-17.1 0zM124.1 339.9c-5.5-5.5-5.5-14.3 0-19.8l154-154c5.5-5.5 14.3-5.5 19.8 0s5.5 14.3 0 19.8l-154 154c-5.5 5.5-14.3 5.5-19.8 0zM88 424h48v36.3l-64.5 11.3-31.1-31.1L51.7 376H88v48z"></path></symbol><symbol id="icon-phone" viewBox="0 0 512 512"><path d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></symbol><symbol id="icon-plus" viewBox="0 0 448 512"><path d="M416 208H272V64c0-17.67-14.33-32-32-32h-32c-17.67 0-32 14.33-32 32v144H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h144v144c0 17.67 14.33 32 32 32h32c17.67 0 32-14.33 32-32V304h144c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></symbol><symbol id="icon-plus-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm144 276c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92h-92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path></symbol><symbol id="icon-plus-square" viewBox="0 0 448 512"><path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm-32 252c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92H92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path></symbol><symbol id="icon-save" viewBox="0 0 448 512"><path d="M433.941 129.941l-83.882-83.882A48 48 0 0 0 316.118 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h352c26.51 0 48-21.49 48-48V163.882a48 48 0 0 0-14.059-33.941zM224 416c-35.346 0-64-28.654-64-64 0-35.346 28.654-64 64-64s64 28.654 64 64c0 35.346-28.654 64-64 64zm96-304.52V212c0 6.627-5.373 12-12 12H76c-6.627 0-12-5.373-12-12V108c0-6.627 5.373-12 12-12h228.52c3.183 0 6.235 1.264 8.485 3.515l3.48 3.48A11.996 11.996 0 0 1 320 111.48z"></path></symbol><symbol id="icon-sign-out-alt" viewBox="0 0 512 512"><path d="M497 273L329 441c-15 15-41 4.5-41-17v-96H152c-13.3 0-24-10.7-24-24v-96c0-13.3 10.7-24 24-24h136V88c0-21.4 25.9-32 41-17l168 168c9.3 9.4 9.3 24.6 0 34zM192 436v-40c0-6.6-5.4-12-12-12H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h84c6.6 0 12-5.4 12-12V76c0-6.6-5.4-12-12-12H96c-53 0-96 43-96 96v192c0 53 43 96 96 96h84c6.6 0 12-5.4 12-12z"></path></symbol><symbol id="icon-smile" viewBox="0 0 496 512"><path d="M248 8C111 8 0 119 0 256s111 248 248 248 248-111 248-248S385 8 248 8zm80 168c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm-160 0c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm194.8 170.2C334.3 380.4 292.5 400 248 400s-86.3-19.6-114.8-53.8c-13.6-16.3 11-36.7 24.6-20.5 22.4 26.9 55.2 42.2 90.2 42.2s67.8-15.4 90.2-42.2c13.4-16.2 38.1 4.2 24.6 20.5z"></path></symbol><symbol id="icon-snowflake" viewBox="0 0 448 512"><path d="M440.3 345.2l-33.8-19.5 26-7c8.2-2.2 13.1-10.7 10.9-18.9l-4-14.9c-2.2-8.2-10.7-13.1-18.9-10.9l-70.8 19-63.9-37 63.8-36.9 70.8 19c8.2 2.2 16.7-2.7 18.9-10.9l4-14.9c2.2-8.2-2.7-16.7-10.9-18.9l-26-7 33.8-19.5c7.4-4.3 9.9-13.7 5.7-21.1L430.4 119c-4.3-7.4-13.7-9.9-21.1-5.7l-33.8 19.5 7-26c2.2-8.2-2.7-16.7-10.9-18.9l-14.9-4c-8.2-2.2-16.7 2.7-18.9 10.9l-19 70.8-62.8 36.2v-77.5l53.7-53.7c6.2-6.2 6.2-16.4 0-22.6l-11.3-11.3c-6.2-6.2-16.4-6.2-22.6 0L256 56.4V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v40.4l-19.7-19.7c-6.2-6.2-16.4-6.2-22.6 0L138.3 48c-6.3 6.2-6.3 16.4 0 22.6l53.7 53.7v77.5l-62.8-36.2-19-70.8c-2.2-8.2-10.7-13.1-18.9-10.9l-14.9 4c-8.2 2.2-13.1 10.7-10.9 18.9l7 26-33.8-19.5c-7.4-4.3-16.8-1.7-21.1 5.7L2.1 145.7c-4.3 7.4-1.7 16.8 5.7 21.1l33.8 19.5-26 7c-8.3 2.2-13.2 10.7-11 19l4 14.9c2.2 8.2 10.7 13.1 18.9 10.9l70.8-19 63.8 36.9-63.8 36.9-70.8-19c-8.2-2.2-16.7 2.7-18.9 10.9l-4 14.9c-2.2 8.2 2.7 16.7 10.9 18.9l26 7-33.8 19.6c-7.4 4.3-9.9 13.7-5.7 21.1l15.5 26.8c4.3 7.4 13.7 9.9 21.1 5.7l33.8-19.5-7 26c-2.2 8.2 2.7 16.7 10.9 18.9l14.9 4c8.2 2.2 16.7-2.7 18.9-10.9l19-70.8 62.8-36.2v77.5l-53.7 53.7c-6.3 6.2-6.3 16.4 0 22.6l11.3 11.3c6.2 6.2 16.4 6.2 22.6 0l19.7-19.7V496c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-40.4l19.7 19.7c6.2 6.2 16.4 6.2 22.6 0l11.3-11.3c6.2-6.2 6.2-16.4 0-22.6L256 387.7v-77.5l62.8 36.2 19 70.8c2.2 8.2 10.7 13.1 18.9 10.9l14.9-4c8.2-2.2 13.1-10.7 10.9-18.9l-7-26 33.8 19.5c7.4 4.3 16.8 1.7 21.1-5.7l15.5-26.8c4.3-7.3 1.8-16.8-5.6-21z"></path></symbol><symbol id="icon-spinner" viewBox="0 0 512 512"><path d="M304 48c0 26.51-21.49 48-48 48s-48-21.49-48-48 21.49-48 48-48 48 21.49 48 48zm-48 368c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zm208-208c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zM96 256c0-26.51-21.49-48-48-48S0 229.49 0 256s21.49 48 48 48 48-21.49 48-48zm12.922 99.078c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.491-48-48-48zm294.156 0c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.49-48-48-48zM108.922 60.922c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.491-48-48-48z"></path></symbol><symbol id="icon-sync" viewBox="0 0 512 512"><path d="M440.65 12.57l4 82.77A247.16 247.16 0 0 0 255.83 8C134.73 8 33.91 94.92 12.29 209.82A12 12 0 0 0 24.09 224h49.05a12 12 0 0 0 11.67-9.26 175.91 175.91 0 0 1 317-56.94l-101.46-4.86a12 12 0 0 0-12.57 12v47.41a12 12 0 0 0 12 12H500a12 12 0 0 0 12-12V12a12 12 0 0 0-12-12h-47.37a12 12 0 0 0-11.98 12.57zM255.83 432a175.61 175.61 0 0 1-146-77.8l101.8 4.87a12 12 0 0 0 12.57-12v-47.4a12 12 0 0 0-12-12H12a12 12 0 0 0-12 12V500a12 12 0 0 0 12 12h47.35a12 12 0 0 0 12-12.6l-4.15-82.57A247.17 247.17 0 0 0 255.83 504c121.11 0 221.93-86.92 243.55-201.82a12 12 0 0 0-11.8-14.18h-49.05a12 12 0 0 0-11.67 9.26A175.86 175.86 0 0 1 255.83 432z"></path></symbol><symbol id="icon-times" viewBox="0 0 352 512"><path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path></symbol><symbol id="icon-times-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm121.6 313.1c4.7 4.7 4.7 12.3 0 17L338 377.6c-4.7 4.7-12.3 4.7-17 0L256 312l-65.1 65.6c-4.7 4.7-12.3 4.7-17 0L134.4 338c-4.7-4.7-4.7-12.3 0-17l65.6-65-65.6-65.1c-4.7-4.7-4.7-12.3 0-17l39.6-39.6c4.7-4.7 12.3-4.7 17 0l65 65.7 65.1-65.6c4.7-4.7 12.3-4.7 17 0l39.6 39.6c4.7 4.7 4.7 12.3 0 17L312 256l65.6 65.1z"></path></symbol><symbol id="icon-trash" viewBox="0 0 448 512"><path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"></path></symbol><symbol id="icon-trash-alt" viewBox="0 0 448 512"><path d="M32 464a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V128H32zm272-256a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zM432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16z"></path></symbol><symbol id="icon-unlock" viewBox="0 0 448 512"><path d="M400 256H152V152.9c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v16c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-16C376 68 307.5-.3 223.5 0 139.5.3 72 69.5 72 153.5V256H48c-26.5 0-48 21.5-48 48v160c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V304c0-26.5-21.5-48-48-48z"></path></symbol><symbol id="icon-user" viewBox="0 0 448 512"><path d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path></symbol><symbol id="icon-user-cog" viewBox="0 0 640 512"><path d="M610.5 373.3c2.6-14.1 2.6-28.5 0-42.6l25.8-14.9c3-1.7 4.3-5.2 3.3-8.5-6.7-21.6-18.2-41.2-33.2-57.4-2.3-2.5-6-3.1-9-1.4l-25.8 14.9c-10.9-9.3-23.4-16.5-36.9-21.3v-29.8c0-3.4-2.4-6.4-5.7-7.1-22.3-5-45-4.8-66.2 0-3.3.7-5.7 3.7-5.7 7.1v29.8c-13.5 4.8-26 12-36.9 21.3l-25.8-14.9c-2.9-1.7-6.7-1.1-9 1.4-15 16.2-26.5 35.8-33.2 57.4-1 3.3.4 6.8 3.3 8.5l25.8 14.9c-2.6 14.1-2.6 28.5 0 42.6l-25.8 14.9c-3 1.7-4.3 5.2-3.3 8.5 6.7 21.6 18.2 41.1 33.2 57.4 2.3 2.5 6 3.1 9 1.4l25.8-14.9c10.9 9.3 23.4 16.5 36.9 21.3v29.8c0 3.4 2.4 6.4 5.7 7.1 22.3 5 45 4.8 66.2 0 3.3-.7 5.7-3.7 5.7-7.1v-29.8c13.5-4.8 26-12 36.9-21.3l25.8 14.9c2.9 1.7 6.7 1.1 9-1.4 15-16.2 26.5-35.8 33.2-57.4 1-3.3-.4-6.8-3.3-8.5l-25.8-14.9zM496 400.5c-26.8 0-48.5-21.8-48.5-48.5s21.8-48.5 48.5-48.5 48.5 21.8 48.5 48.5-21.7 48.5-48.5 48.5zM224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm201.2 226.5c-2.3-1.2-4.6-2.6-6.8-3.9l-7.9 4.6c-6 3.4-12.8 5.3-19.6 5.3-10.9 0-21.4-4.6-28.9-12.6-18.3-19.8-32.3-43.9-40.2-69.6-5.5-17.7 1.9-36.4 17.9-45.7l7.9-4.6c-.1-2.6-.1-5.2 0-7.8l-7.9-4.6c-16-9.2-23.4-28-17.9-45.7.9-2.9 2.2-5.8 3.2-8.7-3.8-.3-7.5-1.2-11.4-1.2h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c10.1 0 19.5-3.2 27.2-8.5-1.2-3.8-2-7.7-2-11.8v-9.2z"></path></symbol><symbol id="icon-user-plus" viewBox="0 0 640 512"><path d="M624 208h-64v-64c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v64h-64c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h64v64c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-64h64c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm-400 48c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path></symbol><symbol id="icon-user-secret" viewBox="0 0 448 512"><path d="M383.9 308.3l23.9-62.6c4-10.5-3.7-21.7-15-21.7h-58.5c11-18.9 17.8-40.6 17.8-64v-.3c39.2-7.8 64-19.1 64-31.7 0-13.3-27.3-25.1-70.1-33-9.2-32.8-27-65.8-40.6-82.8-9.5-11.9-25.9-15.6-39.5-8.8l-27.6 13.8c-9 4.5-19.6 4.5-28.6 0L182.1 3.4c-13.6-6.8-30-3.1-39.5 8.8-13.5 17-31.4 50-40.6 82.8-42.7 7.9-70 19.7-70 33 0 12.6 24.8 23.9 64 31.7v.3c0 23.4 6.8 45.1 17.8 64H56.3c-11.5 0-19.2 11.7-14.7 22.3l25.8 60.2C27.3 329.8 0 372.7 0 422.4v44.8C0 491.9 20.1 512 44.8 512h358.4c24.7 0 44.8-20.1 44.8-44.8v-44.8c0-48.4-25.8-90.4-64.1-114.1zM176 480l-41.6-192 49.6 32 24 40-32 120zm96 0l-32-120 24-40 49.6-32L272 480zm41.7-298.5c-3.9 11.9-7 24.6-16.5 33.4-10.1 9.3-48 22.4-64-25-2.8-8.4-15.4-8.4-18.3 0-17 50.2-56 32.4-64 25-9.5-8.8-12.7-21.5-16.5-33.4-.8-2.5-6.3-5.7-6.3-5.8v-10.8c28.3 3.6 61 5.8 96 5.8s67.7-2.1 96-5.8v10.8c-.1.1-5.6 3.2-6.4 5.8z"></path></symbol><symbol id="icon-users" viewBox="0 0 640 512"><path d="M96 224c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm448 0c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm32 32h-64c-17.6 0-33.5 7.1-45.1 18.6 40.3 22.1 68.9 62 75.1 109.4h66c17.7 0 32-14.3 32-32v-32c0-35.3-28.7-64-64-64zm-256 0c61.9 0 112-50.1 112-112S381.9 32 320 32 208 82.1 208 144s50.1 112 112 112zm76.8 32h-8.3c-20.8 10-43.9 16-68.5 16s-47.6-6-68.5-16h-8.3C179.6 288 128 339.6 128 403.2V432c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48v-28.8c0-63.6-51.6-115.2-115.2-115.2zm-223.7-13.4C161.5 263.1 145.6 256 128 256H64c-35.3 0-64 28.7-64 64v32c0 17.7 14.3 32 32 32h65.9c6.3-47.4 34.9-87.3 75.2-109.4z"></path></symbol><symbol id="icon-wrench" viewBox="0 0 512 512"><path d="M507.73 109.1c-2.24-9.03-13.54-12.09-20.12-5.51l-74.36 74.36-67.88-11.31-11.31-67.88 74.36-74.36c6.62-6.62 3.43-17.9-5.66-20.16-47.38-11.74-99.55.91-136.58 37.93-39.64 39.64-50.55 97.1-34.05 147.2L18.74 402.76c-24.99 24.99-24.99 65.51 0 90.5 24.99 24.99 65.51 24.99 90.5 0l213.21-213.21c50.12 16.71 107.47 5.68 147.37-34.22 37.07-37.07 49.7-89.32 37.91-136.73zM64 472c-13.25 0-24-10.75-24-24 0-13.26 10.75-24 24-24s24 10.74 24 24c0 13.25-10.75 24-24 24z"></path></symbol><symbol id="icon-refresh" viewBox="0 0 512 512"><path d="M464 16c-17.67 0-32 14.31-32 32v74.09C392.1 66.52 327.4 32 256 32C161.5 32 78.59 92.34 49.58 182.2c-5.438 16.81 3.797 34.88 20.61 40.28c16.89 5.5 34.88-3.812 40.3-20.59C130.9 138.5 189.4 96 256 96c50.5 0 96.26 24.55 124.4 64H336c-17.67 0-32 14.31-32 32s14.33 32 32 32h128c17.67 0 32-14.31 32-32V48C496 30.31 481.7 16 464 16zM441.8 289.6c-16.92-5.438-34.88 3.812-40.3 20.59C381.1 373.5 322.6 416 256 416c-50.5 0-96.25-24.55-124.4-64H176c17.67 0 32-14.31 32-32s-14.33-32-32-32h-128c-17.67 0-32 14.31-32 32v144c0 17.69 14.33 32 32 32s32-14.31 32-32v-74.09C119.9 445.5 184.6 480 255.1 480c94.45 0 177.4-60.34 206.4-150.2C467.9 313 458.6 294.1 441.8 289.6z"></path></symbol></svg>`);
+/* harmony default export */ const icons = (() => lit_html_x`<?xml version="1.0" encoding="UTF-8"?> <svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="icon-address-book" viewBox="0 0 448 512"><path d="M436 160c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20V48c0-26.5-21.5-48-48-48H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h320c26.5 0 48-21.5 48-48v-48h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20zm-228-32c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm112 236.8c0 10.6-10 19.2-22.4 19.2H118.4C106 384 96 375.4 96 364.8v-19.2c0-31.8 30.1-57.6 67.2-57.6h5c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h5c37.1 0 67.2 25.8 67.2 57.6v19.2z"></path></symbol><symbol id="icon-angle-double-down" viewBox="0 0 320 512"><path d="M143 256.3L7 120.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0L313 86.3c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.4 9.5-24.6 9.5-34 .1zm34 192l136-136c9.4-9.4 9.4-24.6 0-33.9l-22.6-22.6c-9.4-9.4-24.6-9.4-33.9 0L160 352.1l-96.4-96.4c-9.4-9.4-24.6-9.4-33.9 0L7 278.3c-9.4 9.4-9.4 24.6 0 33.9l136 136c9.4 9.5 24.6 9.5 34 .1z"></path></symbol><symbol id="icon-angle-double-left" viewBox="0 0 448 512"><path d="M223.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L319.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L393.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34zm-192 34l136 136c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9L127.9 256l96.4-96.4c9.4-9.4 9.4-24.6 0-33.9L201.7 103c-9.4-9.4-24.6-9.4-33.9 0l-136 136c-9.5 9.4-9.5 24.6-.1 34z"></path></symbol><symbol id="icon-angle-double-right" viewBox="0 0 448 512"><path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34zm192-34l-136-136c-9.4-9.4-24.6-9.4-33.9 0l-22.6 22.6c-9.4 9.4-9.4 24.6 0 33.9l96.4 96.4-96.4 96.4c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l136-136c9.4-9.2 9.4-24.4 0-33.8z"></path></symbol><symbol id="icon-angle-double-up" viewBox="0 0 320 512"><path d="M177 255.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 351.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 425.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1zm-34-192L7 199.7c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l96.4-96.4 96.4 96.4c9.4 9.4 24.6 9.4 33.9 0l22.6-22.6c9.4-9.4 9.4-24.6 0-33.9l-136-136c-9.2-9.4-24.4-9.4-33.8 0z"></path></symbol><symbol id="icon-angle-down" viewBox="0 0 320 512"><path d="M143 352.3L7 216.3c-9.4-9.4-9.4-24.6 0-33.9l22.6-22.6c9.4-9.4 24.6-9.4 33.9 0l96.4 96.4 96.4-96.4c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9l-136 136c-9.2 9.4-24.4 9.4-33.8 0z"></path></symbol><symbol id="icon-angle-left" viewBox="0 0 256 512"><path d="M31.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L127.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L201.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34z"></path></symbol><symbol id="icon-angle-right" viewBox="0 0 256 512"><path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z"></path></symbol><symbol id="icon-angle-up" viewBox="0 0 320 512"><path d="M177 159.7l136 136c9.4 9.4 9.4 24.6 0 33.9l-22.6 22.6c-9.4 9.4-24.6 9.4-33.9 0L160 255.9l-96.4 96.4c-9.4 9.4-24.6 9.4-33.9 0L7 329.7c-9.4-9.4-9.4-24.6 0-33.9l136-136c9.4-9.5 24.6-9.5 34-.1z"></path></symbol><symbol id="icon-arrow-alt-circle-down" viewBox="0 0 512 512"><path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zM212 140v116h-70.9c-10.7 0-16.1 13-8.5 20.5l114.9 114.3c4.7 4.7 12.2 4.7 16.9 0l114.9-114.3c7.6-7.6 2.2-20.5-8.5-20.5H300V140c0-6.6-5.4-12-12-12h-64c-6.6 0-12 5.4-12 12z"></path></symbol><symbol id="icon-arrow-alt-circle-left" viewBox="0 0 512 512"><path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm116-292H256v-70.9c0-10.7-13-16.1-20.5-8.5L121.2 247.5c-4.7 4.7-4.7 12.2 0 16.9l114.3 114.9c7.6 7.6 20.5 2.2 20.5-8.5V300h116c6.6 0 12-5.4 12-12v-64c0-6.6-5.4-12-12-12z"></path></symbol><symbol id="icon-arrow-alt-circle-right" viewBox="0 0 512 512"><path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zM140 300h116v70.9c0 10.7 13 16.1 20.5 8.5l114.3-114.9c4.7-4.7 4.7-12.2 0-16.9l-114.3-115c-7.6-7.6-20.5-2.2-20.5 8.5V212H140c-6.6 0-12 5.4-12 12v64c0 6.6 5.4 12 12 12z"></path></symbol><symbol id="icon-arrow-alt-circle-up" viewBox="0 0 512 512"><path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm292 116V256h70.9c10.7 0 16.1-13 8.5-20.5L264.5 121.2c-4.7-4.7-12.2-4.7-16.9 0l-115 114.3c-7.6 7.6-2.2 20.5 8.5 20.5H212v116c0 6.6 5.4 12 12 12h64c6.6 0 12-5.4 12-12z"></path></symbol><symbol id="icon-arrow-circle-down" viewBox="0 0 512 512"><path d="M504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-143.6-28.9L288 302.6V120c0-13.3-10.7-24-24-24h-16c-13.3 0-24 10.7-24 24v182.6l-72.4-75.5c-9.3-9.7-24.8-9.9-34.3-.4l-10.9 11c-9.4 9.4-9.4 24.6 0 33.9L239 404.3c9.4 9.4 24.6 9.4 33.9 0l132.7-132.7c9.4-9.4 9.4-24.6 0-33.9l-10.9-11c-9.5-9.5-25-9.3-34.3.4z"></path></symbol><symbol id="icon-arrow-circle-left" viewBox="0 0 512 512"><path d="M256 504C119 504 8 393 8 256S119 8 256 8s248 111 248 248-111 248-248 248zm28.9-143.6L209.4 288H392c13.3 0 24-10.7 24-24v-16c0-13.3-10.7-24-24-24H209.4l75.5-72.4c9.7-9.3 9.9-24.8.4-34.3l-11-10.9c-9.4-9.4-24.6-9.4-33.9 0L107.7 239c-9.4 9.4-9.4 24.6 0 33.9l132.7 132.7c9.4 9.4 24.6 9.4 33.9 0l11-10.9c9.5-9.5 9.3-25-.4-34.3z"></path></symbol><symbol id="icon-arrow-circle-right" viewBox="0 0 512 512"><path d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zm-28.9 143.6l75.5 72.4H120c-13.3 0-24 10.7-24 24v16c0 13.3 10.7 24 24 24h182.6l-75.5 72.4c-9.7 9.3-9.9 24.8-.4 34.3l11 10.9c9.4 9.4 24.6 9.4 33.9 0L404.3 273c9.4-9.4 9.4-24.6 0-33.9L271.6 106.3c-9.4-9.4-24.6-9.4-33.9 0l-11 10.9c-9.5 9.6-9.3 25.1.4 34.4z"></path></symbol><symbol id="icon-arrow-circle-up" viewBox="0 0 512 512"><path d="M8 256C8 119 119 8 256 8s248 111 248 248-111 248-248 248S8 393 8 256zm143.6 28.9l72.4-75.5V392c0 13.3 10.7 24 24 24h16c13.3 0 24-10.7 24-24V209.4l72.4 75.5c9.3 9.7 24.8 9.9 34.3.4l10.9-11c9.4-9.4 9.4-24.6 0-33.9L273 107.7c-9.4-9.4-24.6-9.4-33.9 0L106.3 240.4c-9.4 9.4-9.4 24.6 0 33.9l10.9 11c9.6 9.5 25.1 9.3 34.4-.4z"></path></symbol><symbol id="icon-arrow-down" viewBox="0 0 448 512"><path d="M413.1 222.5l22.2 22.2c9.4 9.4 9.4 24.6 0 33.9L241 473c-9.4 9.4-24.6 9.4-33.9 0L12.7 278.6c-9.4-9.4-9.4-24.6 0-33.9l22.2-22.2c9.5-9.5 25-9.3 34.3.4L184 343.4V56c0-13.3 10.7-24 24-24h32c13.3 0 24 10.7 24 24v287.4l114.8-120.5c9.3-9.8 24.8-10 34.3-.4z"></path></symbol><symbol id="icon-arrow-left" viewBox="0 0 448 512"><path d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"></path></symbol><symbol id="icon-arrow-right" viewBox="0 0 448 512"><path d="M190.5 66.9l22.2-22.2c9.4-9.4 24.6-9.4 33.9 0L441 239c9.4 9.4 9.4 24.6 0 33.9L246.6 467.3c-9.4 9.4-24.6 9.4-33.9 0l-22.2-22.2c-9.5-9.5-9.3-25 .4-34.3L311.4 296H24c-13.3 0-24-10.7-24-24v-32c0-13.3 10.7-24 24-24h287.4L190.9 101.2c-9.8-9.3-10-24.8-.4-34.3z"></path></symbol><symbol id="icon-arrow-up" viewBox="0 0 448 512"><path d="M34.9 289.5l-22.2-22.2c-9.4-9.4-9.4-24.6 0-33.9L207 39c9.4-9.4 24.6-9.4 33.9 0l194.3 194.3c9.4 9.4 9.4 24.6 0 33.9L413 289.4c-9.5 9.5-25 9.3-34.3-.4L264 168.6V456c0 13.3-10.7 24-24 24h-32c-13.3 0-24-10.7-24-24V168.6L69.2 289.1c-9.3 9.8-24.8 10-34.3.4z"></path></symbol><symbol id="icon-arrows-alt" viewBox="0 0 512 512"><path d="M352.201 425.775l-79.196 79.196c-9.373 9.373-24.568 9.373-33.941 0l-79.196-79.196c-15.119-15.119-4.411-40.971 16.971-40.97h51.162L228 284H127.196v51.162c0 21.382-25.851 32.09-40.971 16.971L7.029 272.937c-9.373-9.373-9.373-24.569 0-33.941L86.225 159.8c15.119-15.119 40.971-4.411 40.971 16.971V228H228V127.196h-51.23c-21.382 0-32.09-25.851-16.971-40.971l79.196-79.196c9.373-9.373 24.568-9.373 33.941 0l79.196 79.196c15.119 15.119 4.411 40.971-16.971 40.971h-51.162V228h100.804v-51.162c0-21.382 25.851-32.09 40.97-16.971l79.196 79.196c9.373 9.373 9.373 24.569 0 33.941L425.773 352.2c-15.119 15.119-40.971 4.411-40.97-16.971V284H284v100.804h51.23c21.382 0 32.09 25.851 16.971 40.971z"></path></symbol><symbol id="icon-arrows-alt-h" viewBox="0 0 512 512"><path d="M377.941 169.941V216H134.059v-46.059c0-21.382-25.851-32.09-40.971-16.971L7.029 239.029c-9.373 9.373-9.373 24.568 0 33.941l86.059 86.059c15.119 15.119 40.971 4.411 40.971-16.971V296h243.882v46.059c0 21.382 25.851 32.09 40.971 16.971l86.059-86.059c9.373-9.373 9.373-24.568 0-33.941l-86.059-86.059c-15.119-15.12-40.971-4.412-40.971 16.97z"></path></symbol><symbol id="icon-arrows-alt-v" viewBox="0 0 256 512"><path d="M214.059 377.941H168V134.059h46.059c21.382 0 32.09-25.851 16.971-40.971L144.971 7.029c-9.373-9.373-24.568-9.373-33.941 0L24.971 93.088c-15.119 15.119-4.411 40.971 16.971 40.971H88v243.882H41.941c-21.382 0-32.09 25.851-16.971 40.971l86.059 86.059c9.373 9.373 24.568 9.373 33.941 0l86.059-86.059c15.12-15.119 4.412-40.971-16.97-40.971z"></path></symbol><symbol id="icon-bars" viewBox="0 0 448 512"><path d="M16 132h416c8.837 0 16-7.163 16-16V76c0-8.837-7.163-16-16-16H16C7.163 60 0 67.163 0 76v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16z"></path></symbol><symbol id="icon-bookmark" viewBox="0 0 384 512"><path d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></symbol><symbol id="icon-bookmark-empty" viewBox="0 0 384 512"><path d="M0 48C0 21.5 21.5 0 48 0l0 48V441.4l130.1-92.9c8.3-6 19.6-6 27.9 0L336 441.4V48H48V0H336c26.5 0 48 21.5 48 48V488c0 9-5 17.2-13 21.3s-17.6 3.4-24.9-1.8L192 397.5 37.9 507.5c-7.3 5.2-16.9 5.9-24.9 1.8S0 497 0 488V48z"/></symbol><symbol id="icon-caret-down" viewBox="0 0 320 512"><path d="M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z"></path></symbol><symbol id="icon-caret-right" viewBox="0 0 192 512"><path d="M0 384.662V127.338c0-17.818 21.543-26.741 34.142-14.142l128.662 128.662c7.81 7.81 7.81 20.474 0 28.284L34.142 398.804C21.543 411.404 0 402.48 0 384.662z"></path></symbol><symbol id="icon-check" viewBox="0 0 512 512"><path d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"></path></symbol><symbol id="icon-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8z"></path></symbol><symbol id="icon-cog" viewBox="0 0 512 512"><path d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z"></path></symbol><symbol id="icon-database" viewBox="0 0 448 512"><path d="M448 73.143v45.714C448 159.143 347.667 192 224 192S0 159.143 0 118.857V73.143C0 32.857 100.333 0 224 0s224 32.857 224 73.143zM448 176v102.857C448 319.143 347.667 352 224 352S0 319.143 0 278.857V176c48.125 33.143 136.208 48.572 224 48.572S399.874 209.143 448 176zm0 160v102.857C448 479.143 347.667 512 224 512S0 479.143 0 438.857V336c48.125 33.143 136.208 48.572 224 48.572S399.874 369.143 448 336z"></path></symbol><symbol id="icon-edit" viewBox="0 0 576 512"><path d="M402.6 83.2l90.2 90.2c3.8 3.8 3.8 10 0 13.8L274.4 405.6l-92.8 10.3c-12.4 1.4-22.9-9.1-21.5-21.5l10.3-92.8L388.8 83.2c3.8-3.8 10-3.8 13.8 0zm162-22.9l-48.8-48.8c-15.2-15.2-39.9-15.2-55.2 0l-35.4 35.4c-3.8 3.8-3.8 10 0 13.8l90.2 90.2c3.8 3.8 10 3.8 13.8 0l35.4-35.4c15.2-15.3 15.2-40 0-55.2zM384 346.2V448H64V128h229.8c3.2 0 6.2-1.3 8.5-3.5l40-40c7.6-7.6 2.2-20.5-8.5-20.5H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V306.2c0-10.7-12.9-16-20.5-8.5l-40 40c-2.2 2.3-3.5 5.3-3.5 8.5z"></path></symbol><symbol id="icon-eye" viewBox="0 0 576 512"><path d="M572.52 241.4C518.29 135.59 410.93 64 288 64S57.68 135.64 3.48 241.41a32.35 32.35 0 0 0 0 29.19C57.71 376.41 165.07 448 288 448s230.32-71.64 284.52-177.41a32.35 32.35 0 0 0 0-29.19zM288 400a144 144 0 1 1 144-144 143.93 143.93 0 0 1-144 144zm0-240a95.31 95.31 0 0 0-25.31 3.79 47.85 47.85 0 0 1-66.9 66.9A95.78 95.78 0 1 0 288 160z"></path></symbol><symbol id="icon-eye-slash" viewBox="0 0 640 512"><path d="M320 400c-75.85 0-137.25-58.71-142.9-133.11L72.2 185.82c-13.79 17.3-26.48 35.59-36.72 55.59a32.35 32.35 0 0 0 0 29.19C89.71 376.41 197.07 448 320 448c26.91 0 52.87-4 77.89-10.46L346 397.39a144.13 144.13 0 0 1-26 2.61zm313.82 58.1l-110.55-85.44a331.25 331.25 0 0 0 81.25-102.07 32.35 32.35 0 0 0 0-29.19C550.29 135.59 442.93 64 320 64a308.15 308.15 0 0 0-147.32 37.7L45.46 3.37A16 16 0 0 0 23 6.18L3.37 31.45A16 16 0 0 0 6.18 53.9l588.36 454.73a16 16 0 0 0 22.46-2.81l19.64-25.27a16 16 0 0 0-2.82-22.45zm-183.72-142l-39.3-30.38A94.75 94.75 0 0 0 416 256a94.76 94.76 0 0 0-121.31-92.21A47.65 47.65 0 0 1 304 192a46.64 46.64 0 0 1-1.54 10l-73.61-56.89A142.31 142.31 0 0 1 320 112a143.92 143.92 0 0 1 144 144c0 21.63-5.29 41.79-13.9 60.11z"></path></symbol><symbol id="icon-gavel" viewBox="0 0 512 512"><path d="M504.971 199.362l-22.627-22.627c-9.373-9.373-24.569-9.373-33.941 0l-5.657 5.657L329.608 69.255l5.657-5.657c9.373-9.373 9.373-24.569 0-33.941L312.638 7.029c-9.373-9.373-24.569-9.373-33.941 0L154.246 131.48c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l5.657-5.657 39.598 39.598-81.04 81.04-5.657-5.657c-12.497-12.497-32.758-12.497-45.255 0L9.373 412.118c-12.497 12.497-12.497 32.758 0 45.255l45.255 45.255c12.497 12.497 32.758 12.497 45.255 0l114.745-114.745c12.497-12.497 12.497-32.758 0-45.255l-5.657-5.657 81.04-81.04 39.598 39.598-5.657 5.657c-9.373 9.373-9.373 24.569 0 33.941l22.627 22.627c9.373 9.373 24.569 9.373 33.941 0l124.451-124.451c9.372-9.372 9.372-24.568 0-33.941z"></path></symbol><symbol id="icon-globe" viewBox="0 0 496 512"><path d="M336.5 160C322 70.7 287.8 8 248 8s-74 62.7-88.5 152h177zM152 256c0 22.2 1.2 43.5 3.3 64h185.3c2.1-20.5 3.3-41.8 3.3-64s-1.2-43.5-3.3-64H155.3c-2.1 20.5-3.3 41.8-3.3 64zm324.7-96c-28.6-67.9-86.5-120.4-158-141.6 24.4 33.8 41.2 84.7 50 141.6h108zM177.2 18.4C105.8 39.6 47.8 92.1 19.3 160h108c8.7-56.9 25.5-107.8 49.9-141.6zM487.4 192H372.7c2.1 21 3.3 42.5 3.3 64s-1.2 43-3.3 64h114.6c5.5-20.5 8.6-41.8 8.6-64s-3.1-43.5-8.5-64zM120 256c0-21.5 1.2-43 3.3-64H8.6C3.2 212.5 0 233.8 0 256s3.2 43.5 8.6 64h114.6c-2-21-3.2-42.5-3.2-64zm39.5 96c14.5 89.3 48.7 152 88.5 152s74-62.7 88.5-152h-177zm159.3 141.6c71.4-21.2 129.4-73.7 158-141.6h-108c-8.8 56.9-25.6 107.8-50 141.6zM19.3 352c28.6 67.9 86.5 120.4 158 141.6-24.4-33.8-41.2-84.7-50-141.6h-108z"></path></symbol><symbol id="icon-id-card" viewBox="0 0 576 512"><path d="M528 32H48C21.5 32 0 53.5 0 80v16h576V80c0-26.5-21.5-48-48-48zM0 432c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V128H0v304zm352-232c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zm0 64c0-4.4 3.6-8 8-8h144c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H360c-4.4 0-8-3.6-8-8v-16zM176 192c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zM67.1 396.2C75.5 370.5 99.6 352 128 352h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.9-5.2 19.8-15.6 19.8H82.7c-10.4 0-18.8-10-15.6-19.8z"></path></symbol><symbol id="icon-id-card-alt" viewBox="0 0 576 512"><path d="M528 64H384v96H192V64H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48zM288 224c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm93.3 224H194.7c-10.4 0-18.8-10-15.6-19.8 8.3-25.6 32.4-44.2 60.9-44.2h8.2c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h8.2c28.4 0 52.5 18.5 60.9 44.2 3.2 9.8-5.2 19.8-15.6 19.8zM352 32c0-17.7-14.3-32-32-32h-64c-17.7 0-32 14.3-32 32v96h128V32z"></path></symbol><symbol id="icon-info" viewBox="0 0 192 512"><path d="M20 424.229h20V279.771H20c-11.046 0-20-8.954-20-20V212c0-11.046 8.954-20 20-20h112c11.046 0 20 8.954 20 20v212.229h20c11.046 0 20 8.954 20 20V492c0 11.046-8.954 20-20 20H20c-11.046 0-20-8.954-20-20v-47.771c0-11.046 8.954-20 20-20zM96 0C56.235 0 24 32.235 24 72s32.235 72 72 72 72-32.235 72-72S135.764 0 96 0z"></path></symbol><symbol id="icon-info-circle" viewBox="0 0 512 512"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></path></symbol><symbol id="icon-list-ul" viewBox="0 0 512 512"><path d="M48 48a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm0 160a48 48 0 1 0 48 48 48 48 0 0 0-48-48zm448 16H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-320H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16zm0 160H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16z"></path></symbol><symbol id="icon-lock" viewBox="0 0 448 512"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path></symbol><symbol id="icon-lock-open" viewBox="0 0 576 512"><path d="M423.5 0C339.5.3 272 69.5 272 153.5V224H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48h-48v-71.1c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v80c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-80C576 68 507.5-.3 423.5 0z"></path></symbol><symbol id="icon-minus" viewBox="0 0 448 512"><path d="M416 208H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></symbol><symbol id="icon-minus-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zM124 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H124z"></path></symbol><symbol id="icon-minus-square" viewBox="0 0 448 512"><path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM92 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H92z"></path></symbol><symbol id="icon-paper-plane" viewBox="0 0 512 512"><path d="M476 3.2L12.5 270.6c-18.1 10.4-15.8 35.6 2.2 43.2L121 358.4l287.3-253.2c5.5-4.9 13.3 2.6 8.6 8.3L176 407v80.5c0 23.6 28.5 32.9 42.5 15.8L282 426l124.6 52.2c14.2 6 30.4-2.9 33-18.2l72-432C515 7.8 493.3-6.8 476 3.2z"></path></symbol><symbol id="icon-paperclip" viewBox="0 0 448 512"><path d="M43.246 466.142c-58.43-60.289-57.341-157.511 1.386-217.581L254.392 34c44.316-45.332 116.351-45.336 160.671 0 43.89 44.894 43.943 117.329 0 162.276L232.214 383.128c-29.855 30.537-78.633 30.111-107.982-.998-28.275-29.97-27.368-77.473 1.452-106.953l143.743-146.835c6.182-6.314 16.312-6.422 22.626-.241l22.861 22.379c6.315 6.182 6.422 16.312.241 22.626L171.427 319.927c-4.932 5.045-5.236 13.428-.648 18.292 4.372 4.634 11.245 4.711 15.688.165l182.849-186.851c19.613-20.062 19.613-52.725-.011-72.798-19.189-19.627-49.957-19.637-69.154 0L90.39 293.295c-34.763 35.56-35.299 93.12-1.191 128.313 34.01 35.093 88.985 35.137 123.058.286l172.06-175.999c6.177-6.319 16.307-6.433 22.626-.256l22.877 22.364c6.319 6.177 6.434 16.307.256 22.626l-172.06 175.998c-59.576 60.938-155.943 60.216-214.77-.485z"></path></symbol><symbol id="icon-pencil-alt" viewBox="0 0 512 512"><path d="M497.9 142.1l-46.1 46.1c-4.7 4.7-12.3 4.7-17 0l-111-111c-4.7-4.7-4.7-12.3 0-17l46.1-46.1c18.7-18.7 49.1-18.7 67.9 0l60.1 60.1c18.8 18.7 18.8 49.1 0 67.9zM284.2 99.8L21.6 362.4.4 483.9c-2.9 16.4 11.4 30.6 27.8 27.8l121.5-21.3 262.6-262.6c4.7-4.7 4.7-12.3 0-17l-111-111c-4.8-4.7-12.4-4.7-17.1 0zM124.1 339.9c-5.5-5.5-5.5-14.3 0-19.8l154-154c5.5-5.5 14.3-5.5 19.8 0s5.5 14.3 0 19.8l-154 154c-5.5 5.5-14.3 5.5-19.8 0zM88 424h48v36.3l-64.5 11.3-31.1-31.1L51.7 376H88v48z"></path></symbol><symbol id="icon-phone" viewBox="0 0 512 512"><path d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></symbol><symbol id="icon-plus" viewBox="0 0 448 512"><path d="M416 208H272V64c0-17.67-14.33-32-32-32h-32c-17.67 0-32 14.33-32 32v144H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h144v144c0 17.67 14.33 32 32 32h32c17.67 0 32-14.33 32-32V304h144c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></symbol><symbol id="icon-plus-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm144 276c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92h-92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path></symbol><symbol id="icon-plus-square" viewBox="0 0 448 512"><path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm-32 252c0 6.6-5.4 12-12 12h-92v92c0 6.6-5.4 12-12 12h-56c-6.6 0-12-5.4-12-12v-92H92c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h92v-92c0-6.6 5.4-12 12-12h56c6.6 0 12 5.4 12 12v92h92c6.6 0 12 5.4 12 12v56z"></path></symbol><symbol id="icon-save" viewBox="0 0 448 512"><path d="M433.941 129.941l-83.882-83.882A48 48 0 0 0 316.118 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h352c26.51 0 48-21.49 48-48V163.882a48 48 0 0 0-14.059-33.941zM224 416c-35.346 0-64-28.654-64-64 0-35.346 28.654-64 64-64s64 28.654 64 64c0 35.346-28.654 64-64 64zm96-304.52V212c0 6.627-5.373 12-12 12H76c-6.627 0-12-5.373-12-12V108c0-6.627 5.373-12 12-12h228.52c3.183 0 6.235 1.264 8.485 3.515l3.48 3.48A11.996 11.996 0 0 1 320 111.48z"></path></symbol><symbol id="icon-sign-out-alt" viewBox="0 0 512 512"><path d="M497 273L329 441c-15 15-41 4.5-41-17v-96H152c-13.3 0-24-10.7-24-24v-96c0-13.3 10.7-24 24-24h136V88c0-21.4 25.9-32 41-17l168 168c9.3 9.4 9.3 24.6 0 34zM192 436v-40c0-6.6-5.4-12-12-12H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h84c6.6 0 12-5.4 12-12V76c0-6.6-5.4-12-12-12H96c-53 0-96 43-96 96v192c0 53 43 96 96 96h84c6.6 0 12-5.4 12-12z"></path></symbol><symbol id="icon-smile" viewBox="0 0 496 512"><path d="M248 8C111 8 0 119 0 256s111 248 248 248 248-111 248-248S385 8 248 8zm80 168c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm-160 0c17.7 0 32 14.3 32 32s-14.3 32-32 32-32-14.3-32-32 14.3-32 32-32zm194.8 170.2C334.3 380.4 292.5 400 248 400s-86.3-19.6-114.8-53.8c-13.6-16.3 11-36.7 24.6-20.5 22.4 26.9 55.2 42.2 90.2 42.2s67.8-15.4 90.2-42.2c13.4-16.2 38.1 4.2 24.6 20.5z"></path></symbol><symbol id="icon-snowflake" viewBox="0 0 448 512"><path d="M440.3 345.2l-33.8-19.5 26-7c8.2-2.2 13.1-10.7 10.9-18.9l-4-14.9c-2.2-8.2-10.7-13.1-18.9-10.9l-70.8 19-63.9-37 63.8-36.9 70.8 19c8.2 2.2 16.7-2.7 18.9-10.9l4-14.9c2.2-8.2-2.7-16.7-10.9-18.9l-26-7 33.8-19.5c7.4-4.3 9.9-13.7 5.7-21.1L430.4 119c-4.3-7.4-13.7-9.9-21.1-5.7l-33.8 19.5 7-26c2.2-8.2-2.7-16.7-10.9-18.9l-14.9-4c-8.2-2.2-16.7 2.7-18.9 10.9l-19 70.8-62.8 36.2v-77.5l53.7-53.7c6.2-6.2 6.2-16.4 0-22.6l-11.3-11.3c-6.2-6.2-16.4-6.2-22.6 0L256 56.4V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v40.4l-19.7-19.7c-6.2-6.2-16.4-6.2-22.6 0L138.3 48c-6.3 6.2-6.3 16.4 0 22.6l53.7 53.7v77.5l-62.8-36.2-19-70.8c-2.2-8.2-10.7-13.1-18.9-10.9l-14.9 4c-8.2 2.2-13.1 10.7-10.9 18.9l7 26-33.8-19.5c-7.4-4.3-16.8-1.7-21.1 5.7L2.1 145.7c-4.3 7.4-1.7 16.8 5.7 21.1l33.8 19.5-26 7c-8.3 2.2-13.2 10.7-11 19l4 14.9c2.2 8.2 10.7 13.1 18.9 10.9l70.8-19 63.8 36.9-63.8 36.9-70.8-19c-8.2-2.2-16.7 2.7-18.9 10.9l-4 14.9c-2.2 8.2 2.7 16.7 10.9 18.9l26 7-33.8 19.6c-7.4 4.3-9.9 13.7-5.7 21.1l15.5 26.8c4.3 7.4 13.7 9.9 21.1 5.7l33.8-19.5-7 26c-2.2 8.2 2.7 16.7 10.9 18.9l14.9 4c8.2 2.2 16.7-2.7 18.9-10.9l19-70.8 62.8-36.2v77.5l-53.7 53.7c-6.3 6.2-6.3 16.4 0 22.6l11.3 11.3c6.2 6.2 16.4 6.2 22.6 0l19.7-19.7V496c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-40.4l19.7 19.7c6.2 6.2 16.4 6.2 22.6 0l11.3-11.3c6.2-6.2 6.2-16.4 0-22.6L256 387.7v-77.5l62.8 36.2 19 70.8c2.2 8.2 10.7 13.1 18.9 10.9l14.9-4c8.2-2.2 13.1-10.7 10.9-18.9l-7-26 33.8 19.5c7.4 4.3 16.8 1.7 21.1-5.7l15.5-26.8c4.3-7.3 1.8-16.8-5.6-21z"></path></symbol><symbol id="icon-spinner" viewBox="0 0 512 512"><path d="M304 48c0 26.51-21.49 48-48 48s-48-21.49-48-48 21.49-48 48-48 48 21.49 48 48zm-48 368c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zm208-208c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zM96 256c0-26.51-21.49-48-48-48S0 229.49 0 256s21.49 48 48 48 48-21.49 48-48zm12.922 99.078c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.491-48-48-48zm294.156 0c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.49-48-48-48zM108.922 60.922c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.491-48-48-48z"></path></symbol><symbol id="icon-sync" viewBox="0 0 512 512"><path d="M440.65 12.57l4 82.77A247.16 247.16 0 0 0 255.83 8C134.73 8 33.91 94.92 12.29 209.82A12 12 0 0 0 24.09 224h49.05a12 12 0 0 0 11.67-9.26 175.91 175.91 0 0 1 317-56.94l-101.46-4.86a12 12 0 0 0-12.57 12v47.41a12 12 0 0 0 12 12H500a12 12 0 0 0 12-12V12a12 12 0 0 0-12-12h-47.37a12 12 0 0 0-11.98 12.57zM255.83 432a175.61 175.61 0 0 1-146-77.8l101.8 4.87a12 12 0 0 0 12.57-12v-47.4a12 12 0 0 0-12-12H12a12 12 0 0 0-12 12V500a12 12 0 0 0 12 12h47.35a12 12 0 0 0 12-12.6l-4.15-82.57A247.17 247.17 0 0 0 255.83 504c121.11 0 221.93-86.92 243.55-201.82a12 12 0 0 0-11.8-14.18h-49.05a12 12 0 0 0-11.67 9.26A175.86 175.86 0 0 1 255.83 432z"></path></symbol><symbol id="icon-times" viewBox="0 0 352 512"><path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path></symbol><symbol id="icon-times-circle" viewBox="0 0 512 512"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm121.6 313.1c4.7 4.7 4.7 12.3 0 17L338 377.6c-4.7 4.7-12.3 4.7-17 0L256 312l-65.1 65.6c-4.7 4.7-12.3 4.7-17 0L134.4 338c-4.7-4.7-4.7-12.3 0-17l65.6-65-65.6-65.1c-4.7-4.7-4.7-12.3 0-17l39.6-39.6c4.7-4.7 12.3-4.7 17 0l65 65.7 65.1-65.6c4.7-4.7 12.3-4.7 17 0l39.6 39.6c4.7 4.7 4.7 12.3 0 17L312 256l65.6 65.1z"></path></symbol><symbol id="icon-trash" viewBox="0 0 448 512"><path d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"></path></symbol><symbol id="icon-trash-alt" viewBox="0 0 448 512"><path d="M32 464a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V128H32zm272-256a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zm-96 0a16 16 0 0 1 32 0v224a16 16 0 0 1-32 0zM432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16z"></path></symbol><symbol id="icon-unlock" viewBox="0 0 448 512"><path d="M400 256H152V152.9c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v16c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-16C376 68 307.5-.3 223.5 0 139.5.3 72 69.5 72 153.5V256H48c-26.5 0-48 21.5-48 48v160c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V304c0-26.5-21.5-48-48-48z"></path></symbol><symbol id="icon-user" viewBox="0 0 448 512"><path d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path></symbol><symbol id="icon-user-cog" viewBox="0 0 640 512"><path d="M610.5 373.3c2.6-14.1 2.6-28.5 0-42.6l25.8-14.9c3-1.7 4.3-5.2 3.3-8.5-6.7-21.6-18.2-41.2-33.2-57.4-2.3-2.5-6-3.1-9-1.4l-25.8 14.9c-10.9-9.3-23.4-16.5-36.9-21.3v-29.8c0-3.4-2.4-6.4-5.7-7.1-22.3-5-45-4.8-66.2 0-3.3.7-5.7 3.7-5.7 7.1v29.8c-13.5 4.8-26 12-36.9 21.3l-25.8-14.9c-2.9-1.7-6.7-1.1-9 1.4-15 16.2-26.5 35.8-33.2 57.4-1 3.3.4 6.8 3.3 8.5l25.8 14.9c-2.6 14.1-2.6 28.5 0 42.6l-25.8 14.9c-3 1.7-4.3 5.2-3.3 8.5 6.7 21.6 18.2 41.1 33.2 57.4 2.3 2.5 6 3.1 9 1.4l25.8-14.9c10.9 9.3 23.4 16.5 36.9 21.3v29.8c0 3.4 2.4 6.4 5.7 7.1 22.3 5 45 4.8 66.2 0 3.3-.7 5.7-3.7 5.7-7.1v-29.8c13.5-4.8 26-12 36.9-21.3l25.8 14.9c2.9 1.7 6.7 1.1 9-1.4 15-16.2 26.5-35.8 33.2-57.4 1-3.3-.4-6.8-3.3-8.5l-25.8-14.9zM496 400.5c-26.8 0-48.5-21.8-48.5-48.5s21.8-48.5 48.5-48.5 48.5 21.8 48.5 48.5-21.7 48.5-48.5 48.5zM224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm201.2 226.5c-2.3-1.2-4.6-2.6-6.8-3.9l-7.9 4.6c-6 3.4-12.8 5.3-19.6 5.3-10.9 0-21.4-4.6-28.9-12.6-18.3-19.8-32.3-43.9-40.2-69.6-5.5-17.7 1.9-36.4 17.9-45.7l7.9-4.6c-.1-2.6-.1-5.2 0-7.8l-7.9-4.6c-16-9.2-23.4-28-17.9-45.7.9-2.9 2.2-5.8 3.2-8.7-3.8-.3-7.5-1.2-11.4-1.2h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c10.1 0 19.5-3.2 27.2-8.5-1.2-3.8-2-7.7-2-11.8v-9.2z"></path></symbol><symbol id="icon-user-plus" viewBox="0 0 640 512"><path d="M624 208h-64v-64c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v64h-64c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h64v64c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-64h64c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm-400 48c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48v-41.6c0-74.2-60.2-134.4-134.4-134.4z"></path></symbol><symbol id="icon-user-secret" viewBox="0 0 448 512"><path d="M383.9 308.3l23.9-62.6c4-10.5-3.7-21.7-15-21.7h-58.5c11-18.9 17.8-40.6 17.8-64v-.3c39.2-7.8 64-19.1 64-31.7 0-13.3-27.3-25.1-70.1-33-9.2-32.8-27-65.8-40.6-82.8-9.5-11.9-25.9-15.6-39.5-8.8l-27.6 13.8c-9 4.5-19.6 4.5-28.6 0L182.1 3.4c-13.6-6.8-30-3.1-39.5 8.8-13.5 17-31.4 50-40.6 82.8-42.7 7.9-70 19.7-70 33 0 12.6 24.8 23.9 64 31.7v.3c0 23.4 6.8 45.1 17.8 64H56.3c-11.5 0-19.2 11.7-14.7 22.3l25.8 60.2C27.3 329.8 0 372.7 0 422.4v44.8C0 491.9 20.1 512 44.8 512h358.4c24.7 0 44.8-20.1 44.8-44.8v-44.8c0-48.4-25.8-90.4-64.1-114.1zM176 480l-41.6-192 49.6 32 24 40-32 120zm96 0l-32-120 24-40 49.6-32L272 480zm41.7-298.5c-3.9 11.9-7 24.6-16.5 33.4-10.1 9.3-48 22.4-64-25-2.8-8.4-15.4-8.4-18.3 0-17 50.2-56 32.4-64 25-9.5-8.8-12.7-21.5-16.5-33.4-.8-2.5-6.3-5.7-6.3-5.8v-10.8c28.3 3.6 61 5.8 96 5.8s67.7-2.1 96-5.8v10.8c-.1.1-5.6 3.2-6.4 5.8z"></path></symbol><symbol id="icon-users" viewBox="0 0 640 512"><path d="M96 224c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm448 0c35.3 0 64-28.7 64-64s-28.7-64-64-64-64 28.7-64 64 28.7 64 64 64zm32 32h-64c-17.6 0-33.5 7.1-45.1 18.6 40.3 22.1 68.9 62 75.1 109.4h66c17.7 0 32-14.3 32-32v-32c0-35.3-28.7-64-64-64zm-256 0c61.9 0 112-50.1 112-112S381.9 32 320 32 208 82.1 208 144s50.1 112 112 112zm76.8 32h-8.3c-20.8 10-43.9 16-68.5 16s-47.6-6-68.5-16h-8.3C179.6 288 128 339.6 128 403.2V432c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48v-28.8c0-63.6-51.6-115.2-115.2-115.2zm-223.7-13.4C161.5 263.1 145.6 256 128 256H64c-35.3 0-64 28.7-64 64v32c0 17.7 14.3 32 32 32h65.9c6.3-47.4 34.9-87.3 75.2-109.4z"></path></symbol><symbol id="icon-wrench" viewBox="0 0 512 512"><path d="M507.73 109.1c-2.24-9.03-13.54-12.09-20.12-5.51l-74.36 74.36-67.88-11.31-11.31-67.88 74.36-74.36c6.62-6.62 3.43-17.9-5.66-20.16-47.38-11.74-99.55.91-136.58 37.93-39.64 39.64-50.55 97.1-34.05 147.2L18.74 402.76c-24.99 24.99-24.99 65.51 0 90.5 24.99 24.99 65.51 24.99 90.5 0l213.21-213.21c50.12 16.71 107.47 5.68 147.37-34.22 37.07-37.07 49.7-89.32 37.91-136.73zM64 472c-13.25 0-24-10.75-24-24 0-13.26 10.75-24 24-24s24 10.74 24 24c0 13.25-10.75 24-24 24z"></path></symbol><symbol id="icon-refresh" viewBox="0 0 512 512"><path d="M464 16c-17.67 0-32 14.31-32 32v74.09C392.1 66.52 327.4 32 256 32C161.5 32 78.59 92.34 49.58 182.2c-5.438 16.81 3.797 34.88 20.61 40.28c16.89 5.5 34.88-3.812 40.3-20.59C130.9 138.5 189.4 96 256 96c50.5 0 96.26 24.55 124.4 64H336c-17.67 0-32 14.31-32 32s14.33 32 32 32h128c17.67 0 32-14.31 32-32V48C496 30.31 481.7 16 464 16zM441.8 289.6c-16.92-5.438-34.88 3.812-40.3 20.59C381.1 373.5 322.6 416 256 416c-50.5 0-96.25-24.55-124.4-64H176c17.67 0 32-14.31 32-32s-14.33-32-32-32h-128c-17.67 0-32 14.31-32 32v144c0 17.69 14.33 32 32 32s32-14.31 32-32v-74.09C119.9 445.5 184.6 480 255.1 480c94.45 0 177.4-60.34 206.4-150.2C467.9 313 458.6 294.1 441.8 289.6z"></path></symbol></svg>`);
 ;// CONCATENATED MODULE: ./src/shared/components/font-awesome.js
 
 
@@ -67559,7 +68311,7 @@ shared_api.elements.define('converse-fontawesome', FontAwesome);
 /* harmony default export */ const templates_root = (() => {
   const extra_classes = shared_api.settings.get('singleton') ? ['converse-singleton'] : [];
   extra_classes.push(`converse-${shared_api.settings.get('view_mode')}`);
-  return x`<converse-chats class="converse-chatboxes row no-gutters ${extra_classes.join(' ')}"></converse-chats><div id="converse-modals" class="modals"></div><converse-fontawesome></converse-fontawesome>`;
+  return lit_html_x`<converse-chats class="converse-chatboxes row no-gutters ${extra_classes.join(' ')}"></converse-chats><div id="converse-modals" class="modals"></div><converse-fontawesome></converse-fontawesome>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rootview/utils.js
 
@@ -67688,7 +68440,7 @@ public_converse.plugins.add('converse-rootview', {
   const i18n_group = __('Group');
   const i18n_nickname = __('Name');
   const i18n_xmpp_address = __('XMPP Address');
-  return x`<form class="converse-form add-xmpp-contact" @submit="${ev => el.addContactFromForm(ev)}"><div class="modal-body"><span class="modal-alert"></span><div class="form-group add-xmpp-contact__jid"><label class="clearfix" for="jid">${i18n_xmpp_address}:</label><div class="suggestion-box suggestion-box__jid"><ul class="suggestion-box__results suggestion-box__results--below" hidden=""></ul><input type="text" name="jid" ?required="${!shared_api.settings.get('xhr_user_search_url')}" value="${el.model.get('jid') || ''}" class="form-control suggestion-box__input" placeholder="${i18n_contact_placeholder}"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></div><div class="form-group add-xmpp-contact__name"><label class="clearfix" for="name">${i18n_nickname}:</label><div class="suggestion-box suggestion-box__name"><ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul><input type="text" name="name" value="${el.model.get('nickname') || ''}" class="form-control suggestion-box__input"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></div><div class="form-group add-xmpp-contact__group"><label class="clearfix" for="name">${i18n_group}:</label><converse-autocomplete .list="${getGroupsAutoCompleteList()}" name="group"></converse-autocomplete></div><div class="form-group"><div class="invalid-feedback">${i18n_error_message}</div></div><button type="submit" class="btn btn-primary">${i18n_add}</button></div></form>`;
+  return lit_html_x`<form class="converse-form add-xmpp-contact" @submit="${ev => el.addContactFromForm(ev)}"><div class="modal-body"><span class="modal-alert"></span><div class="form-group add-xmpp-contact__jid"><label class="clearfix" for="jid">${i18n_xmpp_address}:</label><div class="suggestion-box suggestion-box__jid"><ul class="suggestion-box__results suggestion-box__results--below" hidden=""></ul><input type="text" name="jid" ?required="${!shared_api.settings.get('xhr_user_search_url')}" value="${el.model.get('jid') || ''}" class="form-control suggestion-box__input" placeholder="${i18n_contact_placeholder}"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></div><div class="form-group add-xmpp-contact__name"><label class="clearfix" for="name">${i18n_nickname}:</label><div class="suggestion-box suggestion-box__name"><ul class="suggestion-box__results suggestion-box__results--above" hidden=""></ul><input type="text" name="name" value="${el.model.get('nickname') || ''}" class="form-control suggestion-box__input"> <span class="suggestion-box__additions visually-hidden" role="status" aria-live="assertive" aria-relevant="additions"></span></div></div><div class="form-group add-xmpp-contact__group"><label class="clearfix" for="name">${i18n_group}:</label><converse-autocomplete .list="${getGroupsAutoCompleteList()}" name="group"></converse-autocomplete></div><div class="form-group"><div class="invalid-feedback">${i18n_error_message}</div></div><button type="submit" class="btn btn-primary">${i18n_add}</button></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/modals/add-contact.js
 
@@ -67730,7 +68482,7 @@ class AddContactModal extends modal_modal {
     this.jid_auto_complete = new shared_converse.AutoComplete(el, {
       'data': (text, input) => `${input.slice(0, input.indexOf("@"))}@${text}`,
       'filter': shared_converse.FILTER_STARTSWITH,
-      'list': [...new Set(shared_converse.roster.map(item => core.getDomainFromJid(item.get('jid'))))]
+      'list': [...new Set(shared_converse.roster.map(item => Strophe.getDomainFromJid(item.get('jid'))))]
     });
   }
   initGroupAutoComplete() {
@@ -67741,7 +68493,7 @@ class AddContactModal extends modal_modal {
     this.jid_auto_complete = new shared_converse.AutoComplete(el, {
       'data': (text, input) => `${input.slice(0, input.indexOf("@"))}@${text}`,
       'filter': shared_converse.FILTER_STARTSWITH,
-      'list': [...new Set(shared_converse.roster.map(item => core.getDomainFromJid(item.get('jid'))))]
+      'list': [...new Set(shared_converse.roster.map(item => Strophe.getDomainFromJid(item.get('jid'))))]
     });
   }
   initXHRAutoComplete() {
@@ -67807,7 +68559,7 @@ class AddContactModal extends modal_modal {
       addClass('is-invalid', this.querySelector('input[name="jid"]'));
       addClass('d-block', el);
       return false;
-    } else if (shared_converse.roster.get(core.getBareJidFromJid(jid))) {
+    } else if (shared_converse.roster.get(Strophe.getBareJidFromJid(jid))) {
       el.textContent = __('This contact has already been added');
       addClass('d-block', el);
       return false;
@@ -67882,12 +68634,12 @@ function renderContact(contact) {
     extra_classes.push(subscription);
     extra_classes.push(contact.presence.get('show'));
   }
-  return x`<li class="list-item d-flex controlbox-padded ${extra_classes.join(' ')}" data-status="${contact.presence.get('show')}"><converse-roster-contact .model="${contact}"></converse-roster-contact></li>`;
+  return lit_html_x`<li class="list-item d-flex controlbox-padded ${extra_classes.join(' ')}" data-status="${contact.presence.get('show')}"><converse-roster-contact .model="${contact}"></converse-roster-contact></li>`;
 }
 /* harmony default export */ const group = (o => {
   const i18n_title = __('Click to hide these contacts');
   const collapsed = shared_converse.roster.state.get('collapsed_groups');
-  return x`<div class="roster-group" data-group="${o.name}"><a href="#" class="list-toggle group-toggle controlbox-padded" title="${i18n_title}" @click="${ev => toggleGroup(ev, o.name)}"><converse-icon color="var(--chat-head-color-dark)" size="1em" class="fa ${collapsed.includes(o.name) ? 'fa-caret-right' : 'fa-caret-down'}"></converse-icon>${o.name}</a><ul class="items-list roster-group-contacts ${collapsed.includes(o.name) ? 'collapsed' : ''}" data-group="${o.name}">${repeat_c(o.contacts, c => c.get('jid'), renderContact)}</ul></div>`;
+  return lit_html_x`<div class="roster-group" data-group="${o.name}"><a href="#" class="list-toggle group-toggle controlbox-padded" title="${i18n_title}" @click="${ev => toggleGroup(ev, o.name)}"><converse-icon color="var(--chat-head-color-dark)" size="1em" class="fa ${collapsed.includes(o.name) ? 'fa-caret-right' : 'fa-caret-down'}"></converse-icon>${o.name}</a><ul class="items-list roster-group-contacts ${collapsed.includes(o.name) ? 'collapsed' : ''}" data-group="${o.name}">${repeat_c(o.contacts, c => c.get('jid'), renderContact)}</ul></div>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/templates/roster.js
 
@@ -67907,7 +68659,7 @@ function renderContact(contact) {
   const groupnames = Object.keys(contacts_map).filter(shouldShowGroup);
   const is_closed = el.model.get('toggle_state') === shared_converse.CLOSED;
   groupnames.sort(groupsComparator);
-  return x`<div class="d-flex controlbox-padded"><span class="w-100 controlbox-heading controlbox-heading--contacts"><a class="list-toggle open-contacts-toggle" title="${i18n_toggle_contacts}" @click="${el.toggleRoster}"><converse-icon class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}" size="1em" color="var(--chat-color)"></converse-icon>${i18n_heading_contacts} </a></span><a class="controlbox-heading__btn sync-contacts" @click="${ev => el.syncContacts(ev)}" title="${i18n_title_sync_contacts}"><converse-icon class="fa fa-sync right ${el.syncing_contacts ? 'fa-spin' : ''}" size="1em"></converse-icon></a>${shared_api.settings.get('allow_contact_requests') ? x`<a class="controlbox-heading__btn add-contact" @click="${ev => el.showAddContactModal(ev)}" title="${i18n_title_add_contact}" data-toggle="modal" data-target="#add-contact-modal"><converse-icon class="fa fa-user-plus right" size="1.25em"></converse-icon></a>` : ''}</div><div class="list-container roster-contacts ${is_closed ? 'hidden' : ''}"><converse-roster-filter @update="${() => el.requestUpdate()}"></converse-roster-filter>${repeat_c(groupnames, n => n, name => {
+  return lit_html_x`<div class="d-flex controlbox-padded"><span class="w-100 controlbox-heading controlbox-heading--contacts"><a class="list-toggle open-contacts-toggle" title="${i18n_toggle_contacts}" @click="${el.toggleRoster}"><converse-icon class="fa ${is_closed ? 'fa-caret-right' : 'fa-caret-down'}" size="1em" color="var(--chat-color)"></converse-icon>${i18n_heading_contacts} </a></span><a class="controlbox-heading__btn sync-contacts" @click="${ev => el.syncContacts(ev)}" title="${i18n_title_sync_contacts}"><converse-icon class="fa fa-sync right ${el.syncing_contacts ? 'fa-spin' : ''}" size="1em"></converse-icon></a>${shared_api.settings.get('allow_contact_requests') ? lit_html_x`<a class="controlbox-heading__btn add-contact" @click="${ev => el.showAddContactModal(ev)}" title="${i18n_title_add_contact}" data-toggle="modal" data-target="#add-contact-modal"><converse-icon class="fa fa-user-plus right" size="1.25em"></converse-icon></a>` : ''}</div><div class="list-container roster-contacts ${is_closed ? 'hidden' : ''}"><converse-roster-filter @update="${() => el.requestUpdate()}"></converse-roster-filter>${repeat_c(groupnames, n => n, name => {
     const contacts = contacts_map[name].filter(c => shouldShowContact(c, name));
     contacts.sort(contactsComparator);
     return contacts.length ? group({
@@ -67999,7 +68751,7 @@ class RosterView extends CustomElement {
 shared_api.elements.define('converse-roster', RosterView);
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/templates/requesting_contact.js
 
-/* harmony default export */ const requesting_contact = (o => x`<a class="open-chat w-100" href="#" @click="${o.openChat}"><span class="req-contact-name w-100" title="JID: ${o.jid}">${o.display_name}</span> </a><a class="accept-xmpp-request list-item-action list-item-action--visible" @click="${o.acceptRequest}" aria-label="${o.desc_accept}" title="${o.desc_accept}" href="#"><converse-icon class="fa fa-check" size="1em"></converse-icon></a><a class="decline-xmpp-request list-item-action list-item-action--visible" @click="${o.declineRequest}" aria-label="${o.desc_decline}" title="${o.desc_decline}" href="#"><converse-icon class="fa fa-times" size="1em"></converse-icon></a>`);
+/* harmony default export */ const requesting_contact = (o => lit_html_x`<a class="open-chat w-100" href="#" @click="${o.openChat}"><span class="req-contact-name w-100" title="JID: ${o.jid}">${o.display_name}</span> </a><a class="accept-xmpp-request list-item-action list-item-action--visible" @click="${o.acceptRequest}" aria-label="${o.desc_accept}" title="${o.desc_accept}" href="#"><converse-icon class="fa fa-check" size="1em"></converse-icon></a><a class="decline-xmpp-request list-item-action list-item-action--visible" @click="${o.declineRequest}" aria-label="${o.desc_decline}" title="${o.desc_decline}" href="#"><converse-icon class="fa fa-times" size="1em"></converse-icon></a>`);
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/constants.js
 
 const STATUSES = {
@@ -68018,7 +68770,7 @@ const STATUSES = {
 const tplRemoveLink = (el, item) => {
   const display_name = item.getDisplayName();
   const i18n_remove = __('Click to remove %1$s as a contact', display_name);
-  return x`<a class="list-item-action remove-xmpp-contact" @click="${el.removeContact}" title="${i18n_remove}" href="#"><converse-icon class="fa fa-trash-alt" size="1.5em"></converse-icon></a>`;
+  return lit_html_x`<a class="list-item-action remove-xmpp-contact" @click="${el.removeContact}" title="${i18n_remove}" href="#"><converse-icon class="fa fa-trash-alt" size="1.5em"></converse-icon></a>`;
 };
 /* harmony default export */ const roster_item = ((el, item) => {
   const show = item.presence.get('show') || 'offline';
@@ -68036,7 +68788,7 @@ const tplRemoveLink = (el, item) => {
   const num_unread = item.get('num_unread') || 0;
   const display_name = item.getDisplayName();
   const i18n_chat = __('Click to chat with %1$s (XMPP address: %2$s)', display_name, el.model.get('jid'));
-  return x`<a class="list-item-link cbox-list-item open-chat ${num_unread ? 'unread-msgs' : ''}" title="${i18n_chat}" href="#" @click="${el.openChat}"><span><converse-avatar class="avatar" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="30" width="30"></converse-avatar><converse-icon title="${desc_status}" color="var(--${color})" size="1em" class="${classes} chat-status chat-status--avatar"></converse-icon></span>${num_unread ? x`<span class="msgs-indicator">${num_unread}</span>` : ''} <span class="contact-name contact-name--${el.show} ${num_unread ? 'unread-msgs' : ''}">${display_name}</span> </a>${shared_api.settings.get('allow_contact_removal') ? tplRemoveLink(el, item) : ''}`;
+  return lit_html_x`<a class="list-item-link cbox-list-item open-chat ${num_unread ? 'unread-msgs' : ''}" title="${i18n_chat}" href="#" @click="${el.openChat}"><span><converse-avatar class="avatar" .data="${el.model.vcard?.attributes}" nonce="${el.model.vcard?.get('vcard_updated')}" height="30" width="30"></converse-avatar><converse-icon title="${desc_status}" color="var(--${color})" size="1em" class="${classes} chat-status chat-status--avatar"></converse-icon></span>${num_unread ? lit_html_x`<span class="msgs-indicator">${num_unread}</span>` : ''} <span class="contact-name contact-name--${el.show} ${num_unread ? 'unread-msgs' : ''}">${display_name}</span> </a>${shared_api.settings.get('allow_contact_removal') ? tplRemoveLink(el, item) : ''}`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/contactview.js
 
@@ -68094,7 +68846,7 @@ class contactview_RosterContact extends CustomElement {
         this.model.destroy();
       }
     } catch (e) {
-      log.error(e);
+      headless_log.error(e);
       shared_api.alert('error', __('Error'), [__('Sorry, there was an error while trying to remove %1$s as a contact.', this.model.getDisplayName())]);
     }
   }
@@ -68131,7 +68883,7 @@ shared_api.elements.define('converse-roster-contact', contactview_RosterContact)
   const label_away = __('Away');
   const label_xa = __('Extended Away');
   const label_offline = __('Offline');
-  return x`<form class="controlbox-padded roster-filter-form input-button-group ${!o.visible ? 'hidden' : 'fade-in'}" @submit="${o.submitFilter}"><div class="form-inline flex-nowrap"><div class="filter-by d-flex flex-nowrap"><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-user clickable ${o.filter_type === 'contacts' ? 'selected' : ''}" data-type="contacts" title="${title_contact_filter}"></converse-icon><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-users clickable ${o.filter_type === 'groups' ? 'selected' : ''}" data-type="groups" title="${title_group_filter}"></converse-icon><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-circle clickable ${o.filter_type === 'state' ? 'selected' : ''}" data-type="state" title="${title_status_filter}"></converse-icon></div><div class="btn-group"><input .value="${o.filter_text || ''}" @keydown="${o.liveFilter}" class="roster-filter form-control ${o.filter_type === 'state' ? 'hidden' : ''}" placeholder="${i18n_placeholder}"><converse-icon size="1em" class="fa fa-times clear-input ${!o.filter_text || o.filter_type === 'state' ? 'hidden' : ''}" @click="${o.clearFilter}"></converse-icon></div><select class="form-control state-type ${o.filter_type !== 'state' ? 'hidden' : ''}" @change="${o.changeChatStateFilter}"><option value="">${label_any}</option><option ?selected="${o.chat_state === 'unread_messages'}" value="unread_messages">${label_unread_messages}</option><option ?selected="${o.chat_state === 'online'}" value="online">${label_online}</option><option ?selected="${o.chat_state === 'chat'}" value="chat">${label_chatty}</option><option ?selected="${o.chat_state === 'dnd'}" value="dnd">${label_busy}</option><option ?selected="${o.chat_state === 'away'}" value="away">${label_away}</option><option ?selected="${o.chat_state === 'xa'}" value="xa">${label_xa}</option><option ?selected="${o.chat_state === 'offline'}" value="offline">${label_offline}</option></select></div></form>`;
+  return lit_html_x`<form class="controlbox-padded roster-filter-form input-button-group ${!o.visible ? 'hidden' : 'fade-in'}" @submit="${o.submitFilter}"><div class="form-inline flex-nowrap"><div class="filter-by d-flex flex-nowrap"><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-user clickable ${o.filter_type === 'contacts' ? 'selected' : ''}" data-type="contacts" title="${title_contact_filter}"></converse-icon><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-users clickable ${o.filter_type === 'groups' ? 'selected' : ''}" data-type="groups" title="${title_group_filter}"></converse-icon><converse-icon size="1em" @click="${o.changeTypeFilter}" class="fa fa-circle clickable ${o.filter_type === 'state' ? 'selected' : ''}" data-type="state" title="${title_status_filter}"></converse-icon></div><div class="btn-group"><input .value="${o.filter_text || ''}" @keydown="${o.liveFilter}" class="roster-filter form-control ${o.filter_type === 'state' ? 'hidden' : ''}" placeholder="${i18n_placeholder}"><converse-icon size="1em" class="fa fa-times clear-input ${!o.filter_text || o.filter_type === 'state' ? 'hidden' : ''}" @click="${o.clearFilter}"></converse-icon></div><select class="form-control state-type ${o.filter_type !== 'state' ? 'hidden' : ''}" @change="${o.changeChatStateFilter}"><option value="">${label_any}</option><option ?selected="${o.chat_state === 'unread_messages'}" value="unread_messages">${label_unread_messages}</option><option ?selected="${o.chat_state === 'online'}" value="online">${label_online}</option><option ?selected="${o.chat_state === 'chat'}" value="chat">${label_chatty}</option><option ?selected="${o.chat_state === 'dnd'}" value="dnd">${label_busy}</option><option ?selected="${o.chat_state === 'away'}" value="away">${label_away}</option><option ?selected="${o.chat_state === 'xa'}" value="xa">${label_xa}</option><option ?selected="${o.chat_state === 'offline'}" value="offline">${label_offline}</option></select></div></form>`;
 });
 ;// CONCATENATED MODULE: ./src/plugins/rosterview/filterview.js
 
@@ -68474,7 +69226,7 @@ function onMouseUp(ev) {
 ;// CONCATENATED MODULE: ./src/plugins/dragresize/templates/dragresize.js
 
 
-/* harmony default export */ const dragresize = (() => x`<div class="dragresize dragresize-top" @mousedown="${onStartVerticalResize}"></div><div class="dragresize dragresize-topleft" @mousedown="${onStartDiagonalResize}"></div><div class="dragresize dragresize-left" @mousedown="${onStartHorizontalResize}"></div>`);
+/* harmony default export */ const dragresize = (() => lit_html_x`<div class="dragresize dragresize-top" @mousedown="${onStartVerticalResize}"></div><div class="dragresize dragresize-topleft" @mousedown="${onStartDiagonalResize}"></div><div class="dragresize dragresize-left" @mousedown="${onStartHorizontalResize}"></div>`);
 ;// CONCATENATED MODULE: ./src/plugins/dragresize/components/dragresize.js
 
 
@@ -71619,7 +72371,7 @@ const converse = {
       __webpack_require__.p = settings.assets_path; // eslint-disable-line no-undef
     }
 
-    __webpack_require__(4847);
+    __webpack_require__(7084);
     Object.keys(plugins).forEach(name => converse.plugins.add(name, plugins[name]));
     return converse;
   }
