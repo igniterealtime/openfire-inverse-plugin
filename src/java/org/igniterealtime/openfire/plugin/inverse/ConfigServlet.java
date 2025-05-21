@@ -95,7 +95,6 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "allow_url_history_change");
         addBooleanConfigOption(config, "allow_user_trust_override");
         addIntegerConfigOption(config, "archived_messages_page_size");
-        addBooleanConfigOption(config, "autocomplete_add_contact");
         addBooleanConfigOption(config, "auto_focus");
         addBooleanConfigOption(config, "auto_list_rooms");
         addBooleanConfigOption(config, "auto_login");
@@ -121,11 +120,14 @@ public class ConfigServlet extends HttpServlet
         addTextConfigOption(config, "default_state");
         addBooleanConfigOption(config, "discover_connection_methods");
         // addTextConfigOption(config, "domain_placeholder"); // Already taken care of above.
+        addBooleanConfigOption(config, "embed_3rd_party_media_players");
         addJsonObjectConfigOption(config, "emoji_categories");
         addJsonObjectConfigOption(config, "emoji_categories_label");
         addTextConfigOption(config, "emoji_image_path");
         addBooleanConfigOption(config, "enable_muc_push");
+        addBooleanConfigOption(config, "enable_roster_versioning");
         addBooleanConfigOption(config, "enable_smacks");
+        addBooleanConfigOption(config, "fetch_url_headers");
         addBooleanConfigOption(config, "filter_by_resource");
         addArrayOfTextConfigOption(config, "filter_url_query_params");
         addTextConfigOption(config, "fullname");
@@ -138,6 +140,7 @@ public class ConfigServlet extends HttpServlet
         addTextConfigOption(config, "image_urls_regex");
         addTextConfigOption(config, "jid");
         addBooleanConfigOption(config, "keepalive");
+        addBooleanConfigOption(config, "lazy_load_vcards");
         addJsonObjectConfigOption(config, "locales");
         //addTextConfigOption(config, "locked_domain"); // Already taken care of above.
         addJsonObjectConfigOption(config, "locked_muc_domain");
@@ -163,6 +166,7 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "muc_respect_autojoin");
         addTextConfigOption(config, "muc_roomid_policy");
         addTextConfigOption(config, "muc_roomid_policy_hint");
+        addTextConfigOption(config, "muc_search_service");
         addBooleanConfigOption(config, "muc_show_join_leave");
         addBooleanConfigOption(config, "muc_show_logs_before_join");
         addBooleanConfigOption(config, "muc_show_ogp_unfurls"); // Obsoleted in 9.0.0
@@ -186,11 +190,13 @@ public class ConfigServlet extends HttpServlet
         addArrayOfJsonObjectConfigOption(config, "push_app_servers");
         addBooleanConfigOption(config, "render_media");
         addBooleanConfigOption(config, "reuse_scram_keys");
+        addArrayOfTextConfigOption(config, "rtl_langs");
         addArrayOfTextConfigOption(config, "roomconfig_whitelist");
         addTextConfigOption(config, "root");
         addBooleanConfigOption(config, "roster_groups");
         addBooleanConfigOption(config, "send_chat_state_notifications");
         addArrayOfTextConfigOption(config, "send_chat_markers");
+        addBooleanConfigOption(config, "show_background");
         addBooleanConfigOption(config, "show_chat_state_notifications");
         addBooleanConfigOption(config, "show_client_info");
         addTextConfigOption(config, "show_connection_url_input");
@@ -200,6 +206,7 @@ public class ConfigServlet extends HttpServlet
         addBooleanConfigOption(config, "show_images_inline"); // Obsoleted in 9.0.0
         addBooleanConfigOption(config, "show_retraction_warning");
         addBooleanConfigOption(config, "show_send_button");
+        addBooleanConfigOption(config, "show_self_in_roster");
         addBooleanConfigOption(config, "show_tab_notifications");
         addBooleanConfigOption(config, "singleton");
         addIntegerConfigOption(config, "smacks_max_unacked_stanzas");

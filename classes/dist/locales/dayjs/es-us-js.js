@@ -1,10 +1,10 @@
-(self["webpackChunkconverse_js"] = self["webpackChunkconverse_js"] || []).push([[3208],{
+(self["webpackChunkconverse_js"] = self["webpackChunkconverse_js"] || []).push([[4182],{
 
-/***/ 656:
+/***/ 6723:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 !function (e, s) {
-   true ? module.exports = s(__webpack_require__(2028)) : 0;
+   true ? module.exports = s(__webpack_require__(5646)) : 0;
 }(this, function (e) {
   "use strict";
 
