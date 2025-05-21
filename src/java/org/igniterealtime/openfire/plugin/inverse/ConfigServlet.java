@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Ignite Realtime Foundation. All rights reserved.
+ * Copyright (C) 2017-2025 Ignite Realtime Foundation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package org.igniterealtime.openfire.plugin.inverse;
 
-import org.directwebremoting.json.types.JsonObject;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.util.JiveGlobals;
 import org.json.JSONArray;
@@ -230,6 +229,7 @@ public class ConfigServlet extends HttpServlet
             config.put( "bosh_service_url", defaultEndpoint );
         }
 
+        response.setHeader("Content-Type", "application/json");
         try ( final Writer writer = response.getWriter() )
         {
             writer.write( config.toString( 2 ) );
