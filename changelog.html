@@ -47,6 +47,22 @@
 <ul>
     <li>Requires Openfire 5.0.0 or later</li>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/68">#68:</a> Openfire 5.0.0 compatibility</li>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/76">#76: Update to Converse 11.0.1</a>, which includes these changes:
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3672">#3672</a>: Images not rendering</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3676">#3676</a>: Flyout box is not positioned correctly on mobile devices in "overlayed" mode</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3689">#3689</a>: Chat view not accesible for certain widths in "fullscreen" mode</li>
+            <li>Remove modal from the DOM when it's closed</li>
+            <li>Fix login form style for <tt>classic</tt> theme</li>
+            <li>Fix css for the <tt>headlines</tt> feed</li>
+            <li>Properly handle OGP metadata that doesn't have an image</li>
+            <li>Fix TypeError which prevents logging out</li>
+            <li>Fix auto zoom in when input message in ios safari</li>
+            <li>Add a service discovery browser to the settings modal</li>
+            <li>Add a modal to view blocked XMPP addresses</li>
+            <li>Check for PubSub <tt>config-node-max</tt> feature before using the <tt>max</tt> value</li>
+        </ul>
+    </li>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/74">#74:</a> <tt>config.json</tt> response should have a Content-Type header</li>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/73">#73: Update to Converse 11.0.0</a>, which includes these changes:
         <h4>For Converse 11.0.0:</h4>

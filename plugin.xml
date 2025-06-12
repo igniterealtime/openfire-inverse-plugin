@@ -5,7 +5,7 @@
     <description>${project.description}</description>
     <author>Guus der Kinderen</author>
     <version>${project.version}</version>
-    <date>2025-05-21</date>
+    <date>2025-06-12</date>
     <minServerVersion>5.0.0</minServerVersion>
     <adminconsole>
         <tab id="tab-webclients" name="${admin.sidebar.webclients.name}" description="${admin.sidebar.webclients.description}" url="inverse-config.jsp">
