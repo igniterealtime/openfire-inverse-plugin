@@ -24,42 +24,59 @@ import java.util.Locale;
  */
 public enum Language
 {
-    Afrikaans ("af"),
-    Arabic ("ar"),
-    Bahasa_Indonesia ("id"),
-    Basque ("eu"),
-    Bulgarian ("bg"),
-    BrazilianPortuguese ("pt_BR"),
-    Catalan ("ca"),
-    Czech ("cs"),
-    Chinese ("zh_TW"),
-    SimplifiedChinese ("zh_CN"),
-    Dutch ("nl"),
-    English ("en"),
-    Esperanto ("eo"),
-    Flemish ("nl_BE"),
-    French ("fr"),
-    Galician ("gl"),
-    German ("de"),
-    Hebrew ("he"),
-    Hindi ("hi"),
-    Hungarian ("hu"),
-    Italian ("it"),
-    Japanese ("ja"),
-    Lithuanian ("lt"),
-    Norwegian ("nb"),
-    Occitan ("oc"),
-    Polish ("pl"),
-    Portuguese ("pt"),
-    Romanian ("ro"),
-    Russian ("ru"),
-    Spanish ("es"),
-    Turkish ("tr"),
-    Ukrainian ("uk");
+    Afrikaans("af"),
+    Albanian("sq"),
+    Arabic("ar"),
+    Bahasa_Indonesia("id"),
+    Basque("eu"),
+    Belarusian("be"),
+    Bulgarian("bg"),
+    BrazilianPortuguese("pt_BR"),
+    Catalan("ca"),
+    Czech("cs"),
+    Chinese("zh_TW"),
+    SimplifiedChinese("zh_CN"),
+    Danish("da"),
+    Dutch("nl"),
+    Dutch_Belgium("nl_BE"),
+    English("en"),
+    Esperanto("eo"),
+    Finnish("fi"),
+    Flemish("nl_BE"),
+    French("fr"),
+    Galician("gl"),
+    German("de"),
+    Greek("el"),
+    Hebrew("he"),
+    Hindi("hi"),
+    Hungarian("hu"),
+    Italian("it"),
+    Japanese("ja"),
+    Korean("ko"),
+    Lithuanian("lt"),
+    Norwegian("nb"),
+    Marathi("mr"),
+    Mongolian("mn"),
+    Occitan("oc"),
+    Persian("fa"),
+    Polish("pl"),
+    Portuguese_Brazil("pt_BR"),
+    Portuguese("pt"),
+    Romanian("ro"),
+    Russian("ru"),
+    Sinhala("si"),
+    Spanish("es"),
+    Swedish("sv"),
+    Tamil("ta"),
+    Thai("th"),
+    Turkish("tr"),
+    Uighur("ug"),
+    Ukrainian("uk"),
+    Vietnamese("vi");
 
     private final String code;
 
-    Language( String code )
+    Language(String code)
     {
         this.code = code;
     }
@@ -69,12 +86,10 @@ public enum Language
         return code;
     }
 
-    public static Language byConverseCode( final String converseCode )
+    public static Language byConverseCode(final String converseCode)
     {
-        for ( final Language language : values() )
-        {
-            if ( language.getCode().equalsIgnoreCase( converseCode ) )
-            {
+        for (final Language language : values()) {
+            if (language.getCode().equalsIgnoreCase(converseCode)) {
                 return language;
             }
         }
@@ -82,12 +97,10 @@ public enum Language
         return null;
     }
 
-    public static Language byLocale( final Locale locale )
+    public static Language byLocale(final Locale locale)
     {
-        for ( final Language language : values() )
-        {
-            if ( locale.getLanguage().equals( new Locale( language.getCode() ).getLanguage() ) )
-            {
+        for (final Language language : values()) {
+            if (locale.getLanguage().equals(new Locale(language.getCode()).getLanguage())) {
                 return language;
             }
         }

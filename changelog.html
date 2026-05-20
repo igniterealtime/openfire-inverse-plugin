@@ -43,6 +43,70 @@
     inVerse Plugin Changelog
 </h1>
 
+<p><b>13.0.0 Release 1</b> -- (tbd)</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/73">#73: Update to Converse 11.0.0</a>, which includes these changes:
+        <h4>For Converse 13.0.0:</h4>
+        <p>Github Issues</p>
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/1855">#1855</a>: Use default or locked domain when adding contacts or starting new chats</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2311">#2311</a>: Strip locked MUC domain from room address input to avoid mangled JIDs</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2398">#2398</a>: Add support for XEP-0444: Message Reactions (see <a href="https://xmpp.org/extensions/xep-0444.html">XEP-0444</a>)</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2740">#2740</a>: Add autocomplete of possible XMPP servers when registering a new account</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2857">#2857</a>: Fix underscores and other styling directives inside URLs being mistakenly treated as emphasis markers</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/2929">#2929</a>: Add XMPP providers autocomplete when adding contacts (new <tt>autocomplete_providers_url</tt> setting)</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3023">#3023</a>: Fix empty roster group name treated as a valid group instead of "Ungrouped"</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3382">#3382</a>: Fix audio player accessibility for screen reader users (NVDA, JAWS)</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3502">#3502</a>: Fix custom emoji shortnames overlapping with built-in emoji shortnames</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3815">#3815</a>: Removal of boomark leads to new bookmark named <tt>Symbol(lit-nothing)</tt></li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3824">#3824</a>: Dates and times are not translated</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3829">#3829</a>: Rich text from LibreOffice Calc is sent as screenshots</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3830">#3830</a>: The message textarea blocks undo of the pasted text</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3839">#3839</a>: Fix contacts menu displayed off-screen in fullscreen mode</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3863">#3863</a>: Shift <tt>unescapeHTML</tt> helper function (used to set <tt>isOnlyEmoji</tt> on a message) to converse-headless</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3885">#3885</a>: Don't show contact approval alerts when <tt>allow_contact_requests</tt> is false (e.g. anonymous mode)</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3886">#3886</a>: Don't show OMEMO padlock icon when libsignal is not available (e.g. anonymous mode)</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3889">#3889</a>: MUC join: Use room jids localpart as name in case name or identity not found</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3710">#3710</a>: Fix autocomplete adding a trailing space when selecting a group name with the mouse</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3916">#3916</a>: Add support for XEP-0461 Message Replies, allowing users to reply to specific messages</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3939">#3939</a>: Don't show invitations to groupchats in which the user is already present</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3941">#3941</a>: add adhoc completed command result and text-multi as merged lines of text</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3989">#3989</a>: properly display occupant hats in details dialog</li>
+            <li>Don't render unfurls for retracted messages.</li>
+        </ul>
+
+        <h4>For Converse 12.0.0:</h4>
+        <p>Github Issues</p>
+        <ul>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3581">#3581</a>: Don't unnecessarily regenerate pot and po files</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3700">#3700</a>: Fix exception that occurs when optional cp attribute is missing</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3714">#3714</a>: Don't include <tt>maxstanzas</tt> if no value is available</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3719">#3719</a>, <a href="https://github.com/conversejs/converse.js/issues/3770">#3770</a>: Handle <tt>connection._sasl_mechanism</tt> not being defined</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3730">#3730</a>: QR Code doesn't work on dark backgrounds</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3764">#3764</a>: Create an ESM build for @converse/headless</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3769">#3769</a>: Various OMEMO fixes</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3791">#3791</a>: Fetching pubsub node configuration fails</li>
+            <li><a href="https://github.com/conversejs/converse.js/issues/3792">#3792</a>: Node reconfiguration attempt uses incorrect field names</li>
+            <li>Add approval banner in chats with requesting contacts or unsaved contacts</li>
+            <li>Add mongolian as a language option</li>
+            <li>Breaking: <tt>Strophe.shims</tt> has been removed. Instead, just use the globals.</li>
+            <li>Create ESM builds of converse.js and converse-headless.js</li>
+            <li>Moved <tt>jsdom</tt> and <tt>ws</tt> from optionalDependencies to peerDependencies</li>
+            <li>New API method <tt>api.disco.entities.find</tt> to return all entities that implement a specific feature.</li>
+            <li>Regional locales weren't being applied.</li>
+            <li>Registration: Use <a href="https://providers.xmpp.net">https://providers.xmpp.net</a> instead of <a href="https://compliance.conversations.im">https://compliance.conversations.im</a></li>
+            <li>Replace webpack with <a href="https://rspack.rs/">rspack</a></li>
+            <li>Set up a test runner for @converse/headless so that the headless tests use the headless build</li>
+            <li>Show approval alert in chats with unsaved contacts</li>
+            <li>Some fixes regarding manually resized chats in <tt>overlayed</tt> view mode.</li>
+            <li>Update controlbox to not show logo, navbar and version while connecting</li>
+            <li>Updated translations</li>
+            <li>bugfix: Don't show closed MUCs in the rooms list</li>
+            <li>bugfix: dragresize resistance not applied</li>
+        </ul>
+    </li>
+</ul>
+
 <p><b>11.0.1 Release 1</b> -- June 12, 2025</p>
 <ul>
     <li>Requires Openfire 5.0.0 or later</li>
