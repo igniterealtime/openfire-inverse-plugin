@@ -48,7 +48,7 @@ public class ConfigServlet extends HttpServlet
         final boolean lockedDomain = JiveGlobals.getBooleanProperty( "inverse.config.locked_domain", false );
         final String defaultEndpoint = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + "/http-bind/";
         final String loglevel = JiveGlobals.getProperty( "inverse.config.loglevel", "info" );
-        final String assets_path = JiveGlobals.getProperty( "inverse.config.assets_path", "/"+InversePlugin.CONTEXT_ROOT+"/dist/" );
+        final String assets_path = JiveGlobals.getProperty( "inverse.config.assets_path", "/"+InversePlugin.CONTEXT_ROOT+"/dist" ); // A trailing slash can cause issues. See https://github.com/conversejs/converse.js/issues/4041
 
         // The language of the inVerse UI.
         final Language language = InversePlugin.getLanguage();
@@ -76,6 +76,7 @@ public class ConfigServlet extends HttpServlet
         config.put( "view_mode", "fullscreen" );
         config.put( "assets_path", assets_path );
 
+        addTextConfigOption(config, "autocomplete_providers_url");
         addArrayOfTextConfigOption(config, "allowed_audio_domains");
         addArrayOfTextConfigOption(config, "allowed_image_domains");
         addArrayOfTextConfigOption(config, "allowed_video_domains");
