@@ -43,6 +43,76 @@
     inVerse Plugin Changelog
 </h1>
 
+<p><b>14.0.0 Release 1</b> -- September 11, 2026</p>
+<ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/88">#88: Update to Converse 14.0.0</a>, which includes these changes:
+        <h4>For Converse 14.0.0:</h4>
+        <p>Github Issues</p>
+		<ul>
+			<li>
+			<p><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="416067134" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/1472" data-hovercard-type="issue" data-hovercard-url="/conversejs/converse.js/issues/1472/hovercard" href="https://github.com/conversejs/converse.js/issues/1472">#1472</a>: feat(omemo): remember the per-chat encryption (on/off) state across chat-close and re-login</p>
+			</li>
+			<li>
+			<p><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="644152904" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/2097" data-hovercard-type="issue" data-hovercard-url="/conversejs/converse.js/issues/2097/hovercard" href="https://github.com/conversejs/converse.js/issues/2097">#2097</a>: fix(omemo): surface an error for an undecryptable OMEMO message instead of silently dropping it when it carries no fallback body</p>
+			</li>
+			<li>
+			<p><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="745875541" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/2336" data-hovercard-type="issue" data-hovercard-url="/conversejs/converse.js/issues/2336/hovercard" href="https://github.com/conversejs/converse.js/issues/2336">#2336</a>: fix(omemo): hide the encryption toggle on an untrusted device, where OMEMO can't be used</p>
+			</li>
+			<li>
+			<p><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="978932036" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/2606" data-hovercard-type="issue" data-hovercard-url="/conversejs/converse.js/issues/2606/hovercard" href="https://github.com/conversejs/converse.js/issues/2606">#2606</a>: fix(omemo): hiding media now also hides decrypted OMEMO media instead of re-rendering it</p>
+			</li>
+			<li>
+			<p><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="988853651" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/2632" data-hovercard-type="issue" data-hovercard-url="/conversejs/converse.js/issues/2632/hovercard" href="https://github.com/conversejs/converse.js/issues/2632">#2632</a>: fix(omemo): preserve the original filename when downloading a received encrypted image</p>
+			</li>
+			<li>
+			<p><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="4489108841" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/4041" data-hovercard-type="issue" data-hovercard-url="/conversejs/converse.js/issues/4041/hovercard" href="https://github.com/conversejs/converse.js/issues/4041">#4041</a>: fix: strip trailing slashes from <code>assets_path</code> to prevent double-slash asset URLs</p>
+			</li>
+			<li>
+			<p><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="4610532831" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/4076" data-hovercard-type="issue" data-hovercard-url="/conversejs/converse.js/issues/4076/hovercard" href="https://github.com/conversejs/converse.js/issues/4076">#4076</a>: fix(omemo): don't send encrypted MUC messages to banned (outcast) or non-affiliated occupants</p>
+			</li>
+			<li>
+			<p>Remove <code>client-compress</code> and use browser APIs</p>
+			</li>
+			<li>
+			<p>feat(pubsub): Add new API methods to create, subscribe and unsubscribe.</p>
+			</li>
+			<li>
+			<p>feat(version): Add XEP-0092 Software Version support and show the server's software version in the profile modal</p>
+			</li>
+			<li>
+			<p>feat: add support for OMEMO 2 (<code>urn:xmpp:omemo:2</code>), using Stanza Content Encryption (XEP-0420)</p>
+			</li>
+			<li>
+			<p>fix(omemo): Detect omemo:2-only contacts as OMEMO-capable</p>
+			</li>
+			<li>
+			<p>fix(omemo): Enable self-healing of abandoned or unpublished bundle</p>
+			</li>
+			<li>
+			<p>fix(omemo): Gracefully handle contact device listed but bundle not published</p>
+			</li>
+			<li>
+			<p>fix(theme): Clear the background class list before setting theme attributes.</p>
+			</li>
+			<li>
+			<p>fix: Prior theme CSS class is not removed when changing the theme dynamically.</p>
+			</li>
+			<li>
+			<p>fix: <code>isTrustedIdentity</code> in OMEMO store wasn't properly loading the identity</p>
+			</li>
+			<li>
+			<p>fix: broadcast presence when the chat status (<code>show</code>) is cleared</p>
+			</li>
+			<li>
+			<p>fix: the idle status flag could never be cleared, leaving stale idle presence after the user became active again</p>
+			</li>
+			<li>
+			<p>refactor: Drop deprecated Karma test runner and Jasmine testing library and use Vitest instead.</p>
+			</li>
+		</ul>
+    </li>
+</ul>
+
 <p><b>13.0.1 Release 1</b> -- May 27, 2026</p>
 <ul>
     <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/88">#88: Update to Converse 13.0.1</a>, which includes these changes:

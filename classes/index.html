@@ -7,12 +7,12 @@
     <link rel="shortcut icon" type="image/ico" href="css/images/favicon.ico"/>
     <link type="text/css" rel="stylesheet" media="screen" href="dist/converse.min.css" />
     <link type="text/css" rel="stylesheet" media="screen" href="css/fullpage.css" />
-    <script src="dist/converse.min.js"></script>
+    <script type="module" src="dist/converse.min.js"></script>
 </head>
 <body class="converse-fullscreen">
 <noscript>You need to enable JavaScript to run the Converse.js chat app.</noscript>
 <div id="conversejs-bg"></div>
-<script>
+<script type="module" >
     function ready(fn) {
         if (document.attachEvent ? document.readyState === "complete" : document.readyState !== "loading"){
             fn();
