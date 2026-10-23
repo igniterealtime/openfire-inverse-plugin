@@ -43,8 +43,19 @@
     inVerse Plugin Changelog
 </h1>
 
-<p><b>15.0.0 Release 1</b> -- ?? 2026</p>
+<p><b>14.0.1 Release 1</b> -- October 23 2026</p>
 <ul>
+    <li><a href="https://github.com/igniterealtime/openfire-inverse-plugin/issues/93">#95: Update to Converse 14.0.1</a>, which includes these changes:
+        <h4>For Converse 14.0.1:</h4>
+        <p>Github Issues</p>
+		<ul>
+		<li>fix(omemo): Match the SCE affixes of an OMEMO:2 message by namespace instead of by <code>xmlns</code> attribute. Chromium 153 no longer keeps the redundant namespace declaration on <code>&lt;from/&gt;</code> and  <code>&lt;to/&gt;</code>, which stopped MUC messages from decrypting and silently skipped the <code>&lt;from/&gt;</code> check.</li>
+		<li>fix(reactions): A reaction fetched from the message archive no longer moves the message it reacts to after later messages.</li>
+		<li>feat(notifications): Prepend <code>assets_path</code> to the notification logo path.</li>
+		<li><a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2721117158" data-permission-text="Title is private" data-url="https://github.com/conversejs/converse.js/issues/3560" data-hovercard-type="pull_request" data-hovercard-url="/conversejs/converse.js/pull/3560/hovercard" href="https://github.com/conversejs/converse.js/pull/3560" aria-keyshortcuts="Alt+ArrowUp">#3560</a>: Emoji shortnames are now matched case-sensitively</li>
+		<li>fix(types): Import <code>Strophe.Builder</code> from the strophe.js package root, so the generated type definitions resolve for TypeScript consumers.</li>
+		</ul>
+    </li>
 </ul>
 
 <p><b>14.0.0 Release 2</b> -- September 11 2026</p>

@@ -47,28 +47,28 @@
   --converse-danger-rgb: 220, 53, 69;
   --converse-light-rgb: 248, 249, 250;
   --converse-dark-rgb: 33, 37, 41;
-  --converse-primary-text-emphasis: rgb(5.2, 44, 101.2);
-  --converse-secondary-text-emphasis: rgb(43.2, 46.8, 50);
-  --converse-success-text-emphasis: rgb(10, 54, 33.6);
-  --converse-info-text-emphasis: rgb(5.2, 80.8, 96);
-  --converse-warning-text-emphasis: rgb(102, 77.2, 2.8);
-  --converse-danger-text-emphasis: rgb(88, 21.2, 27.6);
+  --converse-primary-text-emphasis: rgb(2.0392156863%, 17.2549019608%, 39.6862745098%);
+  --converse-secondary-text-emphasis: rgb(16.9411764706%, 18.3529411765%, 19.6078431373%);
+  --converse-success-text-emphasis: rgb(3.9215686275%, 21.1764705882%, 13.1764705882%);
+  --converse-info-text-emphasis: rgb(2.0392156863%, 31.6862745098%, 37.6470588235%);
+  --converse-warning-text-emphasis: rgb(40%, 30.2745098039%, 1.0980392157%);
+  --converse-danger-text-emphasis: rgb(34.5098039216%, 8.3137254902%, 10.8235294118%);
   --converse-light-text-emphasis: #495057;
   --converse-dark-text-emphasis: #495057;
-  --converse-primary-bg-subtle: rgb(206.6, 226, 254.6);
-  --converse-secondary-bg-subtle: rgb(225.6, 227.4, 229);
-  --converse-success-bg-subtle: rgb(209, 231, 220.8);
-  --converse-info-bg-subtle: rgb(206.6, 244.4, 252);
-  --converse-warning-bg-subtle: rgb(255, 242.6, 205.4);
-  --converse-danger-bg-subtle: rgb(248, 214.6, 217.8);
-  --converse-light-bg-subtle: rgb(251.5, 252, 252.5);
+  --converse-primary-bg-subtle: rgb(81.0196078431%, 88.6274509804%, 99.8431372549%);
+  --converse-secondary-bg-subtle: rgb(88.4705882353%, 89.1764705882%, 89.8039215686%);
+  --converse-success-bg-subtle: rgb(81.9607843137%, 90.5882352941%, 86.5882352941%);
+  --converse-info-bg-subtle: rgb(81.0196078431%, 95.8431372549%, 98.8235294118%);
+  --converse-warning-bg-subtle: rgb(100%, 95.137254902%, 80.5490196078%);
+  --converse-danger-bg-subtle: rgb(97.2549019608%, 84.1568627451%, 85.4117647059%);
+  --converse-light-bg-subtle: rgb(98.6274509804%, 98.8235294118%, 99.0196078431%);
   --converse-dark-bg-subtle: #ced4da;
-  --converse-primary-border-subtle: rgb(158.2, 197, 254.2);
-  --converse-secondary-border-subtle: rgb(196.2, 199.8, 203);
-  --converse-success-border-subtle: rgb(163, 207, 186.6);
-  --converse-info-border-subtle: rgb(158.2, 233.8, 249);
-  --converse-warning-border-subtle: rgb(255, 230.2, 155.8);
-  --converse-danger-border-subtle: rgb(241, 174.2, 180.6);
+  --converse-primary-border-subtle: rgb(62.0392156863%, 77.2549019608%, 99.6862745098%);
+  --converse-secondary-border-subtle: rgb(76.9411764706%, 78.3529411765%, 79.6078431373%);
+  --converse-success-border-subtle: rgb(63.9215686275%, 81.1764705882%, 73.1764705882%);
+  --converse-info-border-subtle: rgb(62.0392156863%, 91.6862745098%, 97.6470588235%);
+  --converse-warning-border-subtle: rgb(100%, 90.2745098039%, 61.0980392157%);
+  --converse-danger-border-subtle: rgb(94.5098039216%, 68.3137254902%, 70.8235294118%);
   --converse-light-border-subtle: #e9ecef;
   --converse-dark-border-subtle: #adb5bd;
   --converse-white-rgb: 255, 255, 255;
@@ -98,11 +98,11 @@
   --converse-link-color: #0d6efd;
   --converse-link-color-rgb: 13, 110, 253;
   --converse-link-decoration: underline;
-  --converse-link-hover-color: rgb(10.4, 88, 202.4);
+  --converse-link-hover-color: rgb(4.0784313725%, 34.5098039216%, 79.3725490196%);
   --converse-link-hover-color-rgb: 10, 88, 202;
   --converse-code-color: #d63384;
   --converse-highlight-color: #212529;
-  --converse-highlight-bg: rgb(255, 242.6, 205.4);
+  --converse-highlight-bg: rgb(100%, 95.137254902%, 80.5490196078%);
   --converse-border-width: 1px;
   --converse-border-style: solid;
   --converse-border-color: #dee2e6;
@@ -141,46 +141,46 @@
   --converse-secondary-bg-rgb: 52, 58, 64;
   --converse-tertiary-color: rgba(222, 226, 230, 0.5);
   --converse-tertiary-color-rgb: 222, 226, 230;
-  --converse-tertiary-bg: rgb(42.5, 47.5, 52.5);
+  --converse-tertiary-bg: rgb(16.6666666667%, 18.6274509804%, 20.5882352941%);
   --converse-tertiary-bg-rgb: 43, 48, 53;
-  --converse-primary-text-emphasis: rgb(109.8, 168, 253.8);
-  --converse-secondary-text-emphasis: rgb(166.8, 172.2, 177);
-  --converse-success-text-emphasis: rgb(117, 183, 152.4);
-  --converse-info-text-emphasis: rgb(109.8, 223.2, 246);
-  --converse-warning-text-emphasis: rgb(255, 217.8, 106.2);
-  --converse-danger-text-emphasis: rgb(234, 133.8, 143.4);
+  --converse-primary-text-emphasis: rgb(43.0588235294%, 65.8823529412%, 99.5294117647%);
+  --converse-secondary-text-emphasis: rgb(65.4117647059%, 67.5294117647%, 69.4117647059%);
+  --converse-success-text-emphasis: rgb(45.8823529412%, 71.7647058824%, 59.7647058824%);
+  --converse-info-text-emphasis: rgb(43.0588235294%, 87.5294117647%, 96.4705882353%);
+  --converse-warning-text-emphasis: rgb(100%, 85.4117647059%, 41.6470588235%);
+  --converse-danger-text-emphasis: rgb(91.7647058824%, 52.4705882353%, 56.2352941176%);
   --converse-light-text-emphasis: #f8f9fa;
   --converse-dark-text-emphasis: #dee2e6;
-  --converse-primary-bg-subtle: rgb(2.6, 22, 50.6);
-  --converse-secondary-bg-subtle: rgb(21.6, 23.4, 25);
-  --converse-success-bg-subtle: rgb(5, 27, 16.8);
-  --converse-info-bg-subtle: rgb(2.6, 40.4, 48);
-  --converse-warning-bg-subtle: rgb(51, 38.6, 1.4);
-  --converse-danger-bg-subtle: rgb(44, 10.6, 13.8);
+  --converse-primary-bg-subtle: rgb(1.0196078431%, 8.6274509804%, 19.8431372549%);
+  --converse-secondary-bg-subtle: rgb(8.4705882353%, 9.1764705882%, 9.8039215686%);
+  --converse-success-bg-subtle: rgb(1.9607843137%, 10.5882352941%, 6.5882352941%);
+  --converse-info-bg-subtle: rgb(1.0196078431%, 15.8431372549%, 18.8235294118%);
+  --converse-warning-bg-subtle: rgb(20%, 15.137254902%, 0.5490196078%);
+  --converse-danger-bg-subtle: rgb(17.2549019608%, 4.1568627451%, 5.4117647059%);
   --converse-light-bg-subtle: #343a40;
   --converse-dark-bg-subtle: #1a1d20;
-  --converse-primary-border-subtle: rgb(7.8, 66, 151.8);
-  --converse-secondary-border-subtle: rgb(64.8, 70.2, 75);
-  --converse-success-border-subtle: rgb(15, 81, 50.4);
-  --converse-info-border-subtle: rgb(7.8, 121.2, 144);
-  --converse-warning-border-subtle: rgb(153, 115.8, 4.2);
-  --converse-danger-border-subtle: rgb(132, 31.8, 41.4);
+  --converse-primary-border-subtle: rgb(3.0588235294%, 25.8823529412%, 59.5294117647%);
+  --converse-secondary-border-subtle: rgb(25.4117647059%, 27.5294117647%, 29.4117647059%);
+  --converse-success-border-subtle: rgb(5.8823529412%, 31.7647058824%, 19.7647058824%);
+  --converse-info-border-subtle: rgb(3.0588235294%, 47.5294117647%, 56.4705882353%);
+  --converse-warning-border-subtle: rgb(60%, 45.4117647059%, 1.6470588235%);
+  --converse-danger-border-subtle: rgb(51.7647058824%, 12.4705882353%, 16.2352941176%);
   --converse-light-border-subtle: #495057;
   --converse-dark-border-subtle: #343a40;
   --converse-heading-color: inherit;
-  --converse-link-color: rgb(109.8, 168, 253.8);
-  --converse-link-hover-color: rgb(138.84, 185.4, 254.04);
+  --converse-link-color: rgb(43.0588235294%, 65.8823529412%, 99.5294117647%);
+  --converse-link-hover-color: rgb(54.4470588235%, 72.7058823529%, 99.6235294118%);
   --converse-link-color-rgb: 110, 168, 254;
   --converse-link-hover-color-rgb: 139, 185, 254;
-  --converse-code-color: rgb(230.4, 132.6, 181.2);
+  --converse-code-color: rgb(90.3529411765%, 52%, 71.0588235294%);
   --converse-highlight-color: #dee2e6;
-  --converse-highlight-bg: rgb(102, 77.2, 2.8);
+  --converse-highlight-bg: rgb(40%, 30.2745098039%, 1.0980392157%);
   --converse-border-color: #495057;
   --converse-border-color-translucent: rgba(255, 255, 255, 0.15);
-  --converse-form-valid-color: rgb(117, 183, 152.4);
-  --converse-form-valid-border-color: rgb(117, 183, 152.4);
-  --converse-form-invalid-color: rgb(234, 133.8, 143.4);
-  --converse-form-invalid-border-color: rgb(234, 133.8, 143.4);
+  --converse-form-valid-color: rgb(45.8823529412%, 71.7647058824%, 59.7647058824%);
+  --converse-form-valid-border-color: rgb(45.8823529412%, 71.7647058824%, 59.7647058824%);
+  --converse-form-invalid-color: rgb(91.7647058824%, 52.4705882353%, 56.2352941176%);
+  --converse-form-invalid-border-color: rgb(91.7647058824%, 52.4705882353%, 56.2352941176%);
 }
 
 .conversejs *,
@@ -1917,78 +1917,78 @@ converse-bg .gy-5 {
 }
 .conversejs .table-primary, converse-bg .table-primary {
   --converse-table-color: #000;
-  --converse-table-bg: rgb(206.6, 226, 254.6);
-  --converse-table-border-color: rgb(165.28, 180.8, 203.68);
-  --converse-table-striped-bg: rgb(196.27, 214.7, 241.87);
+  --converse-table-bg: rgb(81.0196078431%, 88.6274509804%, 99.8431372549%);
+  --converse-table-border-color: rgb(64.8156862745%, 70.9019607843%, 79.8745098039%);
+  --converse-table-striped-bg: rgb(76.968627451%, 84.1960784314%, 94.8509803922%);
   --converse-table-striped-color: #000;
-  --converse-table-active-bg: rgb(185.94, 203.4, 229.14);
+  --converse-table-active-bg: rgb(72.9176470588%, 79.7647058824%, 89.8588235294%);
   --converse-table-active-color: #000;
-  --converse-table-hover-bg: rgb(191.105, 209.05, 235.505);
+  --converse-table-hover-bg: rgb(74.9431372549%, 81.9803921569%, 92.3549019608%);
   --converse-table-hover-color: #000;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
 }
 .conversejs .table-secondary, converse-bg .table-secondary {
   --converse-table-color: #000;
-  --converse-table-bg: rgb(225.6, 227.4, 229);
-  --converse-table-border-color: rgb(180.48, 181.92, 183.2);
-  --converse-table-striped-bg: rgb(214.32, 216.03, 217.55);
+  --converse-table-bg: rgb(88.4705882353%, 89.1764705882%, 89.8039215686%);
+  --converse-table-border-color: rgb(70.7764705882%, 71.3411764706%, 71.8431372549%);
+  --converse-table-striped-bg: rgb(84.0470588235%, 84.7176470588%, 85.3137254902%);
   --converse-table-striped-color: #000;
-  --converse-table-active-bg: rgb(203.04, 204.66, 206.1);
+  --converse-table-active-bg: rgb(79.6235294118%, 80.2588235294%, 80.8235294118%);
   --converse-table-active-color: #000;
-  --converse-table-hover-bg: rgb(208.68, 210.345, 211.825);
+  --converse-table-hover-bg: rgb(81.8352941176%, 82.4882352941%, 83.068627451%);
   --converse-table-hover-color: #000;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
 }
 .conversejs .table-success, converse-bg .table-success {
   --converse-table-color: #000;
-  --converse-table-bg: rgb(209, 231, 220.8);
-  --converse-table-border-color: rgb(167.2, 184.8, 176.64);
-  --converse-table-striped-bg: rgb(198.55, 219.45, 209.76);
+  --converse-table-bg: rgb(81.9607843137%, 90.5882352941%, 86.5882352941%);
+  --converse-table-border-color: rgb(65.568627451%, 72.4705882353%, 69.2705882353%);
+  --converse-table-striped-bg: rgb(77.862745098%, 86.0588235294%, 82.2588235294%);
   --converse-table-striped-color: #000;
-  --converse-table-active-bg: rgb(188.1, 207.9, 198.72);
+  --converse-table-active-bg: rgb(73.7647058824%, 81.5294117647%, 77.9294117647%);
   --converse-table-active-color: #000;
-  --converse-table-hover-bg: rgb(193.325, 213.675, 204.24);
+  --converse-table-hover-bg: rgb(75.8137254902%, 83.7941176471%, 80.0941176471%);
   --converse-table-hover-color: #000;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
 }
 .conversejs .table-info, converse-bg .table-info {
   --converse-table-color: #000;
-  --converse-table-bg: rgb(206.6, 244.4, 252);
-  --converse-table-border-color: rgb(165.28, 195.52, 201.6);
-  --converse-table-striped-bg: rgb(196.27, 232.18, 239.4);
+  --converse-table-bg: rgb(81.0196078431%, 95.8431372549%, 98.8235294118%);
+  --converse-table-border-color: rgb(64.8156862745%, 76.6745098039%, 79.0588235294%);
+  --converse-table-striped-bg: rgb(76.968627451%, 91.0509803922%, 93.8823529412%);
   --converse-table-striped-color: #000;
-  --converse-table-active-bg: rgb(185.94, 219.96, 226.8);
+  --converse-table-active-bg: rgb(72.9176470588%, 86.2588235294%, 88.9411764706%);
   --converse-table-active-color: #000;
-  --converse-table-hover-bg: rgb(191.105, 226.07, 233.1);
+  --converse-table-hover-bg: rgb(74.9431372549%, 88.6549019608%, 91.4117647059%);
   --converse-table-hover-color: #000;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
 }
 .conversejs .table-warning, converse-bg .table-warning {
   --converse-table-color: #000;
-  --converse-table-bg: rgb(255, 242.6, 205.4);
-  --converse-table-border-color: rgb(204, 194.08, 164.32);
-  --converse-table-striped-bg: rgb(242.25, 230.47, 195.13);
+  --converse-table-bg: rgb(100%, 95.137254902%, 80.5490196078%);
+  --converse-table-border-color: rgb(80%, 76.1098039216%, 64.4392156863%);
+  --converse-table-striped-bg: rgb(95%, 90.3803921569%, 76.5215686275%);
   --converse-table-striped-color: #000;
-  --converse-table-active-bg: rgb(229.5, 218.34, 184.86);
+  --converse-table-active-bg: rgb(90%, 85.6235294118%, 72.4941176471%);
   --converse-table-active-color: #000;
-  --converse-table-hover-bg: rgb(235.875, 224.405, 189.995);
+  --converse-table-hover-bg: rgb(92.5%, 88.0019607843%, 74.5078431373%);
   --converse-table-hover-color: #000;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
 }
 .conversejs .table-danger, converse-bg .table-danger {
   --converse-table-color: #000;
-  --converse-table-bg: rgb(248, 214.6, 217.8);
-  --converse-table-border-color: rgb(198.4, 171.68, 174.24);
-  --converse-table-striped-bg: rgb(235.6, 203.87, 206.91);
+  --converse-table-bg: rgb(97.2549019608%, 84.1568627451%, 85.4117647059%);
+  --converse-table-border-color: rgb(77.8039215686%, 67.3254901961%, 68.3294117647%);
+  --converse-table-striped-bg: rgb(92.3921568627%, 79.9490196078%, 81.1411764706%);
   --converse-table-striped-color: #000;
-  --converse-table-active-bg: rgb(223.2, 193.14, 196.02);
+  --converse-table-active-bg: rgb(87.5294117647%, 75.7411764706%, 76.8705882353%);
   --converse-table-active-color: #000;
-  --converse-table-hover-bg: rgb(229.4, 198.505, 201.465);
+  --converse-table-hover-bg: rgb(89.9607843137%, 77.8450980392%, 79.0058823529%);
   --converse-table-hover-color: #000;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
@@ -1996,12 +1996,12 @@ converse-bg .gy-5 {
 .conversejs .table-light, converse-bg .table-light {
   --converse-table-color: #000;
   --converse-table-bg: #f8f9fa;
-  --converse-table-border-color: rgb(198.4, 199.2, 200);
-  --converse-table-striped-bg: rgb(235.6, 236.55, 237.5);
+  --converse-table-border-color: rgb(77.8039215686%, 78.1176470588%, 78.431372549%);
+  --converse-table-striped-bg: rgb(92.3921568627%, 92.7647058824%, 93.137254902%);
   --converse-table-striped-color: #000;
-  --converse-table-active-bg: rgb(223.2, 224.1, 225);
+  --converse-table-active-bg: rgb(87.5294117647%, 87.8823529412%, 88.2352941176%);
   --converse-table-active-color: #000;
-  --converse-table-hover-bg: rgb(229.4, 230.325, 231.25);
+  --converse-table-hover-bg: rgb(89.9607843137%, 90.3235294118%, 90.6862745098%);
   --converse-table-hover-color: #000;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
@@ -2009,12 +2009,12 @@ converse-bg .gy-5 {
 .conversejs .table-dark, converse-bg .table-dark {
   --converse-table-color: #fff;
   --converse-table-bg: #212529;
-  --converse-table-border-color: rgb(77.4, 80.6, 83.8);
-  --converse-table-striped-bg: rgb(44.1, 47.9, 51.7);
+  --converse-table-border-color: rgb(30.3529411765%, 31.6078431373%, 32.862745098%);
+  --converse-table-striped-bg: rgb(17.2941176471%, 18.7843137255%, 20.2745098039%);
   --converse-table-striped-color: #fff;
-  --converse-table-active-bg: rgb(55.2, 58.8, 62.4);
+  --converse-table-active-bg: rgb(21.6470588235%, 23.0588235294%, 24.4705882353%);
   --converse-table-active-color: #fff;
-  --converse-table-hover-bg: rgb(49.65, 53.35, 57.05);
+  --converse-table-hover-bg: rgb(19.4705882353%, 20.9215686275%, 22.3725490196%);
   --converse-table-hover-color: #fff;
   color: var(--converse-table-color);
   border-color: var(--converse-table-border-color);
@@ -2109,7 +2109,7 @@ converse-bg .gy-5 {
 .conversejs .form-control:focus, converse-bg .form-control:focus {
   color: var(--converse-body-color);
   background-color: var(--converse-body-bg);
-  border-color: rgb(134, 182.5, 254);
+  border-color: rgb(52.5490196078%, 71.568627451%, 99.6078431373%);
   outline: 0;
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
@@ -2254,7 +2254,7 @@ converse-bg .gy-5 {
   }
 }
 .conversejs .form-select:focus, converse-bg .form-select:focus {
-  border-color: rgb(134, 182.5, 254);
+  border-color: rgb(52.5490196078%, 71.568627451%, 99.6078431373%);
   outline: 0;
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
@@ -2335,7 +2335,7 @@ converse-bg .gy-5 {
   filter: brightness(90%);
 }
 .conversejs .form-check-input:focus, converse-bg .form-check-input:focus {
-  border-color: rgb(134, 182.5, 254);
+  border-color: rgb(52.5490196078%, 71.568627451%, 99.6078431373%);
   outline: 0;
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
@@ -2381,7 +2381,7 @@ converse-bg .gy-5 {
   }
 }
 .conversejs .form-switch .form-check-input:focus, converse-bg .form-switch .form-check-input:focus {
-  --converse-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgb%28134, 182.5, 254%29'/%3e%3c/svg%3e");
+  --converse-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgb%2852.5490196078%, 71.568627451%, 99.6078431373%%29'/%3e%3c/svg%3e");
 }
 .conversejs .form-switch .form-check-input:checked, converse-bg .form-switch .form-check-input:checked {
   background-position: right center;
@@ -2452,7 +2452,7 @@ converse-bg .gy-5 {
   }
 }
 .conversejs .form-range::-webkit-slider-thumb:active, converse-bg .form-range::-webkit-slider-thumb:active {
-  background-color: rgb(182.4, 211.5, 254.4);
+  background-color: rgb(71.5294117647%, 82.9411764706%, 99.7647058824%);
 }
 .conversejs .form-range::-webkit-slider-runnable-track, converse-bg .form-range::-webkit-slider-runnable-track {
   width: 100%;
@@ -2481,7 +2481,7 @@ converse-bg .gy-5 {
   }
 }
 .conversejs .form-range::-moz-range-thumb:active, converse-bg .form-range::-moz-range-thumb:active {
-  background-color: rgb(182.4, 211.5, 254.4);
+  background-color: rgb(71.5294117647%, 82.9411764706%, 99.7647058824%);
 }
 .conversejs .form-range::-moz-range-track, converse-bg .form-range::-moz-range-track {
   width: 100%;
@@ -2976,12 +2976,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #0d6efd;
   --converse-btn-border-color: #0d6efd;
   --converse-btn-hover-color: #fff;
-  --converse-btn-hover-bg: rgb(11.05, 93.5, 215.05);
-  --converse-btn-hover-border-color: rgb(10.4, 88, 202.4);
+  --converse-btn-hover-bg: rgb(4.3333333333%, 36.6666666667%, 84.3333333333%);
+  --converse-btn-hover-border-color: rgb(4.0784313725%, 34.5098039216%, 79.3725490196%);
   --converse-btn-focus-shadow-rgb: 49, 132, 253;
   --converse-btn-active-color: #fff;
-  --converse-btn-active-bg: rgb(10.4, 88, 202.4);
-  --converse-btn-active-border-color: rgb(9.75, 82.5, 189.75);
+  --converse-btn-active-bg: rgb(4.0784313725%, 34.5098039216%, 79.3725490196%);
+  --converse-btn-active-border-color: rgb(3.8235294118%, 32.3529411765%, 74.4117647059%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #fff;
   --converse-btn-disabled-bg: #0d6efd;
@@ -2992,12 +2992,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #6c757d;
   --converse-btn-border-color: #6c757d;
   --converse-btn-hover-color: #fff;
-  --converse-btn-hover-bg: rgb(91.8, 99.45, 106.25);
-  --converse-btn-hover-border-color: rgb(86.4, 93.6, 100);
+  --converse-btn-hover-bg: rgb(36%, 39%, 41.6666666667%);
+  --converse-btn-hover-border-color: rgb(33.8823529412%, 36.7058823529%, 39.2156862745%);
   --converse-btn-focus-shadow-rgb: 130, 138, 145;
   --converse-btn-active-color: #fff;
-  --converse-btn-active-bg: rgb(86.4, 93.6, 100);
-  --converse-btn-active-border-color: rgb(81, 87.75, 93.75);
+  --converse-btn-active-bg: rgb(33.8823529412%, 36.7058823529%, 39.2156862745%);
+  --converse-btn-active-border-color: rgb(31.7647058824%, 34.4117647059%, 36.7647058824%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #fff;
   --converse-btn-disabled-bg: #6c757d;
@@ -3008,12 +3008,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #198754;
   --converse-btn-border-color: #198754;
   --converse-btn-hover-color: #fff;
-  --converse-btn-hover-bg: rgb(21.25, 114.75, 71.4);
-  --converse-btn-hover-border-color: rgb(20, 108, 67.2);
+  --converse-btn-hover-bg: rgb(8.3333333333%, 45%, 28%);
+  --converse-btn-hover-border-color: rgb(7.8431372549%, 42.3529411765%, 26.3529411765%);
   --converse-btn-focus-shadow-rgb: 60, 153, 110;
   --converse-btn-active-color: #fff;
-  --converse-btn-active-bg: rgb(20, 108, 67.2);
-  --converse-btn-active-border-color: rgb(18.75, 101.25, 63);
+  --converse-btn-active-bg: rgb(7.8431372549%, 42.3529411765%, 26.3529411765%);
+  --converse-btn-active-border-color: rgb(7.3529411765%, 39.7058823529%, 24.7058823529%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #fff;
   --converse-btn-disabled-bg: #198754;
@@ -3024,12 +3024,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #0dcaf0;
   --converse-btn-border-color: #0dcaf0;
   --converse-btn-hover-color: #000;
-  --converse-btn-hover-bg: rgb(49.3, 209.95, 242.25);
-  --converse-btn-hover-border-color: rgb(37.2, 207.3, 241.5);
+  --converse-btn-hover-bg: rgb(19.3333333333%, 82.3333333333%, 95%);
+  --converse-btn-hover-border-color: rgb(14.5882352941%, 81.2941176471%, 94.7058823529%);
   --converse-btn-focus-shadow-rgb: 11, 172, 204;
   --converse-btn-active-color: #000;
-  --converse-btn-active-bg: rgb(61.4, 212.6, 243);
-  --converse-btn-active-border-color: rgb(37.2, 207.3, 241.5);
+  --converse-btn-active-bg: rgb(24.0784313725%, 83.3725490196%, 95.2941176471%);
+  --converse-btn-active-border-color: rgb(14.5882352941%, 81.2941176471%, 94.7058823529%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #000;
   --converse-btn-disabled-bg: #0dcaf0;
@@ -3040,12 +3040,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #ffc107;
   --converse-btn-border-color: #ffc107;
   --converse-btn-hover-color: #000;
-  --converse-btn-hover-bg: rgb(255, 202.3, 44.2);
-  --converse-btn-hover-border-color: rgb(255, 199.2, 31.8);
+  --converse-btn-hover-bg: rgb(100%, 79.3333333333%, 17.3333333333%);
+  --converse-btn-hover-border-color: rgb(100%, 78.1176470588%, 12.4705882353%);
   --converse-btn-focus-shadow-rgb: 217, 164, 6;
   --converse-btn-active-color: #000;
-  --converse-btn-active-bg: rgb(255, 205.4, 56.6);
-  --converse-btn-active-border-color: rgb(255, 199.2, 31.8);
+  --converse-btn-active-bg: rgb(100%, 80.5490196078%, 22.1960784314%);
+  --converse-btn-active-border-color: rgb(100%, 78.1176470588%, 12.4705882353%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #000;
   --converse-btn-disabled-bg: #ffc107;
@@ -3056,12 +3056,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #dc3545;
   --converse-btn-border-color: #dc3545;
   --converse-btn-hover-color: #fff;
-  --converse-btn-hover-bg: rgb(187, 45.05, 58.65);
-  --converse-btn-hover-border-color: rgb(176, 42.4, 55.2);
+  --converse-btn-hover-bg: rgb(73.3333333333%, 17.6666666667%, 23%);
+  --converse-btn-hover-border-color: rgb(69.0196078431%, 16.6274509804%, 21.6470588235%);
   --converse-btn-focus-shadow-rgb: 225, 83, 97;
   --converse-btn-active-color: #fff;
-  --converse-btn-active-bg: rgb(176, 42.4, 55.2);
-  --converse-btn-active-border-color: rgb(165, 39.75, 51.75);
+  --converse-btn-active-bg: rgb(69.0196078431%, 16.6274509804%, 21.6470588235%);
+  --converse-btn-active-border-color: rgb(64.7058823529%, 15.5882352941%, 20.2941176471%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #fff;
   --converse-btn-disabled-bg: #dc3545;
@@ -3072,12 +3072,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #f8f9fa;
   --converse-btn-border-color: #f8f9fa;
   --converse-btn-hover-color: #000;
-  --converse-btn-hover-bg: rgb(210.8, 211.65, 212.5);
-  --converse-btn-hover-border-color: rgb(198.4, 199.2, 200);
+  --converse-btn-hover-bg: rgb(82.6666666667%, 83%, 83.3333333333%);
+  --converse-btn-hover-border-color: rgb(77.8039215686%, 78.1176470588%, 78.431372549%);
   --converse-btn-focus-shadow-rgb: 211, 212, 213;
   --converse-btn-active-color: #000;
-  --converse-btn-active-bg: rgb(198.4, 199.2, 200);
-  --converse-btn-active-border-color: rgb(186, 186.75, 187.5);
+  --converse-btn-active-bg: rgb(77.8039215686%, 78.1176470588%, 78.431372549%);
+  --converse-btn-active-border-color: rgb(72.9411764706%, 73.2352941176%, 73.5294117647%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #000;
   --converse-btn-disabled-bg: #f8f9fa;
@@ -3088,12 +3088,12 @@ converse-bg .input-group > .form-floating:not(:focus-within).is-invalid {
   --converse-btn-bg: #212529;
   --converse-btn-border-color: #212529;
   --converse-btn-hover-color: #fff;
-  --converse-btn-hover-bg: rgb(66.3, 69.7, 73.1);
-  --converse-btn-hover-border-color: rgb(55.2, 58.8, 62.4);
+  --converse-btn-hover-bg: rgb(26%, 27.3333333333%, 28.6666666667%);
+  --converse-btn-hover-border-color: rgb(21.6470588235%, 23.0588235294%, 24.4705882353%);
   --converse-btn-focus-shadow-rgb: 66, 70, 73;
   --converse-btn-active-color: #fff;
-  --converse-btn-active-bg: rgb(77.4, 80.6, 83.8);
-  --converse-btn-active-border-color: rgb(55.2, 58.8, 62.4);
+  --converse-btn-active-bg: rgb(30.3529411765%, 31.6078431373%, 32.862745098%);
+  --converse-btn-active-border-color: rgb(21.6470588235%, 23.0588235294%, 24.4705882353%);
   --converse-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   --converse-btn-disabled-color: #fff;
   --converse-btn-disabled-bg: #212529;
